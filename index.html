@@ -1,0 +1,1623 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>燃料电池系统可视化基准流程图（PFD）</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: linear-gradient(135deg, #0f1c2e 0%, #16263d 100%);
+    color: #e8eef5;
+    min-height: 100vh;
+  }
+  header {
+    background: rgba(10, 22, 40, 0.85);
+    padding: 14px 28px;
+    border-bottom: 2px solid #2a4a6b;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: blur(6px);
+  }
+  header h1 { font-size: 1.4rem; color: #7dd3fc; letter-spacing: 1px; }
+  header .sub { color: #94a3b8; font-size: 0.85rem; }
+  .layout { display: flex; gap: 16px; padding: 16px; }
+  .input-panel {
+    width: 320px; flex-shrink: 0;
+    background: rgba(18, 32, 54, 0.9);
+    border: 1px solid #2a4a6b;
+    border-radius: 10px;
+    padding: 16px;
+    height: calc(100vh - 90px);
+    overflow-y: auto;
+  }
+  .input-panel h2 { font-size: 1rem; color: #7dd3fc; margin-bottom: 12px; border-bottom: 1px solid #2a4a6b; padding-bottom: 8px; }
+  .input-group { margin-bottom: 9px; }
+  .input-group label { display: block; font-size: 0.78rem; color: #cbd5e1; margin-bottom: 2px; }
+  .input-group input {
+    width: 100%; padding: 5px 8px; font-size: 0.82rem;
+    background: #0b1628; border: 1px solid #334e6e; border-radius: 4px;
+    color: #e8eef5;
+  }
+  .input-group input:focus { outline: none; border-color: #38bdf8; }
+  .legend {
+    margin-top: 14px; padding-top: 12px; border-top: 1px solid #2a4a6b;
+    font-size: 0.78rem; color: #94a3b8;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .legend-dot { width: 14px; height: 14px; border-radius: 50%; }
+  .diagram-wrap {
+    flex: 1;
+    background: rgba(18, 32, 54, 0.6);
+    border: 1px solid #2a4a6b;
+    border-radius: 10px;
+    padding: 10px;
+    overflow: auto;
+    height: calc(100vh - 90px);
+  }
+  svg { display: block; width: 100%; height: auto; min-width: 1100px; }
+  /* SVG 内海拔输入框 */
+  .fo-alt { display: flex; align-items: center; gap: 6px; }
+  .fo-alt label { font-size: 11px; color: #cbd5e1; white-space: nowrap; }
+  .fo-alt input {
+    width: 64px; padding: 2px 6px; font-size: 11px;
+    background: #0b1628; border: 1px solid #334e6e; border-radius: 3px;
+    color: #e8eef5; text-align: center;
+  }
+  .fo-alt input:focus { outline: none; border-color: #38bdf8; }
+
+  /* Equipment styles */
+  .equip { fill: #1e3a5f; stroke: #3b82f6; stroke-width: 2; rx: 8; }
+  .equip-stack { fill: #1a3a2e; stroke: #34d399; stroke-width: 2.5; }
+  .equip-h2 { fill: #2a1f4a; stroke: #a78bfa; stroke-width: 2; }
+  .equip-air { fill: #1a2e4a; stroke: #38bdf8; stroke-width: 2; }
+  .equip-heat { fill: #4a1f1f; stroke: #f87171; stroke-width: 2; }
+  .equip-humid { fill: #1f3a4a; stroke: #22d3ee; stroke-width: 2; }
+  .equip-ptc { fill: #4a2c0a; stroke: #f59e0b; stroke-width: 2; }
+  .valve-body { fill: #2a1a0a; stroke: #fbbf24; stroke-width: 2; }
+  .equip-label { fill: #e8eef5; font-size: 13px; font-weight: bold; text-anchor: middle; }
+  .equip-sub { fill: #94a3b8; font-size: 10px; text-anchor: middle; }
+
+  /* Pipe flows */
+  .pipe { fill: none; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+  .pipe-h2 { stroke: #6366f1; }
+  .pipe-air { stroke: #0ea5e9; }
+  .pipe-water { stroke: #06b6d4; }
+  .pipe-coolant { stroke: #f97316; }
+  .pipe-exhaust { stroke: #64748b; }
+  .pipe-heat { stroke: #ef4444; stroke-dasharray: 8 6; }
+
+  /* Animated flow dashes */
+  .flow { fill: none; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round;
+    stroke-dasharray: 16 12; animation: flowmove 1.4s linear infinite;
+    filter: drop-shadow(0 0 3px currentColor); opacity: 0.85; }
+  .flow-h2 { stroke: #c7d2fe; }
+  .flow-air { stroke: #bae6fd; }
+  .flow-water { stroke: #a5f3fc; }
+  .flow-coolant { stroke: #fed7aa; }
+  @keyframes flowmove { to { stroke-dashoffset: -56; } }
+
+  /* 第一页：叶轮旋转（空压机 / 冷却液泵 / 氢气循环泵 / 散热器风扇） */
+  .rm-spin { transform-box: view-box; animation: rmSpin 1.3s linear infinite; }
+  @keyframes rmSpin { to { transform: rotate(360deg); } }
+
+  /* 第一页：电堆内部 —— 质子交换膜 + 氢氧反应动态 */
+  @keyframes pemGas { to { stroke-dashoffset: -36; } }
+  .pem-gas { fill: none; stroke-width: 5; stroke-linecap: round; stroke-dasharray: 9 9;
+    animation: pemGas 1.3s linear infinite; }
+  .pem-gas-o2 { stroke: #7dd3fc; }
+  .pem-gas-h2 { stroke: #c4b5fd; }
+
+  @keyframes pemProton {
+    0%   { transform: translateY(0);     opacity: 0; }
+    25%  { transform: translateY(-6px);  opacity: 1; }
+    75%  { transform: translateY(-16px); opacity: 1; }
+    100% { transform: translateY(-22px); opacity: 0; }
+  }
+  .pem-proton { animation: pemProton 1.6s linear infinite; }
+
+  @keyframes pemElec { to { stroke-dashoffset: -30; } }
+  .pem-elec { fill: none; stroke: #34d399; stroke-width: 4; stroke-linecap: round;
+    stroke-dasharray: 7 8; animation: pemElec 0.9s linear infinite; }
+
+  @keyframes pemWater {
+    0%   { transform: translateY(4px) scale(0.5); opacity: 0; }
+    35%  { opacity: 0.95; }
+    100% { transform: translateY(-14px) scale(1); opacity: 0; }
+  }
+  .pem-water { animation: pemWater 2.1s ease-out infinite; }
+
+  /* 混合动力页：工质/能量流动 + 车轮转动 */
+  @keyframes hyFlow { to { stroke-dashoffset: -32; } }
+  @keyframes hySpin { to { transform: rotate(360deg); } }
+  @keyframes hyGround { to { stroke-dashoffset: 20; } }
+  @keyframes hySpeed {
+    0%   { opacity: 0.15; transform: translateX(6px); }
+    55%  { opacity: 0.75; }
+    100% { opacity: 0.15; transform: translateX(-12px); }
+  }
+  .hy-flow { fill: none; stroke-width: 5; stroke-linecap: round;
+    stroke-dasharray: 9 7; animation: hyFlow 1.2s linear infinite; }
+  .hy-h2  { stroke: #c4b5fd; }
+  .hy-fc  { stroke: #6ee7b7; }
+  .hy-bat { stroke: #fcd34d; }
+  .hy-dc  { stroke: #f87171; }
+  .hy-u   { stroke: #fbbf24; }
+  .hy-v   { stroke: #34d399; }
+  .hy-w   { stroke: #f87171; }
+  .hy-axle{ stroke: #e2e8f0; }
+
+  .wheel-spin { transform-box: view-box; animation: hySpin 1.1s linear infinite; }
+  #wheelA { transform-origin: 210px 258px; }
+  #wheelB { transform-origin: 790px 258px; }
+
+  .ground-move { animation: hyGround 0.7s linear infinite; }
+  .speed-lines line { animation: hySpeed 1.05s linear infinite; }
+  .speed-lines line:nth-child(2) { animation-delay: 0.18s; }
+  .speed-lines line:nth-child(3) { animation-delay: 0.36s; }
+  .speed-lines line:nth-child(4) { animation-delay: 0.54s; }
+
+  /* Data label bubbles */
+  .data-bubble {
+    fill: rgba(8, 18, 32, 0.92); stroke: #475569; stroke-width: 1; rx: 4;
+  }
+  .data-text { fill: #e2e8f0; font-size: 10px; font-family: monospace; }
+  .data-text strong { fill: #7dd3fc; }
+  .data-key { fill: #94a3b8; font-size: 9px; }
+
+  .section-tag { fill: #7dd3fc; font-size: 12px; font-weight: bold; letter-spacing: 2px; }
+  .arrow { fill: #94a3b8; }
+
+  /* scrollbar */
+  .input-panel::-webkit-scrollbar, .diagram-wrap::-webkit-scrollbar { width: 8px; height: 8px; }
+  .input-panel::-webkit-scrollbar-thumb, .diagram-wrap::-webkit-scrollbar-thumb { background: #334e6e; border-radius: 4px; }
+
+  /* 流程图下方详细计算面板 */
+  .calc-panels {
+    margin-top: 4px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .hx-section { border: 1px solid #2a4a6b; border-radius: 8px; overflow: hidden; }
+  .hx-section-header {
+    background: #1a2e4a; padding: 10px 14px; cursor: pointer;
+    color: #7dd3fc; font-weight: bold; font-size: 0.92rem; user-select: none;
+  }
+  .hx-section-header:hover { background: #1f3758; }
+  .hx-section-body { padding: 14px; display: block; }
+  .hx-section-body.collapsed { display: none; }
+  .hx-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin-bottom: 12px; }
+  .hx-input-group label { display: block; font-size: 0.78rem; color: #cbd5e1; margin-bottom: 3px; }
+  .hx-input-group input, .hx-input-group select {
+    width: 100%; padding: 5px 8px; font-size: 0.82rem;
+    background: #0b1628; border: 1px solid #334e6e; border-radius: 4px; color: #e8eef5;
+  }
+  .hx-input-group input:focus, .hx-input-group select:focus { outline: none; border-color: #38bdf8; }
+  .hx-results {
+    background: #0b1628; border: 1px solid #2a4a6b; border-radius: 6px; padding: 10px 14px;
+  }
+  .hx-result-row {
+    display: flex; justify-content: space-between; padding: 4px 0;
+    font-size: 0.82rem; border-bottom: 1px dashed #2a4a6b;
+  }
+  .hx-result-row:last-child { border-bottom: none; }
+  .hx-result-row .hx-r-label { color: #94a3b8; }
+  .hx-result-row .hx-r-value { color: #7dd3fc; font-weight: bold; }
+  .hx-result-row .hx-r-value.warn { color: #f87171; }
+
+  /* ====== Tab 导航 ====== */
+  .tab-bar { display: flex; gap: 4px; background: rgba(10,22,40,0.6); padding: 0 28px; border-bottom: 1px solid #2a4a6b; }
+  .tab-btn {
+    background: transparent; border: none; color: #94a3b8;
+    padding: 10px 22px; cursor: pointer; font-size: 0.92rem;
+    border-bottom: 2px solid transparent; transition: all 0.2s;
+    font-family: inherit;
+  }
+  .tab-btn:hover { color: #e8eef5; }
+  .tab-btn.active { color: #7dd3fc; border-bottom-color: #38bdf8; background: rgba(56,189,248,0.08); }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ====== 混合动力系统页面 ====== */
+  .hybrid-page { padding: 16px 24px; }
+  .vehicle-schematic {
+    background: rgba(18,32,54,0.8); border: 1px solid #2a4a6b; border-radius: 10px;
+    padding: 12px; margin-bottom: 16px;
+  }
+  .vehicle-schematic svg { width: 80%; max-width: 920px; min-width: 560px; height: auto; display: block; margin: 0 auto; }
+  .hybrid-section {
+    background: rgba(18,32,54,0.9); border: 1px solid #2a4a6b; border-radius: 10px;
+    padding: 16px; margin-bottom: 16px;
+  }
+  .hybrid-section h2 { font-size: 1.05rem; color: #7dd3fc; margin-bottom: 12px; border-bottom: 1px solid #2a4a6b; padding-bottom: 8px; }
+  .hybrid-input-grid {
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px;
+  }
+  .hybrid-input-group { display: flex; flex-direction: column; gap: 3px; }
+  .hybrid-input-group label { font-size: 0.78rem; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hybrid-input-group input {
+    padding: 5px 8px; font-size: 0.82rem;
+    background: #0b1628; border: 1px solid #334e6e; border-radius: 4px; color: #e8eef5;
+  }
+  .hybrid-input-group input:focus { outline: none; border-color: #38bdf8; }
+  .hybrid-results-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, auto); gap: 15px;
+  }
+  .hybrid-result-section {
+    background: rgba(11,22,40,0.7); padding: 14px; border-radius: 8px;
+    border: 1px solid #2a4a6b;
+  }
+  .hybrid-result-item {
+    display: flex; justify-content: space-between; padding: 4px 0;
+    font-size: 0.82rem; border-bottom: 1px dashed #2a4a6b;
+  }
+  .hybrid-result-item:last-child { border-bottom: none; }
+  .hybrid-result-item span:first-child { color: #94a3b8; }
+  .hybrid-result-item span:last-child { color: #7dd3fc; font-weight: bold; }
+  .hybrid-reference {
+    background: rgba(18,32,54,0.7); border: 1px solid #2a4a6b; border-radius: 8px;
+    padding: 14px; margin-top: 8px;
+  }
+  .hybrid-reference h4 { color: #7dd3fc; margin-bottom: 8px; font-size: 0.9rem; }
+  .hybrid-reference ol { padding-left: 20px; }
+  .hybrid-reference li { color: #94a3b8; font-size: 0.78rem; line-height: 1.6; }
+  @media (max-width: 1200px) { .hybrid-input-grid { grid-template-columns: repeat(4, 1fr); } .hybrid-results-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 700px) { .hybrid-input-grid { grid-template-columns: repeat(2, 1fr); } .hybrid-results-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>燃料电池系统可视化基准流程图（PFD）</h1>
+    <div class="sub">工质流动 · 实时数据 · 电堆 / 氢气 / 空气 / 换热 / COG加湿器</div>
+  </div>
+  <div class="sub" id="statusTag">● 计算中</div>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active" data-page="pfd">燃料电池系统设计</button>
+  <button class="tab-btn" data-page="hybrid">燃料电池混合动力系统设计</button>
+</div>
+
+<!-- 隐藏的电堆功率传递元素 -->
+<span id="stackPower" style="display:none">0</span>
+
+<div class="page active" id="page-pfd">
+<div class="layout">
+  <!-- 输入面板 -->
+  <div class="input-panel">
+    <h2>电堆基础设计参数</h2>
+    <div id="inputs"></div>
+    <div class="legend">
+      <div class="legend-item"><span class="legend-dot" style="background:#6366f1"></span>氢气流路</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#0ea5e9"></span>空气流路</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#06b6d4"></span>水流路</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#f97316"></span>冷却液流路</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span>热流</div>
+    </div>
+  </div>
+
+  <!-- 流程图 -->
+  <div class="diagram-wrap">
+    <svg id="pfd" viewBox="0 0 1500 880" preserveAspectRatio="xMidYMid meet"></svg>
+
+    <!-- 详细计算面板（流程图下方） -->
+    <div class="calc-panels">
+      <!-- 散热器计算 -->
+      <div class="hx-section">
+        <div class="hx-section-header" data-toggle="hx-rad">
+          <span>▾ 散热器计算</span>
+        </div>
+        <div class="hx-section-body" id="hx-rad">
+          <div class="hx-inputs">
+            <div class="hx-input-group"><label>冷却液带走热量比重 ξ</label><input type="number" id="hx_coolantHeatRatio" value="0.98" step="0.01"></div>
+            <div class="hx-input-group"><label>冷却空气流经散热器温差(℃)</label><input type="number" id="hx_airTempDifference" value="15" step="1"></div>
+            <div class="hx-input-group"><label>散热器总传热系数Ka W/(m²·℃)</label><input type="number" id="hx_radiatorKa" value="115" step="1"></div>
+            <div class="hx-input-group"><label>风扇个数</label><input type="number" id="hx_fanCount" value="12" step="1"></div>
+            <div class="hx-input-group"><label>风扇面积/散热器面积比率α</label><input type="number" id="hx_fanAreaRatio" value="0.78" step="0.01"></div>
+            <div class="hx-input-group"><label>单风扇叶轮直径(mm)</label><input type="number" id="hx_fanDiameter" value="315.7" step="0.1"></div>
+          </div>
+          <div class="hx-results" id="hx-rad-results"></div>
+        </div>
+      </div>
+      <!-- 中冷器计算 -->
+      <div class="hx-section">
+        <div class="hx-section-header" data-toggle="hx-ic">
+          <span>▾ 中冷器计算</span>
+        </div>
+        <div class="hx-section-body" id="hx-ic">
+          <div class="hx-inputs">
+            <div class="hx-input-group"><label>冷却液流经中冷器温差(℃)</label><input type="number" id="hx_coolantTempDiff" value="7" step="0.1"></div>
+            <div class="hx-input-group"><label>中冷器总传热系数Ka W/(m²·℃)</label><input type="number" id="hx_intercoolerKa" value="130" step="1"></div>
+          </div>
+          <div class="hx-results" id="hx-ic-results"></div>
+        </div>
+      </div>
+      <!-- 阀门流体计算 -->
+      <div class="hx-section">
+        <div class="hx-section-header" data-toggle="hx-valve">
+          <span>▾ 阀门流体计算</span>
+        </div>
+        <div class="hx-section-body" id="hx-valve">
+          <div class="hx-inputs">
+            <div class="hx-input-group"><label>流量(NLPM)</label><input type="number" id="hx_flowRateNLPM" value="1400" step="1"></div>
+            <div class="hx-input-group"><label>入口压力(bar.a)</label><input type="number" id="hx_inletPressure" value="8" step="0.1"></div>
+            <div class="hx-input-group"><label>出口压力(bar.a)</label><input type="number" id="hx_outletPressure" value="1" step="0.1"></div>
+            <div class="hx-input-group"><label>温度(℃)</label><input type="number" id="hx_fluidTemperature" value="20" step="1"></div>
+            <div class="hx-input-group" style="grid-column: span 2;">
+              <label>选择介质</label>
+              <select id="hx_mediumType">
+                <option value="0.0899">氢气</option>
+                <option value="1.225" selected>空气</option>
+                <option value="1.165">氮气</option>
+                <option value="1000">水</option>
+                <option value="1.172">乙烯</option>
+                <option value="0.717">甲烷</option>
+                <option value="1.429">氧气</option>
+                <option value="1.977">二氧化碳</option>
+                <option value="0.1786">氦气</option>
+                <option value="0.876">苯</option>
+                <option value="0.789">乙醇</option>
+                <option value="3.21">氯气</option>
+                <option value="5.51">氟利昂</option>
+                <option value="0.771">氨气</option>
+                <option value="1.489">氯仿</option>
+                <option value="0.598">蒸汽（100℃）</option>
+              </select>
+            </div>
+          </div>
+          <div class="hx-results" id="hx-valve-results"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div><!-- /page-pfd -->
+
+<!-- ============ 第二页：燃料电池混合动力系统计算 ============ -->
+<div class="page" id="page-hybrid">
+<div class="hybrid-page">
+
+  <!-- 整车结构示意图 -->
+  <div class="vehicle-schematic">
+    <svg viewBox="0 0 1000 300" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="busBody" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="#1e3a5f" stop-opacity="0.55"/>
+        </linearGradient>
+        <marker id="arrowH2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill="#a78bfa"/>
+        </marker>
+        <marker id="arrowFC" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill="#34d399"/>
+        </marker>
+        <marker id="arrowBatR" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill="#fbbf24"/>
+        </marker>
+        <marker id="arrowBatL" markerWidth="8" markerHeight="8" refX="1" refY="4" orient="auto">
+          <path d="M8,0 L0,4 L8,8 Z" fill="#fbbf24"/>
+        </marker>
+      </defs>
+
+      <!-- 标题 -->
+      <text x="500" y="28" text-anchor="middle" fill="#7dd3fc" font-size="16" font-weight="bold">燃料电池混合动力汽车结构示意</text>
+      <text x="500" y="46" text-anchor="middle" fill="#94a3b8" font-size="11">电堆 / 锂电池并联挂接直流母线 → 多合一逆变 → 三相驱动电机</text>
+
+      <!-- 地面线（虚线滚动 → 车辆右行） -->
+      <line x1="40" y1="258" x2="960" y2="258" stroke="#475569" stroke-width="2" stroke-dasharray="6 4" class="ground-move"/>
+
+      <!-- 前进速度线（车尾气流） -->
+      <g class="speed-lines" stroke="#7dd3fc" stroke-width="2" stroke-linecap="round">
+        <line x1="95" y1="150" x2="45" y2="150"/>
+        <line x1="100" y1="182" x2="25" y2="182"/>
+        <line x1="95" y1="214" x2="38" y2="214"/>
+        <line x1="100" y1="244" x2="20" y2="244"/>
+      </g>
+
+      <!-- 车身轮廓（客车侧视，车头朝右） -->
+      <path d="M110,258 L110,135 Q110,105 140,105 L860,105 Q890,105 890,135 L890,258 Z"
+            fill="url(#busBody)" stroke="#3b82f6" stroke-width="2.5"/>
+      <!-- 车窗（车尾 x<280 为设备舱，无窗） -->
+      <rect x="285" y="115" width="135" height="35" rx="5" fill="#0ea5e9" fill-opacity="0.25" stroke="#38bdf8" stroke-width="1.2"/>
+      <rect x="430" y="115" width="130" height="35" rx="5" fill="#0ea5e9" fill-opacity="0.25" stroke="#38bdf8" stroke-width="1.2"/>
+      <rect x="570" y="115" width="130" height="35" rx="5" fill="#0ea5e9" fill-opacity="0.25" stroke="#38bdf8" stroke-width="1.2"/>
+      <rect x="710" y="115" width="145" height="35" rx="5" fill="#0ea5e9" fill-opacity="0.25" stroke="#38bdf8" stroke-width="1.2"/>
+      <!-- 车灯 -->
+      <circle cx="882" cy="128" r="5" fill="#fbbf24"/>
+      <circle cx="882" cy="245" r="5" fill="#f87171"/>
+
+      <!-- 车轮（带辐条，持续右转前进） -->
+      <circle cx="210" cy="258" r="28" fill="#1e293b" stroke="#94a3b8" stroke-width="3"/>
+      <g id="wheelA" class="wheel-spin" stroke="#94a3b8" stroke-width="2" stroke-linecap="round">
+        <line x1="221" y1="258" x2="236" y2="258"/>
+        <line x1="215.5" y1="267.5" x2="223" y2="280.5"/>
+        <line x1="204.5" y1="267.5" x2="197" y2="280.5"/>
+        <line x1="199" y1="258" x2="184" y2="258"/>
+        <line x1="204.5" y1="248.5" x2="197" y2="235.5"/>
+        <line x1="215.5" y1="248.5" x2="223" y2="235.5"/>
+      </g>
+      <circle cx="210" cy="258" r="10" fill="#475569" stroke="#94a3b8" stroke-width="2"/>
+      <circle cx="790" cy="258" r="28" fill="#1e293b" stroke="#94a3b8" stroke-width="3"/>
+      <g id="wheelB" class="wheel-spin" stroke="#94a3b8" stroke-width="2" stroke-linecap="round">
+        <line x1="801" y1="258" x2="816" y2="258"/>
+        <line x1="795.5" y1="267.5" x2="803" y2="280.5"/>
+        <line x1="784.5" y1="267.5" x2="777" y2="280.5"/>
+        <line x1="779" y1="258" x2="764" y2="258"/>
+        <line x1="784.5" y1="248.5" x2="777" y2="235.5"/>
+        <line x1="795.5" y1="248.5" x2="803" y2="235.5"/>
+      </g>
+      <circle cx="790" cy="258" r="10" fill="#475569" stroke="#94a3b8" stroke-width="2"/>
+
+      <!-- ===== 储氢系统（车顶氢瓶） ===== -->
+      <g>
+        <rect x="210" y="62" width="580" height="30" rx="15" fill="#7c3aed" fill-opacity="0.25" stroke="#a78bfa" stroke-width="2"/>
+        <line x1="285" y1="62" x2="285" y2="92" stroke="#a78bfa" stroke-width="1.2" stroke-dasharray="3 3"/>
+        <line x1="360" y1="62" x2="360" y2="92" stroke="#a78bfa" stroke-width="1.2" stroke-dasharray="3 3"/>
+        <line x1="435" y1="62" x2="435" y2="92" stroke="#a78bfa" stroke-width="1.2" stroke-dasharray="3 3"/>
+        <line x1="500" y1="62" x2="500" y2="92" stroke="#a78bfa" stroke-width="1.2" stroke-dasharray="3 3"/>
+        <line x1="575" y1="62" x2="575" y2="92" stroke="#a78bfa" stroke-width="1.2" stroke-dasharray="3 3"/>
+        <line x1="650" y1="62" x2="650" y2="92" stroke="#a78bfa" stroke-width="1.2" stroke-dasharray="3 3"/>
+        <line x1="725" y1="62" x2="725" y2="92" stroke="#a78bfa" stroke-width="1.2" stroke-dasharray="3 3"/>
+        <text x="500" y="82" text-anchor="middle" fill="#c4b5fd" font-size="13" font-weight="bold">储氢系统 H₂ Storage · 35MPa 多瓶组</text>
+      </g>
+
+      <!-- ===== 燃料电池电堆 + DC/DC（车尾设备舱） ===== -->
+      <g>
+        <rect x="150" y="175" width="150" height="50" rx="6" fill="#1a3a2e" stroke="#34d399" stroke-width="2"/>
+        <line x1="228" y1="175" x2="228" y2="225" stroke="#34d399" stroke-width="1" stroke-dasharray="3 3" opacity="0.7"/>
+        <text x="189" y="198" text-anchor="middle" fill="#a7f3d0" font-size="12" font-weight="bold">燃料电池</text>
+        <text x="189" y="214" text-anchor="middle" fill="#a7f3d0" font-size="12" font-weight="bold">电堆</text>
+        <text x="264" y="198" text-anchor="middle" fill="#6ee7b7" font-size="12" font-weight="bold">DC/DC</text>
+        <text x="264" y="214" text-anchor="middle" fill="#6ee7b7" font-size="10">升压</text>
+      </g>
+
+      <!-- 氢气供应管路（车尾无窗区垂直进入电堆） -->
+      <line x1="225" y1="92" x2="225" y2="175" stroke="#a78bfa" stroke-width="2.5" marker-end="url(#arrowH2)"/>
+      <text x="233" y="140" fill="#c4b5fd" font-size="10">H₂</text>
+
+      <!-- ===== 直流母线（竖直汇流条） ===== -->
+      <rect x="333" y="168" width="8" height="72" rx="2" fill="#fbbf24" fill-opacity="0.85" stroke="#fde68a" stroke-width="1"/>
+      <text x="337" y="162" text-anchor="middle" fill="#fde68a" font-size="10" font-weight="bold">直流母线</text>
+
+      <!-- 电堆 DC/DC → 母线（绿色，发电上网，亦可给电池充电） -->
+      <line x1="300" y1="200" x2="333" y2="200" stroke="#34d399" stroke-width="2.5" marker-end="url(#arrowFC)"/>
+      <text x="316" y="193" text-anchor="middle" fill="#6ee7b7" font-size="9">发电</text>
+
+      <!-- ===== 锂电池（母线上侧支路，双向：充电/放电助力） ===== -->
+      <g>
+        <rect x="370" y="158" width="130" height="34" rx="6" fill="#78350f" fill-opacity="0.6" stroke="#fbbf24" stroke-width="2"/>
+        <text x="435" y="179" text-anchor="middle" fill="#fde68a" font-size="12" font-weight="bold">锂电池 Li-ion</text>
+      </g>
+      <line x1="341" y1="175" x2="370" y2="175" stroke="#fbbf24" stroke-width="2.5"
+            marker-start="url(#arrowBatL)" marker-end="url(#arrowBatR)"/>
+      <text x="355" y="170" text-anchor="middle" fill="#fcd34d" font-size="9">充/放</text>
+
+      <!-- ===== 多合一控制器（母线下侧支路，DC/AC 逆变） ===== -->
+      <g>
+        <rect x="370" y="200" width="140" height="40" rx="6" fill="#3b1d52" fill-opacity="0.7" stroke="#c084fc" stroke-width="2"/>
+        <text x="440" y="219" text-anchor="middle" fill="#e9d5ff" font-size="12" font-weight="bold">多合一控制器</text>
+        <text x="440" y="233" text-anchor="middle" fill="#d8b4fe" font-size="10">DC/AC 逆变</text>
+      </g>
+      <!-- 母线 → 多合一 -->
+      <line x1="341" y1="220" x2="370" y2="220" stroke="#f87171" stroke-width="2.5"/>
+
+      <!-- ===== 三相交流 U/V/W → 驱动电机 ===== -->
+      <line x1="510" y1="212" x2="582" y2="212" stroke="#fbbf24" stroke-width="2"/>
+      <line x1="510" y1="220" x2="582" y2="220" stroke="#34d399" stroke-width="2"/>
+      <line x1="510" y1="228" x2="582" y2="228" stroke="#f87171" stroke-width="2"/>
+      <text x="546" y="206" text-anchor="middle" fill="#cbd5e1" font-size="9">三相电 U/V/W</text>
+
+      <!-- ===== 驱动电机 ===== -->
+      <g>
+        <circle cx="612" cy="220" r="30" fill="#1e293b" stroke="#f87171" stroke-width="2.5"/>
+        <text x="612" y="217" text-anchor="middle" fill="#fca5a5" font-size="11" font-weight="bold">驱动</text>
+        <text x="612" y="231" text-anchor="middle" fill="#fca5a5" font-size="11" font-weight="bold">电机</text>
+        <text x="612" y="244" text-anchor="middle" fill="#fca5a5" font-size="9">Motor</text>
+      </g>
+
+      <!-- 电机 → 车轴 → 车轮 -->
+      <line x1="612" y1="250" x2="612" y2="258" stroke="#94a3b8" stroke-width="2.5"/>
+      <line x1="238" y1="258" x2="762" y2="258" stroke="#94a3b8" stroke-width="2" stroke-dasharray="2 3" opacity="0.6"/>
+
+      <!-- ===== 工质/能量流动效果（动态） ===== -->
+      <g id="hyFlows">
+        <!-- 储氢系统 → 燃料电池电堆 -->
+        <line x1="225" y1="92" x2="225" y2="175" class="hy-flow hy-h2"/>
+        <!-- 电堆发电 → 直流母线 -->
+        <line x1="302" y1="200" x2="333" y2="200" class="hy-flow hy-fc"/>
+        <!-- 锂电池放电 → 直流母线（向左汇入） -->
+        <line x1="370" y1="175" x2="341" y2="175" class="hy-flow hy-bat"/>
+        <!-- 直流母线 → 多合一控制器 -->
+        <line x1="341" y1="220" x2="370" y2="220" class="hy-flow hy-dc"/>
+        <!-- 多合一 → 驱动电机（三相 U/V/W） -->
+        <line x1="510" y1="212" x2="582" y2="212" class="hy-flow hy-u"/>
+        <line x1="510" y1="220" x2="582" y2="220" class="hy-flow hy-v"/>
+        <line x1="510" y1="228" x2="582" y2="228" class="hy-flow hy-w"/>
+        <!-- 电机 → 车轴驱动 -->
+        <line x1="612" y1="250" x2="612" y2="258" class="hy-flow hy-axle"/>
+      </g>
+
+      <!-- 图例 -->
+      <g transform="translate(30,286)">
+        <line x1="0" y1="0" x2="22" y2="0" stroke="#a78bfa" stroke-width="2.5" marker-end="url(#arrowH2)"/>
+        <text x="28" y="4" fill="#cbd5e1" font-size="10">氢气</text>
+        <rect x="78" y="-4" width="20" height="8" rx="2" fill="#fbbf24" fill-opacity="0.85"/>
+        <text x="104" y="4" fill="#cbd5e1" font-size="10">直流母线</text>
+        <line x1="170" y1="0" x2="192" y2="0" stroke="#34d399" stroke-width="2.5" marker-end="url(#arrowFC)"/>
+        <text x="198" y="4" fill="#cbd5e1" font-size="10">电堆发电（可充电池）</text>
+        <line x1="330" y1="0" x2="352" y2="0" stroke="#fbbf24" stroke-width="2.5" marker-start="url(#arrowBatL)" marker-end="url(#arrowBatR)"/>
+        <text x="358" y="4" fill="#cbd5e1" font-size="10">电池充/放</text>
+        <line x1="440" y1="-3" x2="462" y2="-3" stroke="#fbbf24" stroke-width="1.8"/>
+        <line x1="440" y1="0" x2="462" y2="0" stroke="#34d399" stroke-width="1.8"/>
+        <line x1="440" y1="3" x2="462" y2="3" stroke="#f87171" stroke-width="1.8"/>
+        <text x="468" y="4" fill="#cbd5e1" font-size="10">三相交流</text>
+      </g>
+    </svg>
+  </div>
+
+  <!-- 整车参数表 -->
+  <div class="hybrid-section">
+    <h2>整车参数表</h2>
+    <div class="hybrid-input-grid">
+      <div class="hybrid-input-group"><label for="vehicleMass">满载质量(Kg):</label><input type="number" id="vehicleMass" value="6350" step="10"></div>
+      <div class="hybrid-input-group"><label for="range">续驶里程(Km):</label><input type="number" id="range" value="400" step="10"></div>
+      <div class="hybrid-input-group"><label for="rollingResistance">滚动阻力系数𝑓:</label><input type="number" id="rollingResistance" value="0.013" step="0.001"></div>
+      <div class="hybrid-input-group"><label for="dragCoefficient">空气阻力系数Cd:</label><input type="number" id="dragCoefficient" value="0.56" step="0.01"></div>
+      <div class="hybrid-input-group"><label for="maxSpeed">最高车速(km/h):</label><input type="number" id="maxSpeed" value="100" step="5"></div>
+      <div class="hybrid-input-group"><label for="maxGradeability">最大爬坡度(%):</label><input type="number" id="maxGradeability" value="30" step="1"></div>
+      <div class="hybrid-input-group"><label for="gradeabilitySpeed">爬坡车速(km/h):</label><input type="number" id="gradeabilitySpeed" value="15" step="1"></div>
+      <div class="hybrid-input-group"><label for="accelerationEndSpeed">加速末车速(km/h):</label><input type="number" id="accelerationEndSpeed" value="50" step="5"></div>
+      <div class="hybrid-input-group"><label for="accelerationTime">加速时间(s):</label><input type="number" id="accelerationTime" value="15" step="1"></div>
+      <div class="hybrid-input-group"><label for="frontalArea">迎风面积(m2):</label><input type="number" id="frontalArea" value="5.55" step="0.01"></div>
+      <div class="hybrid-input-group"><label for="powertrainEfficiency">整车动力传动系统效率η:</label><input type="number" id="powertrainEfficiency" value="0.93" step="0.01"></div>
+      <div class="hybrid-input-group"><label for="rotatingMassCoefficient">汽车旋转质量换算系数δ:</label><input type="number" id="rotatingMassCoefficient" value="1.02" step="0.01"></div>
+      <div class="hybrid-input-group"><label for="finalDriveRatio">主减速比iο:</label><input type="number" id="finalDriveRatio" value="6" step="0.01"></div>
+      <div class="hybrid-input-group"><label for="lowGearRatio">变速器低档传动比ig:</label><input type="number" id="lowGearRatio" value="1.4" step="0.01"></div>
+      <div class="hybrid-input-group"><label for="highGearRatio">变速器高档传动比ig:</label><input type="number" id="highGearRatio" value="0.783" step="0.001"></div>
+      <div class="hybrid-input-group"><label for="tireRadius">驱动轮胎半径(m):</label><input type="number" id="tireRadius" value="0.385" step="0.001"></div>
+      <div class="hybrid-input-group"><label for="accessoryPower">整车附件功率(kW):</label><input type="number" id="accessoryPower" value="4" step="0.1"></div>
+      <div class="hybrid-input-group"><label for="motorEfficiency">驱动电机及控制器效率η:</label><input type="number" id="motorEfficiency" value="0.93" step="0.01"></div>
+      <div class="hybrid-input-group"><label for="batteryEfficiency">动力电池效率η:</label><input type="number" id="batteryEfficiency" value="0.85" step="0.01"></div>
+      <div class="hybrid-input-group"><label for="hydrogenBottlePressure">氢气瓶压力(MPa):</label><input type="number" id="hydrogenBottlePressure" value="35" step="1"></div>
+      <div class="hybrid-input-group"><label for="hydrogenBottleVolume">氢气瓶容积(L):</label><input type="number" id="hydrogenBottleVolume" value="40" step="1"></div>
+      <div class="hybrid-input-group"><label for="pemCellVoltage">额定工况PEM节电压(V):</label><input type="number" id="pemCellVoltage" value="0.62" step="0.001"></div>
+      <div class="hybrid-input-group"><label for="hydrogenPrice">氢气价格(元/kg):</label><input type="number" id="hydrogenPrice" value="30" step="0.1"></div>
+    </div>
+  </div>
+
+  <!-- 计算结果 -->
+  <div class="hybrid-section">
+    <h2>计算结果</h2>
+    <div class="hybrid-results-grid">
+      <div class="hybrid-result-section">
+        <div class="hybrid-result-item"><span>最大爬坡角(θ)：</span><span id="maxClimbingAngle"></span></div>
+        <div class="hybrid-result-item"><span>加速阶段加速度(m/s²)：</span><span id="acceleration"></span></div>
+        <div class="hybrid-result-item"><span>Pmax1_最高车速功率(kW)：</span><span id="maxSpeedPower"></span></div>
+        <div class="hybrid-result-item"><span>Pmax2_最大爬坡功率(kW)：</span><span id="maxGradeabilityPower"></span></div>
+        <div class="hybrid-result-item"><span>Pmax3_最大加速功率(kW)：</span><span id="maxAccelerationPower"></span></div>
+      </div>
+      <div class="hybrid-result-section">
+        <div class="hybrid-result-item"><span>电机峰值功率(kW)：</span><span id="motorPeakPower"></span></div>
+        <div class="hybrid-result-item"><span>电机额定功率(kW)：</span><span id="motorRatedPower"></span></div>
+        <div class="hybrid-result-item"><span>电机峰值转速(r/min)：</span><span id="motorPeakRPM"></span></div>
+        <div class="hybrid-result-item"><span>电机额定转速(r/min)：</span><span id="motorRatedRPM"></span></div>
+      </div>
+      <div class="hybrid-result-section">
+        <div class="hybrid-result-item"><span>燃料电池额定功率(kW)：</span><span id="fuelCellRequiredPower"></span></div>
+        <div class="hybrid-result-item"><span>额定工况PEM氢耗(g/s)：</span><span id="ratedConditionHydrogenConsumption"></span></div>
+        <div class="hybrid-result-item"><span>PEM所需氢气质量(Kg)：</span><span id="requiredHydrogenMass"></span></div>
+        <div class="hybrid-result-item"><span>单瓶存储氢气质量(Kg)：</span><span id="singleBottleHydrogenMass"></span></div>
+        <div class="hybrid-result-item"><span>所需氢瓶数量(n)：</span><span id="requiredBottleCount"></span></div>
+      </div>
+      <div class="hybrid-result-section">
+        <div class="hybrid-result-item"><span>动力电池所需功率(kW)：</span><span id="batteryRequiredPower"></span></div>
+        <div class="hybrid-result-item"><span>额定百公里氢耗(kg/100km)：</span><span id="rated100kmHydrogenConsumption"></span></div>
+        <div class="hybrid-result-item"><span>额定百公里氢气价格(元/100km)：</span><span id="rated100kmHydrogenPrice"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 参考文献 -->
+  <div class="hybrid-reference">
+    <h4>参考文献</h4>
+    <ol>
+      <li>王珂. 燃料电池混合动力系统设计[D]. [硕士学位论文]. 成都: 西南交通大学.</li>
+      <li>赵春鹏. 燃料电池汽车混合动力系统设计研究[D]. [硕士学位论文]. 浙江: 浙江大学.</li>
+      <li>陈浩. 燃料电池／锂电池混合动力系统优化管理[D]. [博士学位论文]. 浙江: 浙江大学.</li>
+      <li>丁晨光. 氢燃料电池混合动力系统能量管理策略研究[D]. [硕士学位论文]. 成都: 电子科技大学.</li>
+      <li>张鑫新. 基于深度Q学习的燃料电池混合动力汽车控制研究[D]. [硕士学位论文]. 重庆: 重庆交通大学.</li>
+    </ol>
+  </div>
+
+</div>
+</div><!-- /page-hybrid -->
+
+<script>
+/* ========== 输入参数定义 ========== */
+const INPUTS = [
+  { id:'cellVoltage', label:'节电压(V)', val:'0.619', step:'0.001' },
+  { id:'cellCount', label:'电堆节数', val:'400', step:'1' },
+  { id:'reactionArea', label:'反应面积(cm²)', val:'300', step:'1' },
+  { id:'currentDensity', label:'电流密度(A/cm²)', val:'2.02', step:'0.01' },
+  { id:'airRatio', label:'空气计量比', val:'2', step:'0.01' },
+  { id:'hydrogenRatio', label:'氢气计量比', val:'1.45', step:'0.01' },
+  { id:'operatingTemp', label:'操作温度(℃)', val:'81', step:'1' },
+  { id:'ambientTemp', label:'环境温度(℃)', val:'45', step:'1' },
+  { id:'tempDifference', label:'操作温差(℃)', val:'11', step:'1' },
+  { id:'humidity', label:'环境湿度(%)', val:'10', step:'1' },
+  { id:'hydrogenUtilization', label:'氢气利用率(%)', val:'98.5', step:'0.1' },
+  { id:'anodeInletPressure', label:'阳极入压力(kPa)', val:'260', step:'1' },
+  { id:'cathodeInletPressure', label:'阴极入压力(kPa)', val:'250', step:'1' },
+  { id:'anodePressureLoss', label:'阳极压损(kPa)', val:'14', step:'1' },
+  { id:'cathodePressureLoss', label:'阴极压损(kPa)', val:'50', step:'1' },
+  { id:'coolingPressureLoss', label:'冷却腔压损(kPa)', val:'30', step:'1' },
+  { id:'waterDistribution', label:'阳极水分布系数', val:'0.2', step:'0.01' },
+  { id:'anodeInletTemp', label:'阳极入温度(℃)', val:'45', step:'1' },
+  { id:'gasSeparatorEfficiency', label:'气分效率(%)', val:'90', step:'1' },
+  { id:'intercoolerPressureLoss', label:'中冷器压损(kPa)', val:'10', step:'1' },
+  { id:'compressorOutletTemp', label:'空压机出温度(℃)', val:'150', step:'1' },
+  { id:'glycolPercentage', label:'乙二醇占比(%)', val:'50', step:'1' },
+  { id:'humidifierEfficiency', label:'加湿器效率(%)', val:'0', step:'1' },
+  { id:'humidifierDryLoss', label:'加湿器干侧压损(kPa)', val:'0', step:'1' },
+  { id:'humidifierWetLoss', label:'加湿器湿侧压损(kPa)', val:'0', step:'1' },
+  // ---- 空气热力计算参数 ----
+  { id:'airGasConstant', label:'空气气体常数 J/(kg·K)', val:'287.1', step:'0.1' },
+  { id:'airSpecificHeat', label:'空气定压比热 kJ/(kg·K)', val:'1.005', step:'0.001' },
+  { id:'airSpecificHeatRatio', label:'空气比热比 κ', val:'1.4', step:'0.01' },
+  { id:'airPumpEfficiency', label:'空气泵效率(%)', val:'76', step:'1' },
+];
+
+/* 渲染输入框 */
+const inputsDiv = document.getElementById('inputs');
+INPUTS.forEach(it => {
+  const g = document.createElement('div');
+  g.className = 'input-group';
+  g.innerHTML = `<label for="${it.id}">${it.label}</label><input type="number" id="${it.id}" value="${it.val}" step="${it.step}">`;
+  inputsDiv.appendChild(g);
+});
+
+/* ========== 计算引擎 (与 script.js 公式一致) ========== */
+function num(id){ return parseFloat(document.getElementById(id).value) || 0; }
+
+function satVaporP(T){
+  return 0.00000097*Math.pow(T,4) - 0.00003455*Math.pow(T,3)
+       + 0.00371504*Math.pow(T,2) + 0.01245629*T + 0.71004367;
+}
+
+function calc(){
+  const cellVoltage=num('cellVoltage'), cellCount=num('cellCount'),
+        reactionArea=num('reactionArea'), currentDensity=num('currentDensity'),
+        airRatio=num('airRatio'), hydrogenRatio=num('hydrogenRatio'),
+        operatingTemp=num('operatingTemp'), ambientTemp=num('ambientTemp'),
+        tempDifference=num('tempDifference'), humidity=num('humidity'),
+        hydrogenUtilization=num('hydrogenUtilization'),
+        anodeInletPressure=num('anodeInletPressure'), cathodeInletPressure=num('cathodeInletPressure'),
+        anodePressureLoss=num('anodePressureLoss'), cathodePressureLoss=num('cathodePressureLoss'),
+        waterDistribution=num('waterDistribution'), anodeInletTemp=num('anodeInletTemp'),
+        gasSeparatorEfficiency=num('gasSeparatorEfficiency'),
+        intercoolerPressureLoss=num('intercoolerPressureLoss'),
+        compressorOutletTemp=num('compressorOutletTemp'), glycolPercentage=num('glycolPercentage'),
+        humidifierEfficiency=num('humidifierEfficiency'),
+        humidifierDryLoss=num('humidifierDryLoss'), humidifierWetLoss=num('humidifierWetLoss'),
+        // 空气热力计算参数
+        airGasConstant=num('airGasConstant'), airSpecificHeat=num('airSpecificHeat'),
+        airSpecificHeatRatio=num('airSpecificHeatRatio'), altitude=num('altitude'),
+        airPumpEfficiency=num('airPumpEfficiency');
+
+  // 电堆
+  const stackCurrent = reactionArea*currentDensity;
+  const stackVoltage = cellVoltage*cellCount;
+  const stackPower = (stackCurrent*stackVoltage)/1000;
+  const theoreticalHydrogenConsumption = (reactionArea*currentDensity*cellCount)/(96485*2);
+  const theoreticalOxygenConsumption = theoreticalHydrogenConsumption/2;
+  const theoreticalWaterProduction = theoreticalHydrogenConsumption;
+  const actualHydrogenFlow = theoreticalHydrogenConsumption*hydrogenRatio;
+  const actualAirFlow = (theoreticalHydrogenConsumption/2)*airRatio/0.21;
+  const actualHydrogenFlowNLPM = actualHydrogenFlow*22.4*60;
+  const actualAirFlowNLPM = actualAirFlow*22.4*60;
+  const reactionHeat = stackPower*(1.254-cellVoltage)/cellVoltage;
+  const stackEfficiency = (cellVoltage/1.254)*100;
+
+  // 氢气子系统
+  const systemHydrogenConsumption = theoreticalHydrogenConsumption*100/hydrogenUtilization;
+  const systemSupplyHydrogen = theoreticalHydrogenConsumption;
+  const systemHydrogenSupplyNLPM = systemHydrogenConsumption*22.4*60;
+  const hydrogenExhaust = systemHydrogenSupplyNLPM*(1-hydrogenUtilization/100);
+  const hydrogenRecirculation = theoreticalHydrogenConsumption*(hydrogenRatio-1);
+  const hydrogenRecirculationNLPM = hydrogenRecirculation*22.4*60;
+
+  let inletStackWater=0, anodeOutletWater=0, anodeLiquidWater=0, outletGaseousWater=0,
+      anodeCondensationHeat=0, anodeOutletHumidity=0, saturatedVaporPressure=0,
+      anodeOutletTemp=0, anodeOutletPressure=0, anodeInletHydrogenTemp=0,
+      saturatedVaporPressure1=0, inletHydrogenHumidity=0;
+  for(let i=0;i<5;i++){
+    anodeOutletWater = theoreticalHydrogenConsumption*waterDistribution + inletStackWater;
+    anodeOutletTemp = operatingTemp;
+    saturatedVaporPressure = satVaporP(anodeOutletTemp);
+    anodeOutletPressure = anodeInletPressure - anodePressureLoss;
+    anodeOutletHumidity = anodeOutletPressure*(anodeOutletWater/(anodeOutletWater+hydrogenRecirculation))/saturatedVaporPressure*100;
+    if(anodeOutletHumidity>100){
+      anodeLiquidWater = anodeOutletWater - hydrogenRecirculation*saturatedVaporPressure/(anodeOutletPressure-saturatedVaporPressure);
+    } else anodeLiquidWater=0;
+    anodeCondensationHeat = anodeLiquidWater*18*2258/1000;
+    outletGaseousWater = anodeOutletWater - anodeLiquidWater;
+    inletStackWater = anodeLiquidWater*(1-gasSeparatorEfficiency/100) + outletGaseousWater;
+    anodeInletHydrogenTemp = anodeInletTemp;
+    saturatedVaporPressure1 = satVaporP(anodeInletHydrogenTemp);
+    inletHydrogenHumidity = outletGaseousWater/(outletGaseousWater+systemSupplyHydrogen+hydrogenRecirculation)*anodeInletPressure/saturatedVaporPressure1*100;
+  }
+
+  // 空气子系统
+  const systemAirSupply = actualAirFlow;
+  const systemAirSupplyNLPM = actualAirFlowNLPM;
+  const airPumpInletTemp = ambientTemp;
+  const outletAirFlow = actualAirFlow - theoreticalHydrogenConsumption/2;
+  const outletAirFlowNLPM = outletAirFlow*22.4*60;
+  const ambientSaturatedVaporPressure = satVaporP(ambientTemp);
+  const ambientWaterIntake = humidity*ambientSaturatedVaporPressure*actualAirFlow/101/100;
+
+  let dryGasHumidificationWater=0, cathodeOutletWater=0, cathodeOutletTemp=0,
+      saturatedVaporPressure2=0, cathodeOutletPressure=0, airOutletHumidity=0,
+      outletLiquidWater=0, condensationHeat=0, outletWaterVaporPressure=0,
+      outletWaterVaporPressure1=0, outletDewPointTemp=0, intercoolerOutletTemp=0,
+      humidifierDrySidePressure=0, humidifierDrySideTemp=0,
+      humidifierDrySideSaturatedVaporPressure=0, humidifierDrySideHumidity=0,
+      humidifierWetSidePressure=0, humidifierWetSideTemp=0, humidifierWetSideWater=0,
+      humidifierWetSideSaturatedVaporPressure=0, humidifierWetSideHumidity=0;
+  for(let i=0;i<5;i++){
+    cathodeOutletWater = theoreticalWaterProduction*(1-waterDistribution) + ambientWaterIntake + dryGasHumidificationWater;
+    cathodeOutletTemp = operatingTemp;
+    saturatedVaporPressure2 = satVaporP(cathodeOutletTemp);
+    cathodeOutletPressure = cathodeInletPressure - cathodePressureLoss;
+    airOutletHumidity = cathodeOutletPressure*(cathodeOutletWater/(cathodeOutletWater+outletAirFlow))/saturatedVaporPressure2*100;
+    if(airOutletHumidity>100){
+      outletLiquidWater = cathodeOutletWater - outletAirFlow*saturatedVaporPressure2/(cathodeOutletPressure-saturatedVaporPressure2);
+    } else outletLiquidWater=0;
+    condensationHeat = outletLiquidWater*18*2258/1000;
+    outletWaterVaporPressure = cathodeOutletPressure*(cathodeOutletWater/(cathodeOutletWater+outletAirFlow));
+    outletWaterVaporPressure1 = airOutletHumidity>100 ? saturatedVaporPressure2 : outletWaterVaporPressure;
+    outletDewPointTemp = 1657.46/(7.07406-Math.log10(outletWaterVaporPressure)) - 227.02;
+    intercoolerOutletTemp = operatingTemp - tempDifference/2;
+    dryGasHumidificationWater = (cathodeOutletWater-outletLiquidWater)*humidifierEfficiency/100;
+    humidifierDrySidePressure = cathodeInletPressure;
+    humidifierDrySideTemp = (intercoolerOutletTemp + operatingTemp - tempDifference)/2;
+    humidifierDrySideSaturatedVaporPressure = satVaporP(humidifierDrySideTemp);
+    humidifierDrySideHumidity = dryGasHumidificationWater/actualAirFlow*humidifierDrySidePressure/humidifierDrySideSaturatedVaporPressure*100;
+    humidifierWetSidePressure = cathodeOutletPressure - humidifierWetLoss;
+    humidifierWetSideTemp = humidifierDrySideTemp;
+    humidifierWetSideWater = cathodeOutletWater - outletLiquidWater - dryGasHumidificationWater;
+    humidifierWetSideSaturatedVaporPressure = satVaporP(humidifierWetSideTemp);
+    humidifierWetSideHumidity = humidifierWetSideWater/outletAirFlow*humidifierWetSidePressure/humidifierWetSideSaturatedVaporPressure*100;
+  }
+
+  // 换热子系统
+  const coolantDensity = glycolPercentage*1.7657+981.43;
+  const coolantSpecificHeat = -0.0002*Math.pow(glycolPercentage,2)-0.004*glycolPercentage+4.2;
+  const superSaturatedWaterCondensationHeat = condensationHeat + anodeCondensationHeat;
+  const intercoolerHeatLoad = 1.005*(systemAirSupply*28.96/1000)*(compressorOutletTemp-intercoolerOutletTemp);
+  const systemTotalHeatLoad = intercoolerHeatLoad + superSaturatedWaterCondensationHeat + reactionHeat;
+  const stackCoolantFlow = systemTotalHeatLoad/tempDifference/coolantDensity/coolantSpecificHeat*1000*60;
+
+  // 空气热力计算（第二页）
+  let pressureAtHeight, temperatureKAtHeight, densityAtHeight;
+  if(altitude > 11000){
+    pressureAtHeight = 22631.8 * Math.exp((11000-altitude)/6340);
+    temperatureKAtHeight = 216.65;
+    densityAtHeight = 0.3639 * Math.exp((11000-altitude)/6340);
+  } else {
+    pressureAtHeight = 101325 * Math.pow(1-altitude/44330, 5.25588);
+    temperatureKAtHeight = 288.15 - 0.0065*altitude;
+    densityAtHeight = 1.225 * Math.pow(1-altitude/44330, 4.25588);
+  }
+  const temperatureCAtHeight = temperatureKAtHeight - 273.15;
+  const airInletVolumeFlow = actualAirFlow * 0.022414 * (temperatureKAtHeight/273.15) * (101325/pressureAtHeight);
+  const airInletMassFlow = airInletVolumeFlow * densityAtHeight * 1000;
+  const outletAirPressure = (cathodeInletPressure + intercoolerPressureLoss) * 1000;
+  const compressorPressureRatio = outletAirPressure / pressureAtHeight;
+  const outletAirTempK = temperatureKAtHeight * (1 + ((Math.pow(compressorPressureRatio, 0.286)-1) / (airPumpEfficiency/100)));
+  const outletAirTempC = outletAirTempK - 273.15;
+  const airTempRise = outletAirTempK - temperatureKAtHeight;
+  const isentropicCompressionWork = (airSpecificHeatRatio/(airSpecificHeatRatio-1)) * pressureAtHeight * airInletVolumeFlow * (1 - Math.pow(compressorPressureRatio, (airSpecificHeatRatio-1)/airSpecificHeatRatio));
+  const compressorPowerConsumption = airInletMassFlow * airSpecificHeat * airTempRise;
+
+  // ===== 换热器/中冷器计算 =====
+  const hx = (id)=>parseFloat(document.getElementById(id)?.value)||0;
+  const coolantHeatRatio=hx('hx_coolantHeatRatio'), airTempDifference=hx('hx_airTempDifference'),
+        radiatorKa=hx('hx_radiatorKa'), fanCount=hx('hx_fanCount'), fanAreaRatio=hx('hx_fanAreaRatio'),
+        fanDiameter=hx('hx_fanDiameter'), coolantTempDiff=hx('hx_coolantTempDiff'),
+        intercoolerKa=hx('hx_intercoolerKa');
+  const a6=coolantHeatRatio||1, b6=Math.max(0.1,airTempDifference), c6=Math.max(0.1,radiatorKa),
+        d6=Math.max(1,fanCount), e6=Math.max(0.1,fanAreaRatio), f6=Math.max(0.1,fanDiameter);
+  const radSysHeat=systemTotalHeatLoad, radAmbient=ambientTemp||25,
+        radDensity=coolantDensity||1000, radCp=coolantSpecificHeat||4.18,
+        radCoolantIn=operatingTemp, radCoolantOut=operatingTemp-tempDifference,
+        radCoolantFlow=Math.max(0.1,stackCoolantFlow);
+  const radOutletAir=radAmbient+b6;
+  const dT1=radCoolantIn-radOutletAir, dT2=Math.max(0.1,radCoolantOut-radAmbient);
+  const ratio1=Math.abs(dT1)/dT2;
+  let logMeanT;
+  if(ratio1>1.7 && Math.abs(dT1-dT2)>0.001)
+    logMeanT=(dT1-dT2)/Math.log(Math.max(0.1,Math.abs(dT1)/dT2));
+  else logMeanT=(dT1+dT2)/2;
+  const Rv=tempDifference/b6, gMinusH=Math.max(0.1,radCoolantIn-radAmbient);
+  const Ev=Math.min(0.99,Math.max(0.01,b6/gMinusH));
+  let radLmtdCorr=1.0;
+  try{
+    const sqrtR=Math.sqrt(Rv*Rv+1);
+    const num=Math.abs(Rv-1)>0.001?sqrtR/(Rv-1):1.0;
+    const la1=(1-Ev)/Math.max(0.01,1-Rv*Ev);
+    const lt1=Math.log(Math.max(0.01,Math.abs(la1)));
+    const p1=2/Math.max(0.01,Ev)-1-Rv;
+    const la2=Math.max(0.01,Math.abs((p1+sqrtR)/Math.max(0.01,Math.abs(p1-sqrtR))));
+    const lt2=Math.log(Math.max(0.01,la2));
+    radLmtdCorr=Math.abs(lt2)>0.001?num*lt1/lt2:1.0;
+    radLmtdCorr=Math.min(2.0,Math.max(0.5,radLmtdCorr));
+  }catch(e){}
+  const safeLmtd=Math.max(0.1,Math.abs(logMeanT));
+  const deltaTm1=radLmtdCorr*safeLmtd;
+  const radArea=radSysHeat>0?(radSysHeat*1000)/(Math.max(0.1,c6*deltaTm1))*a6:0;
+  const hxDensity=pressureAtHeight/(airGasConstant*temperatureKAtHeight);
+  const reqAirFlow=radSysHeat>0?(radSysHeat*3600)/(Math.max(0.1,b6*1.005*hxDensity))*a6:0;
+  const radFrontalArea=3.14*f6*f6/4*d6/e6/1000000;
+  const singleFanFlow=reqAirFlow/d6;
+
+  // 中冷器计算
+  const icHeat=intercoolerHeatLoad, icAirIn=compressorOutletTemp, icAirOut=intercoolerOutletTemp;
+  const icCoolantIn=operatingTemp-tempDifference;
+  const a7=Math.max(0.1,coolantTempDiff), b7=Math.max(0.1,intercoolerKa);
+  const icCoolantOut=radCoolantOut+a7;
+  const icAirFlow=systemAirSupplyNLPM;
+  const icCoolantFlow=icHeat>0?(icHeat/a7/radDensity/radCp*1000*60):0;
+  const dT11=icAirIn-icCoolantOut, dT22=Math.max(0.1,icAirOut-radCoolantOut);
+  const ratio2=Math.abs(dT11)/dT22;
+  let deltaTm2;
+  if(ratio2>1.7 && Math.abs(dT11-dT22)>0.001)
+    deltaTm2=(dT11-dT22)/Math.log(Math.max(0.1,ratio2));
+  else deltaTm2=(dT11+dT22)/2;
+  const R1v=(icAirIn-icAirOut)/a7, denR1=Math.max(0.1,icAirIn-radCoolantOut);
+  const E1v=Math.min(0.99,Math.max(0.01,a7/denR1));
+  let icLmtdCorr=1.0;
+  try{
+    const sqrtR1=Math.sqrt(R1v*R1v+1);
+    const num1=Math.abs(R1v-1)>0.001?sqrtR1/(R1v-1):1.0;
+    const la1b=(1-E1v)/Math.max(0.01,1-R1v*E1v);
+    const lt1b=Math.log(Math.max(0.01,Math.abs(la1b)));
+    const p1b=2/Math.max(0.01,E1v)-1-R1v;
+    const la2b=Math.max(0.01,Math.abs((p1b+sqrtR1)/Math.max(0.01,Math.abs(p1b-sqrtR1))));
+    const lt2b=Math.log(Math.max(0.01,la2b));
+    icLmtdCorr=Math.abs(lt2b)>0.001?num1*lt1b/lt2b:1.0;
+    icLmtdCorr=Math.min(2.0,Math.max(0.5,icLmtdCorr));
+  }catch(e){}
+  const deltaTm22=icLmtdCorr*Math.max(0.1,Math.abs(deltaTm2));
+  const icArea=icHeat>0?(icHeat*1000)/(b7*deltaTm22):0;
+
+  // ===== 阀门流体计算 =====
+  const vFlow=hx('hx_flowRateNLPM'), vInP=hx('hx_inletPressure'), vOutP=hx('hx_outletPressure'),
+        vTemp=hx('hx_fluidTemperature');
+  const vSel=document.getElementById('hx_mediumType');
+  const vDensity=vSel?parseFloat(vSel.value)||0:1.225;
+  const vFlowM3h=vFlow*60/1000;
+  const vDeltaP=Math.max(0.001,vInP-vOutP);
+  const vTempK=vTemp+273.15;
+  let vKv=0;
+  if(vDensity>=1000){
+    vKv=vFlowM3h*Math.sqrt(vDensity/(1000*vDeltaP));
+  } else if(vOutP>vInP/2){
+    vKv=vFlowM3h/514*Math.sqrt(vTempK*vDensity/(vOutP*vDeltaP));
+  } else {
+    vKv=vFlowM3h/(257*Math.max(0.001,vInP))*Math.sqrt(vTempK*vDensity);
+  }
+  let vDN=0;
+  if(vKv>0){
+    vDN=-77.861*Math.pow(vKv,6)+256.11*Math.pow(vKv,5)-331.17*Math.pow(vKv,4)
+        +215.74*Math.pow(vKv,3)-77.502*Math.pow(vKv,2)+20.183*vKv+0.476;
+    vDN=Math.max(0,vDN);
+  }
+
+  return {
+    stack:{current:stackCurrent,voltage:stackVoltage,power:stackPower,heat:reactionHeat,efficiency:stackEfficiency,
+           h2:theoreticalHydrogenConsumption,o2:theoreticalOxygenConsumption,water:theoreticalWaterProduction},
+    h2:{supply:actualHydrogenFlow,supplyNLPM:actualHydrogenFlowNLPM,sysConsume:systemHydrogenConsumption,
+        sysSupplyNLPM:systemHydrogenSupplyNLPM,exhaust:hydrogenExhaust,recirc:hydrogenRecirculation,
+        recircNLPM:hydrogenRecirculationNLPM,anodeOutletWater,anodeOutletTemp,anodeOutletPressure,
+        anodeOutletHumidity,anodeLiquidWater,anodeCondensationHeat,outletGaseousWater,
+        anodeInletHydrogenTemp,inletHydrogenHumidity,inletStackWater,waterDistribution},
+    air:{supply:systemAirSupply,supplyNLPM:systemAirSupplyNLPM,outlet:outletAirFlow,outletNLPM:outletAirFlowNLPM,
+         cathodeOutletWater,cathodeOutletTemp,cathodeOutletPressure,airOutletHumidity,outletLiquidWater,
+         condensationHeat,outletDewPointTemp,intercoolerOutletTemp,ambientWaterIntake,compressorOutletTemp},
+    cool:{density:coolantDensity,cp:coolantSpecificHeat,totalHeat:systemTotalHeatLoad,flow:stackCoolantFlow,
+          reactionHeat,superSatHeat:superSaturatedWaterCondensationHeat,intercoolerHeat:intercoolerHeatLoad},
+    hum:{dryWater:dryGasHumidificationWater,dryP:humidifierDrySidePressure,dryT:humidifierDrySideTemp,
+         dryRH:humidifierDrySideHumidity,wetP:humidifierWetSidePressure,wetT:humidifierWetSideTemp,
+         wetWater:humidifierWetSideWater,wetRH:humidifierWetSideHumidity,eff:humidifierEfficiency},
+    airThermal:{pressureAtHeight,densityAtHeight,temperatureKAtHeight,temperatureCAtHeight,
+                airInletVolumeFlow,airInletMassFlow,outletAirPressure,compressorPressureRatio,
+                outletAirTempK,outletAirTempC,airTempRise,isentropicCompressionWork,compressorPowerConsumption},
+    hx:{rad:{sysHeat:radSysHeat,ambient:radAmbient,outletAir:radOutletAir,density:radDensity,cp:radCp,
+             coolantIn:radCoolantIn,coolantOut:radCoolantOut,coolantFlow:radCoolantFlow,
+             lmtdCorr:radLmtdCorr,area:radArea,frontalArea:radFrontalArea,airFlow:reqAirFlow,singleFanFlow},
+        ic:{heat:icHeat,airIn:icAirIn,airOut:icAirOut,coolantIn:icCoolantIn,coolantOut:icCoolantOut,
+            airFlow:icAirFlow,coolantFlow:icCoolantFlow,lmtdCorr:icLmtdCorr,area:icArea}},
+    valve:{flow:vFlow,inP:vInP,outP:vOutP,temp:vTemp,density:vDensity,kv:vKv,dn:vDN,deltaP:vDeltaP}
+  };
+}
+
+/* ========== SVG 流程图构建 ========== */
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('pfd');
+
+function el(tag, attrs={}, parent=svg){
+  const e = document.createElementNS(SVG_NS, tag);
+  for(const k in attrs) e.setAttribute(k, attrs[k]);
+  parent.appendChild(e);
+  return e;
+}
+function equip(x,y,w,h,cls,label,sub){
+  const g = el('g');
+  el('rect',{x,y,width:w,height:h,class:cls},g);
+  el('text',{x:x+w/2,y:y+h/2-2,class:'equip-label'},g).textContent=label;
+  if(sub) el('text',{x:x+w/2,y:y+h/2+14,class:'equip-sub'},g).textContent=sub;
+  return g;
+}
+
+/* ---- 真实外形辅助函数（参考引射器剖面风格） ---- */
+// 旋转机械：蜗壳 + 叶轮（blades 个叶片，叶轮持续旋转），cx/cy 圆心，r 半径
+function rotaryMachine(cx, cy, r, dark, stroke, blades=6){
+  const g = el('g');
+  el('circle',{cx,cy,r,fill:dark,stroke,'stroke-width':2},g);
+  // 蜗壳渐开线（静止不动）
+  el('path',{d:`M ${cx+r*0.25} ${cy-r*0.55} A ${r*0.8} ${r*0.8} 0 1 1 ${cx+r*0.72} ${cy+r*0.18}`,
+    fill:'none',stroke,'stroke-width':1.2,opacity:0.55},g);
+  // 叶轮（旋转组：叶片 + 轮毂）
+  const rotor = el('g',{class:'rm-spin', style:`transform-origin:${cx}px ${cy}px`},g);
+  for(let i=0;i<blades;i++){
+    const a=i*360/blades*Math.PI/180, b=a+0.55;
+    const x1=cx+r*0.28*Math.cos(a), y1=cy+r*0.28*Math.sin(a);
+    const x2=cx+r*0.78*Math.cos(a+0.18), y2=cy+r*0.78*Math.sin(a+0.18);
+    const x3=cx+r*0.62*Math.cos(b), y3=cy+r*0.62*Math.sin(b);
+    // 叶片明暗渐变：打破 N 重旋转对称，使转动可见
+    el('polygon',{points:`${x1},${y1} ${x2},${y2} ${x3},${y3}`,
+      fill:stroke,opacity:(0.92-i*0.1).toFixed(2)},rotor);
+  }
+  el('circle',{cx,cy,r:r*0.26,fill:stroke,opacity:0.95},rotor);
+  el('circle',{cx,cy,r:r*0.12,fill:dark},rotor);
+  // 轮毂定向标记
+  el('line',{x1:cx,y1:cy,x2:cx+r*0.22,y2:cy-r*0.1,
+    stroke:dark,'stroke-width':1.6,'stroke-linecap':'round'},rotor);
+  return g;
+}
+// 接管短节
+function stub(x,y,w,h,stroke,fill='#0f1c2e'){
+  return el('rect',{x,y,width:w,height:h,rx:2,fill,stroke,'stroke-width':1.6});
+}
+// 带半透明底板的设备标签（压在图形细节上方）
+function tagLabel(x,y,lines,size=11){
+  const g = el('g');
+  const lh = size+3;
+  const w = Math.max(...lines.map(l=>l.length))*size*1.02 + 12;
+  const h = lines.length*lh + 6;
+  el('rect',{x:x-w/2,y:y-h/2,width:w,height:h,rx:4,
+    fill:'rgba(8,16,30,0.78)',stroke:'none'},g);
+  lines.forEach((l,i)=>{
+    el('text',{x,y:y-h/2+lh*(i+1)-1,fill:'#e8eef5','font-size':size,'font-weight':'bold',
+      'text-anchor':'middle'},g).textContent=l;
+  });
+  return g;
+}
+// 管道与标注
+let _pid = 0;
+const PARTICLE_COLORS = {
+  'pipe-h2':'#c7d2fe','pipe-air':'#bae6fd','pipe-water':'#a5f3fc',
+  'pipe-coolant':'#fed7aa','pipe-exhaust':'#cbd5e1','pipe-heat':'#fca5a5'
+};
+function pipe(d, cls, flowCls){
+  const id = 'p'+(_pid++);
+  // 底层管道（实心）
+  el('path',{d,class:'pipe '+cls});
+  // 流动虚线层
+  el('path',{d,class:'flow '+flowCls});
+  // 路径定义（供粒子 animateMotion 引用，不可见）
+  el('path',{id,d,fill:'none',stroke:'none'});
+  // 沿管道运动的发光粒子
+  const pColor = PARTICLE_COLORS[cls] || '#ffffff';
+  const pg = el('g');
+  for(let i=0;i<3;i++){
+    const c = el('circle',{r:3.2,fill:pColor,filter:'url(#glow)',opacity:0.95},pg);
+    const am = el('animateMotion',{dur:'2.6s',repeatCount:'indefinite',begin:`${i*0.85}s`,rotate:'auto'},c);
+    el('mpath',{href:'#'+id,'xlink:href':'#'+id},am);
+  }
+}
+function arrow(x1,y1,x2,y2,color='#f87171'){
+  el('line',{x1,y1,x2,y2,stroke:color,'stroke-width':2.5,'stroke-dasharray':'6 4',
+             'marker-end':'url(#ah)'});
+}
+// 箭头标记 + 发光滤镜
+const defs = el('defs');
+const mk = el('marker',{id:'ah',viewBox:'0 0 10 10',refX:8,refY:5,markerWidth:7,markerHeight:7,orient:'auto'},defs);
+el('path',{d:'M0,0 L10,5 L0,10 z',fill:'#f87171'},mk);
+// 发光滤镜（用于流动粒子）
+const glow = el('filter',{id:'glow',x:'-100%',y:'-100%',width:'300%',height:'300%'},defs);
+el('feGaussianBlur',{stdDeviation:'2.2',result:'blur'},glow);
+const merge = el('feMerge',{},glow);
+el('feMergeNode',{in:'blur'},merge);
+el('feMergeNode',{in:'SourceGraphic'},merge);
+
+/* ---- 分区标题 ---- */
+el('text',{x:70,y:55,class:'section-tag'}).textContent='▎ 空气子系统';
+el('text',{x:70,y:385,class:'section-tag'}).textContent='▎ 氢气子系统';
+el('text',{x:560,y:675,class:'section-tag'}).textContent='▎ 换热子系统';
+
+/* ====== 电堆 (中心)：MEA 剖面 + 氢氧反应过程 ====== */
+// 坐标：x 640-880, y 300-540
+(function(){
+  el('rect',{x:640,y:300,width:240,height:240,rx:6,class:'equip-stack'});
+  el('text',{x:806,y:319,'text-anchor':'middle',fill:'#a7f3d0','font-size':12,'font-weight':'bold'}).textContent='燃料电池电堆';
+  el('text',{x:806,y:331,'text-anchor':'middle',fill:'#6ee7b7','font-size':9}).textContent='Fuel Cell Stack';
+
+  // 阴极区（空气 / 氧气）
+  el('rect',{x:644,y:340,width:208,height:62,rx:4,fill:'#0b2436',stroke:'#38bdf8','stroke-width':1.2});
+  el('text',{x:798,y:353,'text-anchor':'middle',fill:'#7dd3fc','font-size':9,'font-weight':'bold'}).textContent='阴极 Cathode · 空气';
+  // 阳极区（氢气）
+  el('rect',{x:644,y:438,width:208,height:74,rx:4,fill:'#1c1436',stroke:'#a78bfa','stroke-width':1.2});
+  el('text',{x:700,y:450,'text-anchor':'middle',fill:'#c4b5fd','font-size':9,'font-weight':'bold'}).textContent='阳极 Anode · 氢气';
+
+  // 质子交换膜（PEM）
+  el('rect',{x:644,y:406,width:208,height:28,rx:2,fill:'#4a2f08',stroke:'#fbbf24','stroke-width':1.8});
+  for(let i=0;i<26;i++)
+    el('line',{x1:646+i*8,y1:408,x2:646+i*8,y2:432,stroke:'#fcd34d','stroke-width':0.8,opacity:0.28});
+  el('rect',{x:648,y:411,width:98,height:18,rx:3,fill:'rgba(8,16,30,0.92)'});
+  el('text',{x:697,y:424,'text-anchor':'middle',fill:'#fde68a','font-size':9,'font-weight':'bold'}).textContent='质子交换膜 PEM';
+
+  // ---- 气体流动（O₂ 阴极 / H₂ 阳极）----
+  el('path',{d:'M760,300 L760,380',fill:'none',stroke:'#38bdf8','stroke-width':2,opacity:0.45});
+  el('path',{d:'M760,380 L846,380',class:'pem-gas pem-gas-o2'});
+  el('path',{d:'M650,478 L846,478',class:'pem-gas pem-gas-h2'});
+  el('text',{x:790,y:373,'text-anchor':'middle',fill:'#7dd3fc','font-size':8}).textContent='O₂';
+  el('text',{x:662,y:473,'fill':'#c4b5fd','font-size':8}).textContent='H₂';
+
+  // ---- 质子 H⁺ 穿过交换膜（阳极 → 阴极）----
+  [730,748,766,784,802,820,838].forEach((cx,i)=>{
+    el('circle',{cx,cy:430,r:2.6,fill:'#fde68a',class:'pem-proton',
+      style:`animation-delay:${(i*0.22).toFixed(2)}s`});
+  });
+  el('text',{x:846,y:428,'text-anchor':'end',fill:'#fde68a','font-size':8}).textContent='H⁺ ↑';
+
+  // ---- 电子 e⁻ 经外电路绕行（阳极 → 阴极）----
+  el('path',{d:'M846,470 L862,470 L862,356 L846,356',class:'pem-elec'});
+  el('text',{x:877,y:414,'text-anchor':'end',fill:'#6ee7b7','font-size':8}).textContent='e⁻';
+
+  // ---- 反应方程 ----
+  el('text',{x:748,y:395,'text-anchor':'middle',fill:'#bae6fd','font-size':8.5}).textContent='O₂ + 4H⁺ + 4e⁻ → 2H₂O';
+  el('text',{x:748,y:505,'text-anchor':'middle',fill:'#ddd6fe','font-size':8.5}).textContent='H₂ → 2H⁺ + 2e⁻';
+
+  // ---- 阴极侧生成的水分子（动态）----
+  [688,768,828].forEach((cx,i)=>{
+    el('circle',{cx,cy:378,r:3,fill:'#22d3ee',class:'pem-water',
+      style:`animation-delay:${(i*0.7).toFixed(1)}s`});
+  });
+})();
+// 进出接口小圆
+[[760,300],[880,380],[640,460],[640,500],[700,540],[780,540]].forEach(([x,y])=>
+  el('circle',{cx:x,cy:y,r:4,fill:'#0f1c2e',stroke:'#94a3b8','stroke-width':1.5}));
+
+/* ====== 空气进气路 (顶部) ====== */
+equip(60,90,110,56,'equip-air','环境空气','Ambient');
+// 海拔输入框（环境空气气泡下方）
+(function(){
+  const fo = document.createElementNS(SVG_NS,'foreignObject');
+  fo.setAttribute('x',60); fo.setAttribute('y',224);
+  fo.setAttribute('width',170); fo.setAttribute('height',26);
+  fo.innerHTML = '<div class="fo-alt" xmlns="http://www.w3.org/1999/xhtml"><label for="altitude">所在地海拔(m)</label><input type="number" id="altitude" value="500" step="10"></div>';
+  svg.appendChild(fo);
+})();
+/* -- 空气滤清器：卧式壳体 + 褶皱滤芯 (210-320) -- */
+(function(){
+  stub(210,112,10,12,'#38bdf8');            // 入口短节
+  el('rect',{x:220,y:100,width:90,height:36,rx:8,fill:'#14253c',stroke:'#38bdf8','stroke-width':2});
+  el('rect',{x:220,y:100,width:14,height:36,rx:6,fill:'#1a2e4a'});   // 左端盖
+  el('rect',{x:296,y:100,width:14,height:36,rx:6,fill:'#1a2e4a'});   // 右端盖
+  for(let i=0;i<11;i++) el('line',{x1:240+i*5,y1:104,x2:240+i*5,y2:132,stroke:'#7dd3fc','stroke-width':1.1,opacity:0.7});
+  stub(310,112,10,12,'#38bdf8');            // 出口短节
+  tagLabel(265,120,['空气滤清器','Filter'],9);
+})();
+
+/* -- 空压机：离心式（蜗壳+叶轮） (360-470) -- */
+el('text',{x:418,y:100,'text-anchor':'middle',fill:'#e8eef5','font-size':11,'font-weight':'bold'}).textContent='空压机 Compressor';
+stub(360,112,42,12,'#38bdf8');             // 入口短节 → 蜗壳
+stub(434,112,36,12,'#38bdf8');             // 蜗壳 → 出口
+rotaryMachine(418,124,16,'#14253c','#38bdf8',7);
+
+el('text',{x:415,y:80,class:'section-tag','text-anchor':'middle'}).textContent='空气热力计算';
+
+/* -- 中冷器：板翅式换热器芯体（管束+翅片） (510-620) -- */
+(function(){
+  stub(510,112,8,12,'#38bdf8');
+  el('rect',{x:518,y:100,width:94,height:36,rx:4,fill:'#14253c',stroke:'#38bdf8','stroke-width':2});
+  el('rect',{x:518,y:100,width:8,height:36,fill:'#1a2e4a'});
+  el('rect',{x:604,y:100,width:8,height:36,fill:'#1a2e4a'});
+  for(let i=0;i<5;i++) el('line',{x1:528,y1:107+i*7,x2:602,y2:107+i*7,stroke:'#7dd3fc','stroke-width':1.6,opacity:0.75});
+  stub(612,112,8,12,'#38bdf8');
+  tagLabel(565,121,['中冷器','Intercooler'],9);
+})();
+pipe('M170,118 L210,118','pipe-air','flow-air');
+pipe('M320,118 L360,118','pipe-air','flow-air');
+pipe('M470,118 L510,118','pipe-air','flow-air');
+
+/* ====== COG加湿器 (紧凑立式 x905-1025, y170-370，干/湿侧逆流) ====== */
+// 青色逆流箭头标记
+const mkC = el('marker',{id:'ahC',viewBox:'0 0 10 10',refX:8,refY:5,markerWidth:6,markerHeight:6,orient:'auto'},defs);
+el('path',{d:'M0,0 L10,5 L0,10 z',fill:'#22d3ee'},mkC);
+el('rect',{x:905,y:170,width:120,height:200,rx:4,class:'equip-humid'});
+el('line',{x1:965,y1:170,x2:965,y2:370,stroke:'#22d3ee','stroke-width':1,'stroke-dasharray':'4 4',opacity:0.5});
+el('text',{x:965,y:245,class:'equip-label'}).textContent='COG加湿器';
+el('text',{x:965,y:262,class:'equip-sub'}).textContent='膜加湿器';
+el('text',{x:935,y:200,class:'equip-sub',fill:'#67e8f9'}).textContent='干侧';
+el('text',{x:995,y:200,class:'equip-sub',fill:'#67e8f9'}).textContent='湿侧';
+// 内部逆流方向：干侧自上而下，湿侧自下而上
+el('line',{x1:935,y1:278,x2:935,y2:312,stroke:'#67e8f9','stroke-width':1.5,'stroke-dasharray':'3 3','marker-end':'url(#ahC)'});
+el('line',{x1:995,y1:312,x2:995,y2:278,stroke:'#67e8f9','stroke-width':1.5,'stroke-dasharray':'3 3','marker-end':'url(#ahC)'});
+
+// 中冷器出口(620,118) → 干侧顶部入口(935,170)
+pipe('M620,118 L620,142 L935,142 L935,170','pipe-air','flow-air');
+// 干侧出口(左壁 905,300) → 电堆阴极入口(760,300)，抬升至电堆顶缘上方接入
+pipe('M905,300 L850,300 L850,288 L760,288 L760,300','pipe-air','flow-air');
+// 阴极出口(880,380) → 湿侧底部入口(995,370)
+pipe('M880,380 L995,380 L995,370','pipe-air','flow-air');
+// 湿侧顶部出口(995,170) → 尾气排放箱(1170,318)
+pipe('M995,170 L1085,170 L1085,318 L1170,318','pipe-exhaust','flow-air');
+/* 尾气排放：卧式消声器 + 排气筒 (1170-1270) */
+(function(){
+  el('rect',{x:1178,y:306,width:76,height:24,rx:12,fill:'#14253c',stroke:'#38bdf8','stroke-width':2});
+  el('line',{x1:1200,y1:310,x2:1200,y2:326,stroke:'#7dd3fc','stroke-width':1,opacity:0.6});
+  el('line',{x1:1230,y1:310,x2:1230,y2:326,stroke:'#7dd3fc','stroke-width':1,opacity:0.6});
+  el('rect',{x:1246,y:288,width:8,height:18,rx:2,fill:'#14253c',stroke:'#38bdf8','stroke-width':1.6});
+  el('path',{d:'M1242,288 L1258,288',fill:'none',stroke:'#38bdf8','stroke-width':2.5,'stroke-linecap':'round'});
+  tagLabel(1212,322,['尾气排放','Exhaust'],8);
+})();
+
+/* ====== 氢气子系统 (左侧) ====== */
+/* -- 氢气源：卧式高压钢瓶 (60-170) -- */
+(function(){
+  el('rect',{x:66,y:408,width:96,height:40,rx:20,fill:'#241a44',stroke:'#a78bfa','stroke-width':2});
+  el('path',{d:'M66,414 A20,20 0 0 1 66,442',fill:'#2a1f4a',stroke:'#a78bfa','stroke-width':1.2});
+  el('rect',{x:160,y:420,width:8,height:16,rx:2,fill:'#241a44',stroke:'#a78bfa','stroke-width':1.6}); // 瓶颈
+  el('rect',{x:157,y:414,width:14,height:7,rx:2,fill:'#a78bfa'});                                  // 瓶阀
+  tagLabel(112,428,['氢气源','H₂ Cylinder'],9);
+})();
+/* -- 氢气喷射阀：截止阀剖面（双密封锥+阀杆+手轮） (210-320) -- */
+(function(){
+  stub(210,423,33,10,'#a78bfa','#1f1638');
+  stub(287,423,33,10,'#a78bfa','#1f1638');
+  // 两个对顶三角（阀芯座）
+  el('polygon',{points:'243,416 243,440 265,428',fill:'#a78bfa'});
+  el('polygon',{points:'287,416 287,440 265,428',fill:'#a78bfa'});
+  // 阀杆 + 手轮
+  el('line',{x1:265,y1:416,x2:265,y2:398,stroke:'#c4b5fd','stroke-width':2.5});
+  el('line',{x1:253,y1:398,x2:277,y2:398,stroke:'#c4b5fd','stroke-width':3,'stroke-linecap':'round'});
+  el('text',{x:265,y:453,'text-anchor':'middle',fill:'#e8eef5','font-size':9,'font-weight':'bold'}).textContent='氢气喷射阀';
+})();
+pipe('M170,428 L210,428','pipe-h2','flow-h2');
+pipe('M320,428 L350,428','pipe-h2','flow-h2');
+
+/* ====== 引射器 Ejector（喷射阀新氢 + 循环泵回流氢 交汇） x350-520 ====== */
+const ejec = el('g',{id:'ejector'});
+// 外壳：入口管 → 收缩吸入室 → 喉管 → 扩散管
+el('path',{d:'M350,424 L392,424 L398,416 L438,416 L440,422 L460,422 L520,414 L520,442 L460,434 L440,434 L438,440 L398,440 L392,434 L350,434 Z',
+   fill:'#2a1f4a',stroke:'#a78bfa','stroke-width':2},ejec);
+// 内部一次流喷嘴（收缩锥体）
+el('polygon',{points:'392,424 392,434 405,429',fill:'#a78bfa',opacity:0.9},ejec);
+// 高速射流方向
+el('polygon',{points:'412,425 412,431 421,428',fill:'#c7d2fe',opacity:0.9},ejec);
+// 二次流（循环氢）底部吸入口短管
+el('rect',{x:414,y:440,width:12,height:14,fill:'#2a1f4a',stroke:'#a78bfa','stroke-width':2},ejec);
+el('text',{x:428,y:478,fill:'#c4b5fd','font-size':11,'font-weight':'bold'},ejec).textContent='引射器';
+el('text',{x:428,y:491,fill:'#a78bfa','font-size':9},ejec).textContent='Ejector';
+
+// 引射器出口 → 阳极入口(640,460)
+pipe('M520,428 L560,428 L560,460 L640,460','pipe-h2','flow-h2');
+// 阳极出口(640,500) → 气液分离器
+pipe('M640,500 L560,500 L560,610 L460,610','pipe-h2','flow-h2');
+/* 气液分离器：立式承压罐（椭圆封头+液位+丝网除沫） (340-460) */
+(function(){
+  stub(424,605,36,10,'#a78bfa','#1f1638');         // 进气（右）
+  stub(340,605,36,10,'#a78bfa','#1f1638');         // 出气（左）
+  el('rect',{x:376,y:584,width:48,height:42,rx:10,fill:'#241a44',stroke:'#a78bfa','stroke-width':2});
+  el('ellipse',{cx:400,cy:586,rx:24,ry:7,fill:'#2a1f4a',stroke:'#a78bfa','stroke-width':1.5});
+  el('ellipse',{cx:400,cy:625,rx:24,ry:7,fill:'#2a1f4a',stroke:'#a78bfa','stroke-width':1.5});
+  // 丝网除沫器（上部网格）
+  for(let i=0;i<4;i++) el('line',{x1:382+i*9,y1:592,x2:382+i*9,y2:600,stroke:'#c4b5fd','stroke-width':0.8,opacity:0.6});
+  for(let i=0;i<2;i++) el('line',{x1:382,y1:594+i*4,x2:418,y2:594+i*4,stroke:'#c4b5fd','stroke-width':0.8,opacity:0.6});
+  // 液位
+  el('line',{x1:380,y1:615,x2:420,y2:615,stroke:'#22d3ee','stroke-width':1.5,'stroke-dasharray':'3 2'});
+  el('rect',{x:396,y:630,width:8,height:10,fill:'#241a44',stroke:'#a78bfa','stroke-width':1.5}); // 排液短管
+  el('text',{x:400,y:576,'text-anchor':'middle',fill:'#e8eef5','font-size':10,'font-weight':'bold'}).textContent='气液分离器';
+})();
+// 分离器 → 循环泵(左) → 引射器二次流吸入口(下)
+pipe('M340,610 L250,610','pipe-h2','flow-h2');       // 分离器→泵入口
+/* 氢气循环泵：罗茨/离心式（蜗壳+叶轮，偏心布置） (140-250) */
+(function(){
+  stub(195,603,55,10,'#a78bfa','#1f1638');          // 入口（右）
+  rotaryMachine(175,608,20,'#241a44','#a78bfa',6);
+  el('path',{d:'M175,588 L175,580 L250,580',fill:'none',stroke:'#a78bfa','stroke-width':4,'stroke-linecap':'round'}); // 出口L短节
+  el('text',{x:225,y:605,'text-anchor':'middle',fill:'#e8eef5','font-size':9,'font-weight':'bold'}).textContent='氢气循环泵';
+  el('text',{x:225,y:617,'text-anchor':'middle',fill:'#a78bfa','font-size':8}).textContent='Recirc Pump';
+})();
+pipe('M250,580 L420,580 L420,454','pipe-h2','flow-h2'); // 泵出口→引射器二次流口
+// 分离器排水
+pipe('M400,640 L400,730','pipe-water','flow-water');
+el('text',{x:410,y:700,class:'equip-sub',fill:'#a5f3fc'}).textContent='液态水排放';
+
+/* ====== 换热/冷却液 (底部)：电堆 → 三通阀 → 散热器/PTC加热器并联 → 泵 ====== */
+/* 冷却液泵：离心式（蜗壳+叶轮，顶部出口/底部入口） (580-700) */
+(function(){
+  rotaryMachine(610,788,20,'#3a1515','#f87171',6);
+  el('path',{d:'M610,768 L610,760 L640,760',fill:'none',stroke:'#f87171','stroke-width':4,'stroke-linecap':'round'});
+  el('path',{d:'M610,808 L610,816 L640,816',fill:'none',stroke:'#f87171','stroke-width':4,'stroke-linecap':'round'});
+  el('text',{x:670,y:786,'text-anchor':'middle',fill:'#e8eef5','font-size':10,'font-weight':'bold'}).textContent='冷却液泵';
+  el('text',{x:670,y:799,'text-anchor':'middle',fill:'#fca5a5','font-size':9}).textContent='Coolant Pump';
+})();
+
+// 三通分流阀（散热支路 / PTC加热支路）
+el('circle',{cx:775,cy:695,r:20,class:'valve-body'});
+el('line',{x1:775,y1:695,x2:775,y2:679,stroke:'#fbbf24','stroke-width':2});
+el('line',{x1:775,y1:695,x2:791,y2:685,stroke:'#fbbf24','stroke-width':2});
+el('line',{x1:775,y1:695,x2:791,y2:705,stroke:'#fbbf24','stroke-width':2});
+el('text',{x:775,y:738,'text-anchor':'middle',fill:'#fde68a','font-size':11,'font-weight':'bold'}).textContent='三通阀';
+el('text',{x:775,y:751,'text-anchor':'middle',fill:'#fcd34d','font-size':9}).textContent='3-Way Valve';
+
+/* 散热器：管带式芯体（水室+翅片+冷却水管）+ 轴流风扇 (920-1040) */
+(function(){
+  el('text',{x:980,y:651,'text-anchor':'middle',fill:'#e8eef5','font-size':11,'font-weight':'bold'}).textContent='散热器 Radiator';
+  stub(920,676,8,10,'#f87171','#2a0f0f');
+  stub(1032,676,8,10,'#f87171','#2a0f0f');
+  el('rect',{x:928,y:660,width:104,height:44,rx:3,fill:'#2a0f0f',stroke:'#f87171','stroke-width':2});
+  el('rect',{x:928,y:660,width:10,height:44,fill:'#4a1f1f'});                 // 左水室
+  el('rect',{x:1022,y:660,width:10,height:44,fill:'#4a1f1f'});                // 右水室
+  for(let i=0;i<10;i++) el('line',{x1:942+i*8,y1:664,x2:942+i*8,y2:700,stroke:'#fca5a5','stroke-width':1,opacity:0.55}); // 翅片
+  [672,682,692].forEach(y=>el('line',{x1:940,y1:y,x2:1020,y2:y,stroke:'#fdba74','stroke-width':2,opacity:0.8}));          // 冷却水管
+  rotaryMachine(980,682,13,'#1c0a0a','#fca5a5',5);                            // 轴流风扇（置于芯体前）
+})();
+
+/* PTC加热器：卧式加热筒体 + 电热丝 (920-1040) */
+(function(){
+  el('text',{x:980,y:741,'text-anchor':'middle',fill:'#e8eef5','font-size':10,'font-weight':'bold'}).textContent='PTC加热器';
+  stub(920,766,8,10,'#f59e0b','#2a1806');
+  stub(1032,766,8,10,'#f59e0b','#2a1806');
+  el('rect',{x:928,y:753,width:104,height:36,rx:18,fill:'#2a1806',stroke:'#f59e0b','stroke-width':2});
+  el('polyline',{points:'944,771 953,762 962,780 971,762 980,780 989,762 998,780 1007,762 1016,771',
+                 fill:'none',stroke:'#fbbf24','stroke-width':1.8});
+  el('circle',{cx:980,cy:771,r:2.5,fill:'#fde68a'});
+})();
+el('text',{x:1108,y:725,'text-anchor':'middle',fill:'#fdba74','font-size':9}).textContent='并联';
+el('text',{x:1108,y:737,'text-anchor':'middle',fill:'#fdba74','font-size':9}).textContent='支路';
+
+// 泵出口 → 电堆冷却腔入口(700,540)
+pipe('M640,760 L640,700 L700,700 L700,540','pipe-coolant','flow-coolant');
+// 电堆冷却腔出口(780,540) → 三通阀顶部入口
+pipe('M780,540 L780,675 L775,675','pipe-coolant','flow-coolant');
+// 三通阀 → 散热器支路
+pipe('M795,681 L920,681','pipe-coolant','flow-coolant');
+// 三通阀 → PTC加热器支路（冷启动加热，与散热器并联）
+pipe('M795,709 L880,709 L880,771 L920,771','pipe-coolant','flow-coolant');
+// 散热器出口 → 汇合点
+pipe('M1040,681 L1075,681 L1075,771','pipe-coolant','flow-coolant');
+// PTC出口 → 汇合点 → 泵（底部回流）
+pipe('M1040,771 L1075,771 L1075,835 L640,835 L640,816','pipe-coolant','flow-coolant');
+
+/* ====== 热流标注 (局部短箭头) ====== */
+arrow(760,540,760,640);          // 电堆反应热 → 冷却液
+el('text',{x:766,y:600,class:'equip-sub',fill:'#fca5a5'}).textContent='反应热';
+arrow(565,146,565,230);          // 中冷器热
+el('text',{x:572,y:200,class:'equip-sub',fill:'#fca5a5'}).textContent='中冷器热';
+arrow(400,640,400,690);          // 冷凝热(已随水流) - 用文字
+el('text',{x:410,y:670,class:'equip-sub',fill:'#fca5a5'}).textContent='冷凝放热';
+
+/* ========== 数据气泡 ========== */
+const nodes = {};
+function addData(id, x, y, anchor='start'){
+  const g = el('g',{id:'d_'+id});
+  nodes[id] = {g, x, y, anchor};
+}
+addData('ambient', 60, 158);
+addData('comp', 360, 158);
+addData('intercooler', 510, 158);
+addData('hum_dry', 715, 185);
+addData('hum_wet', 1035, 395);
+addData('stack_top', 640, 262);
+addData('h2_supply', 60, 466);
+addData('h2_mix', 420, 372, 'middle');
+addData('anode_out', 470, 528);
+addData('sep', 470, 600);
+addData('recirc', 60, 560);
+addData('cathode_out', 875, 398);
+addData('exhaust', 1280, 300);
+addData('cool_pump', 430, 745);
+addData('heat_sum', 1180, 620);
+
+function updateData(r){
+  const f = (v,d=2)=> (isFinite(v)?v.toFixed(d):'--');
+  const set = (id, lines)=>{
+    const n = nodes[id]; if(!n) return;
+    n.g.innerHTML='';
+    const pad=6, lh=13;
+    const w = Math.max(...lines.map(l=>l.replace(/<[^>]+>/g,'').length))*6.5 + pad*2;
+    const h = lines.length*lh + pad*2 - 4;
+    const bx = n.anchor==='middle'? n.x-w/2 : n.x;
+    const rct = document.createElementNS(SVG_NS,'rect');
+    rct.setAttribute('x',bx); rct.setAttribute('y',n.y);
+    rct.setAttribute('width',w); rct.setAttribute('height',h);
+    rct.setAttribute('class','data-bubble');
+    n.g.appendChild(rct);
+    lines.forEach((l,i)=>{
+      const t = document.createElementNS(SVG_NS,'text');
+      t.setAttribute('x',bx+pad); t.setAttribute('y',n.y+pad+lh*(i+1)-3);
+      t.setAttribute('class','data-text');
+      // SVG <text> 不支持 HTML <strong>，改用 <tspan> 着色
+      const segs = l.match(/<strong>[\s\S]*?<\/strong>|[\s\S]+?(?=<strong>|$)/g) || [l];
+      segs.forEach(s=>{
+        const isVal = /^<strong>/.test(s);
+        const content = s.replace(/<\/?strong>/g,'');
+        if(content.length===0) return;
+        const ts = document.createElementNS(SVG_NS,'tspan');
+        ts.setAttribute('fill', isVal ? '#7dd3fc' : '#e2e8f0');
+        ts.setAttribute('font-weight', isVal ? 'bold' : 'normal');
+        ts.textContent = content;
+        t.appendChild(ts);
+      });
+      n.g.appendChild(t);
+    });
+  };
+
+  set('ambient',[`在高度h上的温度:<strong>${f(r.airThermal.temperatureCAtHeight,1)}</strong>℃`,
+                 `环境湿度:<strong>${f(num('humidity'),0)}</strong>%`,
+                 `大气压:<strong>${f(r.airThermal.pressureAtHeight,0)}</strong>Pa`,
+                 `大气密度:<strong>${f(r.airThermal.densityAtHeight,4)}</strong>kg/m³`]);
+  set('comp',[`空压机出温(设定):<strong>${f(r.air.compressorOutletTemp,1)}</strong>℃`,
+              `计算出温:<strong>${f(r.airThermal.outletAirTempC,1)}</strong>℃`,
+              `温升:<strong>${f(r.airThermal.airTempRise,1)}</strong>K`,
+              `压比 ε:<strong>${f(r.airThermal.compressorPressureRatio,2)}</strong>`,
+              `出口压:<strong>${f(r.airThermal.outletAirPressure,0)}</strong>Pa`,
+              `体积流量:<strong>${f(r.airThermal.airInletVolumeFlow,4)}</strong>m³/s`,
+              `质量流量:<strong>${f(r.airThermal.airInletMassFlow,2)}</strong>g/s`,
+              `定熵轴功:<strong>${f(r.airThermal.isentropicCompressionWork,1)}</strong>W`,
+              `功耗:<strong>${f(r.airThermal.compressorPowerConsumption,1)}</strong>W`,
+              `流量:<strong>${f(r.air.supplyNLPM,1)}</strong>NLPM`,
+              `泵效:<strong>${f(num('airPumpEfficiency'),0)}</strong>%`]);
+  set('intercooler',[`出温:<strong>${f(r.air.intercoolerOutletTemp,1)}</strong>℃`,
+                     `热负荷:<strong>${f(r.cool.intercoolerHeat,1)}</strong>kW`]);
+  set('hum_dry',[`干侧 T:<strong>${f(r.hum.dryT,1)}</strong>℃`,
+                 `干侧 RH:<strong>${f(r.hum.dryRH,1)}</strong>%`,
+                 `加湿水:<strong>${f(r.hum.dryWater,3)}</strong>mol/s`,
+                 `效率:<strong>${f(r.hum.eff,0)}</strong>%`]);
+  set('hum_wet',[`湿侧 T:<strong>${f(r.hum.wetT,1)}</strong>℃`,
+                 `湿侧 RH:<strong>${f(r.hum.wetRH,1)}</strong>%`,
+                 `湿侧水量:<strong>${f(r.hum.wetWater,3)}</strong>mol/s`]);
+  set('stack_top',[`功率:<strong>${f(r.stack.power,1)}</strong>kW`,
+                   `效率:<strong>${f(r.stack.efficiency,1)}</strong>%`,
+                   `电压:<strong>${f(r.stack.voltage,1)}</strong>V`,
+                   `电流:<strong>${f(r.stack.current,1)}</strong>A`,
+                   `反应热:<strong>${f(r.stack.heat,1)}</strong>kW`,
+                   `产水:<strong>${f(r.stack.water,3)}</strong>mol/s`]);
+  set('h2_supply',[`供氢:<strong>${f(r.h2.sysSupplyNLPM,1)}</strong>NLPM`,
+                   `入堆 P:<strong>${f(num('anodeInletPressure'),0)}</strong>kPa`]);
+  set('h2_mix',[`入堆 RH:<strong>${f(r.h2.inletHydrogenHumidity,1)}</strong>%`,
+                `入堆 T:<strong>${f(r.h2.anodeInletHydrogenTemp,1)}</strong>℃`]);
+  set('anode_out',[`阳极出 T:<strong>${f(r.h2.anodeOutletTemp,1)}</strong>℃`,
+                   `阳极出 P:<strong>${f(r.h2.anodeOutletPressure,0)}</strong>kPa`,
+                   `RH:<strong>${f(r.h2.anodeOutletHumidity,1)}</strong>%`,
+                   `总水:<strong>${f(r.h2.anodeOutletWater,3)}</strong>mol/s`]);
+  set('sep',[`液态水:<strong>${f(r.h2.anodeLiquidWater,3)}</strong>mol/s`,
+             `冷凝放热:<strong>${f(r.h2.anodeCondensationHeat,2)}</strong>kW`]);
+  set('recirc',[`循环量:<strong>${f(r.h2.recircNLPM,1)}</strong>NLPM`,
+                `尾气:<strong>${f(r.h2.exhaust,1)}</strong>NLPM`]);
+  set('cathode_out',[`阴极出 T:<strong>${f(r.air.cathodeOutletTemp,1)}</strong>℃`,
+                     `阴极出 P:<strong>${f(r.air.cathodeOutletPressure,0)}</strong>kPa`,
+                     `RH:<strong>${f(r.air.airOutletHumidity,1)}</strong>%`]);
+  set('exhaust',[`排气量:<strong>${f(r.air.outletNLPM,1)}</strong>NLPM`,
+                 `液态水:<strong>${f(r.air.outletLiquidWater,3)}</strong>mol/s`,
+                 `露点:<strong>${f(r.air.outletDewPointTemp,1)}</strong>℃`]);
+  set('cool_pump',[`冷却液流量:<strong>${f(r.cool.flow,1)}</strong>L/min`,
+                   `密度:<strong>${f(r.cool.density,0)}</strong>kg/m³`,
+                   `比热:<strong>${f(r.cool.cp,2)}</strong>kJ/(kg·K)`]);
+  set('heat_sum',[`热负荷汇总:`,
+                  `中冷器:<strong>${f(r.cool.intercoolerHeat,1)}</strong>kW`,
+                  `冷凝放热:<strong>${f(r.cool.superSatHeat,1)}</strong>kW`,
+                  `反应产热:<strong>${f(r.cool.reactionHeat,1)}</strong>kW`,
+                  `总热负荷:<strong>${f(r.cool.totalHeat,1)}</strong>kW`]);
+
+  document.getElementById('statusTag').textContent = '● 已同步';
+  document.getElementById('statusTag').style.color = '#34d399';
+}
+
+/* ========== 初始化 & 事件 ========== */
+function run(){
+  const r = calc();
+  updateData(r);
+  renderHxResults();
+  // 同步电堆功率到混合动力计算页
+  const sp = document.getElementById('stackPower');
+  if(sp) sp.textContent = r.stack.power;
+  calculateHybridSystem();
+}
+INPUTS.forEach(it=>{
+  document.getElementById(it.id).addEventListener('input', run);
+});
+document.getElementById('altitude').addEventListener('input', run);
+run();
+
+/* ========== 燃料电池混合动力系统计算 ========== */
+function calculateHybridSystem(){
+  const get = id => { const el = document.getElementById(id); return el ? parseFloat(el.value) : NaN; };
+  const getText = id => { const el = document.getElementById(id); return el ? parseFloat(el.textContent) : 0; };
+
+  const vehicleMass = get('vehicleMass') || 0;
+  const range = get('range') || 0;
+  const rollingResistance = get('rollingResistance') || 0;
+  const dragCoefficient = get('dragCoefficient') || 0;
+  const maxSpeed = get('maxSpeed') || 0;
+  const maxGradeability = get('maxGradeability') || 0;
+  const gradeabilitySpeed = get('gradeabilitySpeed') || 0;
+  const accelerationEndSpeed = get('accelerationEndSpeed') || 0;
+  const accelerationTime = get('accelerationTime') || 0;
+  const frontalArea = get('frontalArea') || 0;
+  const powertrainEfficiency = get('powertrainEfficiency') || 0;
+  const rotatingMassCoefficient = get('rotatingMassCoefficient') || 0;
+  const finalDriveRatio = get('finalDriveRatio') || 0;
+  const lowGearRatio = get('lowGearRatio') || 0;
+  const highGearRatio = get('highGearRatio') || 0;
+  const tireRadius = get('tireRadius') || 0;
+  const accessoryPower = get('accessoryPower') || 0;
+  const motorEfficiency = get('motorEfficiency') || 0;
+  const batteryEfficiency = get('batteryEfficiency') || 0;
+  const hydrogenBottlePressure = get('hydrogenBottlePressure') || 0;
+  const hydrogenBottleVolume = get('hydrogenBottleVolume') || 0;
+
+  // 从 PFD 页获取电堆功率与氢气利用率
+  const stackPower = getText('stackPower') || 0;
+  const hydrogenUtilization = get('hydrogenUtilization') || 98.5;
+
+  const safePowertrainEfficiency = Math.max(0.1, powertrainEfficiency);
+  const safeMotorEfficiency = Math.max(0.1, motorEfficiency);
+  const safeBatteryEfficiency = Math.max(0.1, batteryEfficiency);
+  const safeTireRadius = Math.max(0.1, tireRadius);
+
+  const maxClimbingAngle = Math.atan(maxGradeability / 100) * 180 / Math.PI;
+  const acceleration = accelerationEndSpeed / accelerationTime / 3.6 * 1000;
+
+  const maxSpeedPower = (maxSpeed / 3600 / safePowertrainEfficiency) *
+                        (vehicleMass * 9.8 * rollingResistance + dragCoefficient * frontalArea * maxSpeed**2 / 21.15);
+
+  const maxGradeabilityPower = (gradeabilitySpeed / 3600 / safePowertrainEfficiency) *
+                               (vehicleMass * 9.8 * rollingResistance * Math.cos(maxClimbingAngle * Math.PI / 180) +
+                                vehicleMass * 9.8 * Math.sin(maxClimbingAngle * Math.PI / 180) +
+                                dragCoefficient * frontalArea * gradeabilitySpeed**2 / 21.15);
+
+  const maxAccelerationPower = (accelerationEndSpeed / 3600 / safePowertrainEfficiency) *
+                               (vehicleMass * 9.8 * rollingResistance +
+                                dragCoefficient * frontalArea * accelerationEndSpeed**2 / 21.15 +
+                                rotatingMassCoefficient * vehicleMass * (accelerationEndSpeed / accelerationTime / 3.6));
+
+  const motorPeakPower = Math.max(maxSpeedPower, maxGradeabilityPower, maxAccelerationPower);
+  const motorRatedPower = maxSpeedPower;
+
+  const motorPeakRPM = (maxSpeed * finalDriveRatio * highGearRatio) / (0.3768 * safeTireRadius);
+  const motorRatedRPM = (maxSpeed * finalDriveRatio * lowGearRatio) / (0.3768 * safeTireRadius);
+
+  // 燃料电池所需功率 = 电机额定功率 + 附件功率（同时取电堆计算功率的较大值作为约束参考）
+  const fuelCellRequiredPower = motorRatedPower + accessoryPower;
+
+  const batteryRequiredPower = (motorPeakPower / safeMotorEfficiency - fuelCellRequiredPower) / safeBatteryEfficiency;
+
+  const pemCellVoltage = get('pemCellVoltage') || 0.62;
+  const ratedConditionHydrogenConsumption = fuelCellRequiredPower * 1000 / pemCellVoltage / 96485 / (hydrogenUtilization / 100);
+
+  const requiredHydrogenMass = range / maxSpeed * 3600 * ratedConditionHydrogenConsumption / 1000;
+  const singleBottleHydrogenMass = hydrogenBottlePressure * 1000 * hydrogenBottleVolume / 8.314 / 298 * 2.016 / 1000;
+  const safeSingleBottleHydrogenMass = Math.max(0.1, singleBottleHydrogenMass);
+  const requiredBottleCount = requiredHydrogenMass / safeSingleBottleHydrogenMass;
+
+  const hydrogenPrice = get('hydrogenPrice') || 30;
+  const rated100kmHydrogenConsumption = ratedConditionHydrogenConsumption * 100 / maxSpeed * 3600 / 1000;
+  const rated100kmHydrogenPrice = rated100kmHydrogenConsumption * hydrogenPrice;
+
+  const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+  set('maxClimbingAngle', maxClimbingAngle.toFixed(2));
+  set('acceleration', acceleration.toFixed(3));
+  set('maxSpeedPower', maxSpeedPower.toFixed(2));
+  set('maxGradeabilityPower', maxGradeabilityPower.toFixed(2));
+  set('maxAccelerationPower', maxAccelerationPower.toFixed(2));
+  set('motorPeakPower', motorPeakPower.toFixed(2));
+  set('motorRatedPower', motorRatedPower.toFixed(2));
+  set('motorPeakRPM', motorRatedRPM.toFixed(0));
+  set('motorRatedRPM', motorPeakRPM.toFixed(0));
+  set('fuelCellRequiredPower', fuelCellRequiredPower.toFixed(2));
+  set('ratedConditionHydrogenConsumption', ratedConditionHydrogenConsumption.toFixed(4));
+  set('requiredHydrogenMass', requiredHydrogenMass.toFixed(3));
+  set('singleBottleHydrogenMass', singleBottleHydrogenMass.toFixed(3));
+  set('requiredBottleCount', requiredBottleCount.toFixed(2));
+  set('batteryRequiredPower', batteryRequiredPower.toFixed(2));
+  set('rated100kmHydrogenConsumption', rated100kmHydrogenConsumption.toFixed(4));
+  set('rated100kmHydrogenPrice', rated100kmHydrogenPrice.toFixed(2));
+}
+
+/* ====== 流程图下方详细计算面板 ====== */
+// 折叠切换
+document.querySelectorAll('.hx-section-header').forEach(h=>{
+  h.addEventListener('click',()=>{
+    const body = document.getElementById(h.dataset.toggle);
+    body.classList.toggle('collapsed');
+    const span = h.querySelector('span');
+    span.textContent = body.classList.contains('collapsed')
+      ? span.textContent.replace('▾','▸') : span.textContent.replace('▸','▾');
+  });
+});
+// 面板内输入变化触发重算
+['hx_coolantHeatRatio','hx_airTempDifference','hx_radiatorKa','hx_fanCount','hx_fanAreaRatio',
+ 'hx_fanDiameter','hx_coolantTempDiff','hx_intercoolerKa',
+ 'hx_flowRateNLPM','hx_inletPressure','hx_outletPressure','hx_fluidTemperature'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',()=>{ run(); renderHxResults(); });
+});
+document.getElementById('hx_mediumType').addEventListener('change',()=>{ run(); renderHxResults(); });
+
+function renderHxResults(){
+  const r = calc();
+  const rad = r.hx.rad, ic = r.hx.ic, v = r.valve;
+  const f2 = v => (Number(v)||0).toFixed(2);
+  const f1 = v => (Number(v)||0).toFixed(1);
+  const f0 = v => (Number(v)||0).toFixed(0);
+  const f4 = v => (Number(v)||0).toFixed(4);
+  const f3 = v => (Number(v)||0).toFixed(3);
+  const row = (l,val,warn)=>`<div class="hx-result-row"><span class="hx-r-label">${l}</span><span class="hx-r-value${warn?' warn':''}">${val}</span></div>`;
+  const vWarn = v.kv>1 || v.kv<0.012;
+  // 阀门流体计算结果
+  document.getElementById('hx-valve-results').innerHTML = [
+    ['介质密度(kg/m³)',f3(v.density)],['压差ΔP(bar)',f2(v.deltaP)],
+    ['Kv(m³/h)',f4(v.kv)],['DN(mm)',f3(v.dn)]
+  ].map(([l,val])=>row(l,val,(l.includes('Kv')||l.includes('DN'))?vWarn:false)).join('');
+  // 散热器计算结果
+  document.getElementById('hx-rad-results').innerHTML = [
+    ['系统总热负荷(kW)',f2(rad.sysHeat)],['环境温度(℃)',f1(rad.ambient)],
+    ['冷却空气出散热器温度(℃)',f1(rad.outletAir)],['冷却液密度(kg/m³)',f0(rad.density)],
+    ['冷却液比热(kJ/(kg·K))',f2(rad.cp)],['冷却水进口温度(℃)',f1(rad.coolantIn)],
+    ['冷却水出口温度(℃)',f1(rad.coolantOut)],['冷却循环流量(L/min)',f2(rad.coolantFlow)],
+    ['错流对数温差修正系数εΔt',f2(rad.lmtdCorr)],['所需散热面积(m²)',f2(rad.area)],
+    ['散热器迎风面积(m²)',f2(rad.frontalArea)],['所需冷却空气流量(m³/h)',f0(rad.airFlow)],
+    ['单风扇风量需求(m³/h)',f0(rad.singleFanFlow)]
+  ].map(([l,val])=>row(l,val,false)).join('');
+  // 中冷器计算结果
+  document.getElementById('hx-ic-results').innerHTML = [
+    ['中冷器热负荷(kW)',f2(ic.heat)],['增压空气进口温度(℃)',f1(ic.airIn)],
+    ['增压空气出口温度(℃)',f1(ic.airOut)],['冷却液进口温度(℃)',f1(ic.coolantIn)],
+    ['冷却液出口温度(℃)',f1(ic.coolantOut)],['增压空气流量(L/min)',f2(ic.airFlow)],
+    ['冷却液流量(L/min)',f2(ic.coolantFlow)],['错流对数温差修正系数εΔt',f2(ic.lmtdCorr)],
+    ['所需散热面积(m²)',f2(ic.area)]
+  ].map(([l,val])=>row(l,val,false)).join('');
+}
+
+/* ========== Tab 切换 ========== */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-'+btn.dataset.page).classList.add('active');
+    window.scrollTo(0,0);
+  });
+});
+
+/* ========== 混合动力输入事件 ========== */
+const hybridInputIds = ['vehicleMass','range','rollingResistance','dragCoefficient','maxSpeed',
+  'maxGradeability','gradeabilitySpeed','accelerationEndSpeed','accelerationTime','frontalArea',
+  'powertrainEfficiency','rotatingMassCoefficient','finalDriveRatio','lowGearRatio','highGearRatio',
+  'tireRadius','accessoryPower','motorEfficiency','batteryEfficiency','hydrogenBottlePressure',
+  'hydrogenBottleVolume','pemCellVoltage','hydrogenPrice'];
+hybridInputIds.forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('input', calculateHybridSystem);
+});
+</script>
+</body>
+</html>
