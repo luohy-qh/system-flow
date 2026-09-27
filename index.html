@@ -181,6 +181,22 @@
     gap: 12px;
   }
   .hx-section { border: 1px solid #2a4a6b; border-radius: 8px; overflow: hidden; }
+  /* ---- 参数导出 / 导入 ---- */
+  .io-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+  .io-btn {
+    background: #1a2e4a; border: 1px solid #2a4a6b; color: #7dd3fc;
+    font-size: 0.8rem; font-weight: bold; padding: 6px 12px;
+    border-radius: 6px; cursor: pointer; white-space: nowrap;
+    transition: background .15s, border-color .15s;
+  }
+  .io-btn:hover { background: #1f3758; border-color: #38bdf8; }
+  .io-btn:active { background: #14314f; }
+  .io-btn.io-import { color: #6ee7b7; }
+  .io-btn.io-import:hover { border-color: #34d399; }
+  .io-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .io-head h2 { flex: 1; }
+  .io-head .io-bar { margin-bottom: 0; }
+
   .hx-section-header {
     background: #1a2e4a; padding: 10px 14px; cursor: pointer;
     color: #7dd3fc; font-weight: bold; font-size: 0.92rem; user-select: none;
@@ -289,6 +305,11 @@
   <!-- 输入面板 -->
   <div class="input-panel">
     <h2>电堆基础设计参数</h2>
+    <div class="io-bar">
+      <button type="button" class="io-btn" id="pfdExportBtn">导出参数</button>
+      <button type="button" class="io-btn io-import" id="pfdImportBtn">导入参数</button>
+      <input type="file" id="pfdImportFile" accept=".json,application/json" style="display:none">
+    </div>
     <div id="inputs"></div>
     <div class="legend">
       <div class="legend-item"><span class="legend-dot" style="background:#6366f1"></span>氢气流路</div>
@@ -560,7 +581,14 @@
 
   <!-- 整车参数表 -->
   <div class="hybrid-section">
-    <h2>整车参数表</h2>
+    <div class="io-head">
+      <h2>整车参数表</h2>
+      <div class="io-bar">
+        <button type="button" class="io-btn" id="hyExportBtn">导出参数</button>
+        <button type="button" class="io-btn io-import" id="hyImportBtn">导入参数</button>
+        <input type="file" id="hyImportFile" accept=".json,application/json" style="display:none">
+      </div>
+    </div>
     <div class="hybrid-input-grid">
       <div class="hybrid-input-group"><label for="vehicleMass">满载质量(Kg):</label><input type="number" id="vehicleMass" value="6350" step="10"></div>
       <div class="hybrid-input-group"><label for="range">续驶里程(Km):</label><input type="number" id="range" value="400" step="10"></div>
@@ -1617,6 +1645,117 @@ const hybridInputIds = ['vehicleMass','range','rollingResistance','dragCoefficie
 hybridInputIds.forEach(id=>{
   const el = document.getElementById(id);
   if(el) el.addEventListener('input', calculateHybridSystem);
+});
+
+/* ========== 参数导出 / 导入 ========== */
+// 收集容器内所有带 id 的数值输入与下拉框
+function collectParams(root){
+  const out = {};
+  root.querySelectorAll('input[type="number"], select').forEach(el=>{
+    if(el.id) out[el.id] = el.value;
+  });
+  return out;
+}
+// 回填参数并逐项触发 input/change 事件（带动已有联动计算）
+function applyParams(root, data){
+  let n = 0;
+  root.querySelectorAll('input[type="number"], select').forEach(el=>{
+    if(!el.id || !(el.id in data)) return;
+    el.value = data[el.id];
+    el.dispatchEvent(new Event('input',{bubbles:true}));
+    el.dispatchEvent(new Event('change',{bubbles:true}));
+    n++;
+  });
+  return n;
+}
+// 保存 JSON：优先弹出系统「另存为」对话框（可自由选择文件夹），不支持时回退为浏览器下载
+async function saveJSON(obj, filename){
+  const text = JSON.stringify(obj, null, 2);
+  if(window.showSaveFilePicker){
+    try{
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: 'JSON 参数文件', accept: { 'application/json': ['.json'] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(text);
+      await writable.close();
+      return;
+    }catch(err){
+      if(err && err.name === 'AbortError') return;   // 用户取消保存
+      // 其他异常（如权限、非安全上下文）回退到下载
+    }
+  }
+  const blob = new Blob([text], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+function timeStamp(){
+  const d = new Date(), p = v => String(v).padStart(2,'0');
+  return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+}
+// cfg: { pageId, name, fileBase, exportId, importBtnId, importFileId, onImported }
+function setupParamIO(cfg){
+  const root = document.getElementById(cfg.pageId);
+  const fileInput = document.getElementById(cfg.importFileId);
+  // 导出
+  document.getElementById(cfg.exportId).addEventListener('click', ()=>{
+    saveJSON({
+      name: cfg.name,
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      params: collectParams(root)
+    }, `${cfg.fileBase}_${timeStamp()}.json`);
+  });
+  // 导入
+  document.getElementById(cfg.importBtnId).addEventListener('click', ()=>{
+    fileInput.value = '';
+    fileInput.click();
+  });
+  fileInput.addEventListener('change', ()=>{
+    const f = fileInput.files && fileInput.files[0];
+    if(!f) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      let data;
+      try { data = JSON.parse(reader.result); }
+      catch(err){ alert('文件解析失败：' + err.message); return; }
+      const payload = (data && typeof data === 'object' && data.params) ? data.params : data;
+      if(!payload || typeof payload !== 'object'){ alert('文件内容格式不正确。'); return; }
+      const n = applyParams(root, payload);
+      if(!n){ alert('未找到匹配的参数，请确认导入的是本页导出的 JSON 文件。'); return; }
+      if(typeof cfg.onImported === 'function') cfg.onImported();
+      alert(`已导入 ${n} 项参数。`);
+    };
+    reader.readAsText(f);
+  });
+}
+
+// 第一页：电堆基础设计参数 + 散热器/中冷器/阀门流体计算参数
+setupParamIO({
+  pageId: 'page-pfd',
+  name: '燃料电池系统设计 · 输入参数',
+  fileBase: '燃料电池系统设计_输入参数',
+  exportId: 'pfdExportBtn',
+  importBtnId: 'pfdImportBtn',
+  importFileId: 'pfdImportFile',
+  onImported: ()=>{ run(); }
+});
+
+// 第二页：整车参数表
+setupParamIO({
+  pageId: 'page-hybrid',
+  name: '燃料电池混合动力系统设计 · 整车参数',
+  fileBase: '燃料电池混合动力系统设计_整车参数',
+  exportId: 'hyExportBtn',
+  importBtnId: 'hyImportBtn',
+  importFileId: 'hyImportFile',
+  onImported: ()=>{ calculateHybridSystem(); }
 });
 </script>
 </body>
