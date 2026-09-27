@@ -58,10 +58,10 @@
   }
   svg { display: block; width: 100%; height: auto; min-width: 1100px; }
   /* SVG 内海拔输入框 */
-  .fo-alt { display: flex; align-items: center; gap: 6px; }
-  .fo-alt label { font-size: 11px; color: #cbd5e1; white-space: nowrap; }
+  .fo-alt { display: flex; align-items: center; gap: 7px; }
+  .fo-alt label { font-size: 13px; color: #cbd5e1; white-space: nowrap; }
   .fo-alt input {
-    width: 64px; padding: 2px 6px; font-size: 11px;
+    width: 70px; padding: 3px 7px; font-size: 13px;
     background: #0b1628; border: 1px solid #334e6e; border-radius: 3px;
     color: #e8eef5; text-align: center;
   }
@@ -1139,8 +1139,8 @@ equip(60,90,110,56,'equip-air','环境空气','Ambient');
 // 海拔输入框（环境空气气泡下方）
 (function(){
   const fo = document.createElementNS(SVG_NS,'foreignObject');
-  fo.setAttribute('x',60); fo.setAttribute('y',224);
-  fo.setAttribute('width',170); fo.setAttribute('height',26);
+  fo.setAttribute('x',60); fo.setAttribute('y',238);
+  fo.setAttribute('width',190); fo.setAttribute('height',30);
   fo.innerHTML = '<div class="fo-alt" xmlns="http://www.w3.org/1999/xhtml"><label for="altitude">所在地海拔(m)</label><input type="number" id="altitude" value="500" step="10"></div>';
   svg.appendChild(fo);
 })();
