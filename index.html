@@ -161,6 +161,7 @@
   /* Data label bubbles */
   .data-bubble {
     fill: rgba(8, 18, 32, 0.92); stroke: #475569; stroke-width: 1; rx: 4;
+    cursor: help;   /* 悬停显示公式提示 */
   }
   .data-text { fill: #e2e8f0; font-size: 12px; font-weight: 500;
     font-family: "Microsoft YaHei", "Segoe UI", -apple-system, sans-serif;
@@ -220,6 +221,7 @@
   .hx-result-row {
     display: flex; justify-content: space-between; padding: 4px 0;
     font-size: 0.82rem; border-bottom: 1px dashed #2a4a6b;
+    cursor: help;   /* 悬停显示公式提示 */
   }
   .hx-result-row:last-child { border-bottom: none; }
   .hx-result-row .hx-r-label { color: #94a3b8; }
@@ -271,6 +273,7 @@
   .hybrid-result-item {
     display: flex; justify-content: space-between; padding: 4px 0;
     font-size: 0.82rem; border-bottom: 1px dashed #2a4a6b;
+    cursor: help;   /* 悬停显示公式提示 */
   }
   .hybrid-result-item:last-child { border-bottom: none; }
   .hybrid-result-item span:first-child { color: #94a3b8; }
@@ -704,29 +707,29 @@
     <h2>计算结果</h2>
     <div class="hybrid-results-grid">
       <div class="hybrid-result-section">
-        <div class="hybrid-result-item"><span>最大爬坡角(θ)：</span><span id="maxClimbingAngle"></span></div>
-        <div class="hybrid-result-item"><span>加速阶段加速度(m/s²)：</span><span id="acceleration"></span></div>
-        <div class="hybrid-result-item"><span>Pmax1_最高车速功率(kW)：</span><span id="maxSpeedPower"></span></div>
-        <div class="hybrid-result-item"><span>Pmax2_最大爬坡功率(kW)：</span><span id="maxGradeabilityPower"></span></div>
-        <div class="hybrid-result-item"><span>Pmax3_最大加速功率(kW)：</span><span id="maxAccelerationPower"></span></div>
+        <div class="hybrid-result-item" title="最大爬坡角(θ) = arctan(最大爬坡度/100) × 180/π"><span>最大爬坡角(θ)：</span><span id="maxClimbingAngle"></span></div>
+        <div class="hybrid-result-item" title="加速阶段加速度(m/s²) = 加速末车速/加速时间/3.6×1000"><span>加速阶段加速度(m/s²)：</span><span id="acceleration"></span></div>
+        <div class="hybrid-result-item" title="Pmax1_最高车速功率(kW) = 最高车速/3600/整车动力传动系统效率 × (整车质量×9.8×滚动阻力系数 + 空气阻力系数×迎风面积×最高车速²/21.15)"><span>Pmax1_最高车速功率(kW)：</span><span id="maxSpeedPower"></span></div>
+        <div class="hybrid-result-item" title="Pmax2_最大爬坡功率(kW) = 爬坡车速/3600/整车动力传动系统效率 × (整车质量×9.8×滚动阻力系数×cos(爬坡角) + 整车质量×9.8×sin(爬坡角) + 空气阻力系数×迎风面积×爬坡车速²/21.15)"><span>Pmax2_最大爬坡功率(kW)：</span><span id="maxGradeabilityPower"></span></div>
+        <div class="hybrid-result-item" title="Pmax3_最大加速功率(kW) = 加速末车速/3600/整车动力传动系统效率 × (整车质量×9.8×滚动阻力系数 + 空气阻力系数×迎风面积×加速末车速²/21.15 + 旋转质量系数×整车质量×(加速末车速/加速时间/3.6))"><span>Pmax3_最大加速功率(kW)：</span><span id="maxAccelerationPower"></span></div>
       </div>
       <div class="hybrid-result-section">
-        <div class="hybrid-result-item"><span>电机峰值功率(kW)：</span><span id="motorPeakPower"></span></div>
-        <div class="hybrid-result-item"><span>电机额定功率(kW)：</span><span id="motorRatedPower"></span></div>
-        <div class="hybrid-result-item"><span>电机峰值转速(r/min)：</span><span id="motorPeakRPM"></span></div>
-        <div class="hybrid-result-item"><span>电机额定转速(r/min)：</span><span id="motorRatedRPM"></span></div>
+        <div class="hybrid-result-item" title="电机峰值功率(kW) = max(Pmax1, Pmax2, Pmax3)"><span>电机峰值功率(kW)：</span><span id="motorPeakPower"></span></div>
+        <div class="hybrid-result-item" title="电机额定功率(kW) = Pmax1_最高车速功率"><span>电机额定功率(kW)：</span><span id="motorRatedPower"></span></div>
+        <div class="hybrid-result-item" title="电机峰值转速(r/min) = 最高车速×主减速比×变速器高档传动比/0.3768/驱动轮胎半径（与「电机额定转速」的显示位置互换）"><span>电机峰值转速(r/min)：</span><span id="motorPeakRPM"></span></div>
+        <div class="hybrid-result-item" title="电机额定转速(r/min) = 最高车速×主减速比×变速器低档传动比/0.3768/驱动轮胎半径（与「电机峰值转速」的显示位置互换）"><span>电机额定转速(r/min)：</span><span id="motorRatedRPM"></span></div>
       </div>
       <div class="hybrid-result-section">
-        <div class="hybrid-result-item"><span>燃料电池额定功率(kW)：</span><span id="fuelCellRequiredPower"></span></div>
-        <div class="hybrid-result-item"><span>额定工况PEM氢耗(g/s)：</span><span id="ratedConditionHydrogenConsumption"></span></div>
-        <div class="hybrid-result-item"><span>PEM所需氢气质量(Kg)：</span><span id="requiredHydrogenMass"></span></div>
-        <div class="hybrid-result-item"><span>单瓶存储氢气质量(Kg)：</span><span id="singleBottleHydrogenMass"></span></div>
-        <div class="hybrid-result-item"><span>所需氢瓶数量(n)：</span><span id="requiredBottleCount"></span></div>
+        <div class="hybrid-result-item" title="燃料电池额定功率(kW) = 电机额定功率 + 整车附件功率"><span>燃料电池额定功率(kW)：</span><span id="fuelCellRequiredPower"></span></div>
+        <div class="hybrid-result-item" title="额定工况PEM氢耗(g/s) = 燃料电池所需功率×1000/额定工况PEM节电压/96485/(氢气利用率/100)"><span>额定工况PEM氢耗(g/s)：</span><span id="ratedConditionHydrogenConsumption"></span></div>
+        <div class="hybrid-result-item" title="PEM所需氢气质量(Kg) = 续驶里程/最高车速×3600×额定工况氢耗/1000"><span>PEM所需氢气质量(Kg)：</span><span id="requiredHydrogenMass"></span></div>
+        <div class="hybrid-result-item" title="单瓶存储氢气质量(Kg) = 氢气瓶压力×1000×氢气瓶容积/8.314/298×2.016/1000"><span>单瓶存储氢气质量(Kg)：</span><span id="singleBottleHydrogenMass"></span></div>
+        <div class="hybrid-result-item" title="所需氢瓶数量(n) = PEM所需氢气质量/单瓶存储氢气质量"><span>所需氢瓶数量(n)：</span><span id="requiredBottleCount"></span></div>
       </div>
       <div class="hybrid-result-section">
-        <div class="hybrid-result-item"><span>动力电池所需功率(kW)：</span><span id="batteryRequiredPower"></span></div>
-        <div class="hybrid-result-item"><span>额定百公里氢耗(kg/100km)：</span><span id="rated100kmHydrogenConsumption"></span></div>
-        <div class="hybrid-result-item"><span>额定百公里氢气价格(元/100km)：</span><span id="rated100kmHydrogenPrice"></span></div>
+        <div class="hybrid-result-item" title="动力电池所需功率(kW) = (电机峰值功率/驱动电机及控制器效率 - 燃料电池所需功率)/动力电池效率"><span>动力电池所需功率(kW)：</span><span id="batteryRequiredPower"></span></div>
+        <div class="hybrid-result-item" title="额定百公里氢耗(kg/100km) = 额定工况PEM氢耗 × 100 / 最高车速 × 3600 / 1000"><span>额定百公里氢耗(kg/100km)：</span><span id="rated100kmHydrogenConsumption"></span></div>
+        <div class="hybrid-result-item" title="额定百公里氢气价格(元/100km) = 额定百公里氢耗 × 氢气价格"><span>额定百公里氢气价格(元/100km)：</span><span id="rated100kmHydrogenPrice"></span></div>
       </div>
     </div>
   </div>
@@ -1858,7 +1861,8 @@ addData('heat_sum', 980, 552, 'middle');
 
 function updateData(r){
   const f = (v,d=2)=> (isFinite(v)?v.toFixed(d):'--');
-  const set = (id, lines)=>{
+  // tips: 与 lines 一一对应的公式说明，鼠标悬停时以 SVG <title> 形式提示
+  const set = (id, lines, tips)=>{
     const n = nodes[id]; if(!n) return;
     n.g.innerHTML='';
     const pad=7, lh=15;
@@ -1867,6 +1871,14 @@ function updateData(r){
     const w = Math.max(...lines.map(l=> textW(l.replace(/<[^>]+>/g,'')))) + pad*2;
     const h = lines.length*lh + pad*2 - 4;
     const bx = n.anchor==='middle'? n.x-w/2 : n.x;
+    const svgTitle = txt=>{
+      const t = document.createElementNS(SVG_NS,'title');
+      t.textContent = txt;
+      return t;
+    };
+    // 气泡整体一个聚合提示（悬停气泡空白处也能看到），每条数值再各自一个提示
+    const allTips = (tips||[]).filter(Boolean);
+    if(allTips.length) n.g.appendChild(svgTitle(allTips.join('\n')));
     const rct = document.createElementNS(SVG_NS,'rect');
     rct.setAttribute('x',bx); rct.setAttribute('y',n.y);
     rct.setAttribute('width',w); rct.setAttribute('height',h);
@@ -1876,6 +1888,7 @@ function updateData(r){
       const t = document.createElementNS(SVG_NS,'text');
       t.setAttribute('x',bx+pad); t.setAttribute('y',n.y+pad+lh*(i+1)-3);
       t.setAttribute('class','data-text');
+      if(tips && tips[i]) t.appendChild(svgTitle(tips[i]));
       // SVG <text> 不支持 HTML <strong>，改用 <tspan> 着色
       const segs = l.match(/<strong>[\s\S]*?<\/strong>|[\s\S]+?(?=<strong>|$)/g) || [l];
       segs.forEach(s=>{
@@ -1895,7 +1908,11 @@ function updateData(r){
   set('ambient',[`在高度h上的温度:<strong>${f(r.airThermal.temperatureCAtHeight,1)}</strong>℃`,
                  `环境湿度:<strong>${f(num('humidity'),0)}</strong>%`,
                  `大气压:<strong>${f(r.airThermal.pressureAtHeight,0)}</strong>Pa`,
-                 `大气密度:<strong>${f(r.airThermal.densityAtHeight,4)}</strong>kg/m³`]);
+                 `大气密度:<strong>${f(r.airThermal.densityAtHeight,4)}</strong>kg/m³`],
+    ['在高度h上的温度(℃) = 在高度h上的温度(K) - 273.15；温度(K) 当海拔>11000m 时取 216.65，否则为 288.15 - 0.0065×海拔(m)',
+     '环境湿度(%) = 输入参数「环境湿度」',
+     '在高度h上的压力(Pa) = 当海拔>11000m 时 22631.8×exp((11000-海拔)/6340)，否则 101325×(1-海拔/44330)^5.25588',
+     '在高度h上的密度(kg/m³) = 当海拔>11000m 时 0.3639×exp((11000-海拔)/6340)，否则 1.225×(1-海拔/44330)^4.25588']);
   set('comp',[`空压机出温(设定):<strong>${f(r.air.compressorOutletTemp,1)}</strong>℃`,
               `计算出温:<strong>${f(r.airThermal.outletAirTempC,1)}</strong>℃`,
               `温升:<strong>${f(r.airThermal.airTempRise,1)}</strong>K`,
@@ -1906,48 +1923,100 @@ function updateData(r){
               `定熵轴功:<strong>${f(r.airThermal.isentropicCompressionWork,1)}</strong>W`,
               `功耗:<strong>${f(r.airThermal.compressorPowerConsumption,1)}</strong>W`,
               `流量:<strong>${f(r.air.supplyNLPM,1)}</strong>NLPM`,
-              `泵效:<strong>${f(num('airPumpEfficiency'),0)}</strong>%`]);
+              `泵效:<strong>${f(num('airPumpEfficiency'),0)}</strong>%`],
+      ['空压机出口温度(℃) = 输入参数「空压机出口温度」',
+       '出口空气温度(℃) = 在高度h上的温度(K) × (1 + (压比^0.286 - 1)/(空压机效率/100)) - 273.15',
+       '空气温升(K) = 出口空气温度(K) - 在高度h上的温度(K)',
+       '空压机压比 ε = 出口空气压力 / 在高度h上的压力',
+       '出口空气压力(Pa) = (阴极入口压力 + 中冷器压损) × 1000',
+       '空气入口体积流量(m³/s) = 实际入口Air流量(mol/s) × 0.022414 × (在高度h上的温度(K)/273.15) × (101325/在高度h上的压力(Pa))',
+       '空气入口质量流量(g/s) = 空气入口体积流量(m³/s) × 在高度h上的密度(kg/m³) × 1000',
+       '定熵压缩轴功(W) = k/(k-1) × p1 × V1 × [1 - (p2/p1)^((k-1)/k)]，k 为空气绝热指数',
+       '空压机功耗(W) = 空气入口质量流量(g/s) × 空气定压比热 × 空气温升(K)',
+       '实际入口Air流量(NLPM) = 实际入口Air流量(mol/s) × 22.4 × 60',
+       '空压机效率(%) = 输入参数「空压机效率」']);
   set('intercooler',[`出温:<strong>${f(r.air.intercoolerOutletTemp,1)}</strong>℃`,
-                     `热负荷:<strong>${f(r.cool.intercoolerHeat,1)}</strong>kW`]);
+                     `热负荷:<strong>${f(r.cool.intercoolerHeat,1)}</strong>kW`],
+      ['中冷器出口温度(℃) = 操作温度 - 温度差/2',
+       '中冷器热负荷(kW) = 1.005 × (系统供空气量(mol/s)×28.96/1000) × (空压机出口温度 - 中冷器出口温度)']);
   set('hum_dry',[`干侧 T:<strong>${f(r.hum.dryT,1)}</strong>℃`,
                  `干侧 RH:<strong>${f(r.hum.dryRH,1)}</strong>%`,
                  `加湿水:<strong>${f(r.hum.dryWater,3)}</strong>mol/s`,
-                 `效率:<strong>${f(r.hum.eff,0)}</strong>%`]);
+                 `效率:<strong>${f(r.hum.eff,0)}</strong>%`],
+      ['干侧出口温度(℃) = (中冷器出口温度 + 操作温度 - 温度差)/2',
+       '干侧出口相对湿度(%) = 干气加湿用水量/实际入口Air流量 × 干侧出口压力/干侧出口饱和蒸汽压 × 100',
+       '干气加湿用水量(mol/s) = (阴极出口总水量 - 出口液态水量) × 加湿器效率/100',
+       '加湿器效率(%) = 输入参数「加湿器效率」']);
   set('hum_wet',[`湿侧 T:<strong>${f(r.hum.wetT,1)}</strong>℃`,
                  `湿侧 RH:<strong>${f(r.hum.wetRH,1)}</strong>%`,
-                 `湿侧水量:<strong>${f(r.hum.wetWater,3)}</strong>mol/s`]);
+                 `湿侧水量:<strong>${f(r.hum.wetWater,3)}</strong>mol/s`],
+      ['湿侧出口温度(℃) = 干侧出口温度',
+       '湿侧出口相对湿度(%) = 湿侧出口水量/出口空气流量 × 湿侧出口压力/湿侧出口饱和蒸汽压 × 100',
+       '湿侧出口水量(mol/s) = 阴极出口总水量 - 出口液态水量 - 干气加湿用水量']);
   set('stack_top',[`功率:<strong>${f(r.stack.power,1)}</strong>kW`,
                    `效率:<strong>${f(r.stack.efficiency,1)}</strong>%`,
                    `电压:<strong>${f(r.stack.voltage,1)}</strong>V`,
                    `电流:<strong>${f(r.stack.current,1)}</strong>A`,
                    `反应热:<strong>${f(r.stack.heat,1)}</strong>kW`,
-                   `产水:<strong>${f(r.stack.water,3)}</strong>mol/s`]);
+                   `产水:<strong>${f(r.stack.water,3)}</strong>mol/s`],
+      ['电堆功率(kW) = (电堆电流 × 电堆电压)/1000',
+       '电堆效率(%) = (单电池电压/1.254) × 100',
+       '电堆电压(V) = 单电池电压(V) × 电堆节数',
+       '电堆电流(A) = 反应面积(cm²) × 电流密度(A/cm²)',
+       '反应产热量(LHV-kW) = 电堆功率 × (1.254 - 单电池电压)/单电池电压',
+       '理论反应产水量(mol/s) = 理论反应消耗氢气量 = (反应面积 × 电流密度 × 电堆节数)/(96485 × 2)']);
   set('h2_supply',[`供氢:<strong>${f(r.h2.sysSupplyNLPM,1)}</strong>NLPM`,
-                   `入堆 P:<strong>${f(num('anodeInletPressure'),0)}</strong>kPa`]);
+                   `入堆 P:<strong>${f(num('anodeInletPressure'),0)}</strong>kPa`],
+      ['系统供氢量(NLPM) = 系统消耗氢气量(mol/s) × 22.4 × 60；系统消耗氢气量 = 理论反应消耗氢气量 × 100/氢气利用率',
+       '阳极入口压力(kPa) = 输入参数「阳极入口压力」']);
   set('h2_mix',[`入堆 RH:<strong>${f(r.h2.inletHydrogenHumidity,1)}</strong>%`,
-                `入堆 T:<strong>${f(r.h2.anodeInletHydrogenTemp,1)}</strong>℃`]);
+                `入堆 T:<strong>${f(r.h2.anodeInletHydrogenTemp,1)}</strong>℃`],
+      ['入堆氢气相对湿度(%) = 出口气态水量/(出口气态水量+系统供氢量+氢气循环量) × 阳极入口压力/饱和蒸汽压 × 100',
+       '阳极入口氢气温度(℃) = 输入参数「阳极入口温度」']);
   set('anode_out',[`阳极出 T:<strong>${f(r.h2.anodeOutletTemp,1)}</strong>℃`,
                    `阳极出 P:<strong>${f(r.h2.anodeOutletPressure,0)}</strong>kPa`,
                    `RH:<strong>${f(r.h2.anodeOutletHumidity,1)}</strong>%`,
-                   `总水:<strong>${f(r.h2.anodeOutletWater,3)}</strong>mol/s`]);
+                   `总水:<strong>${f(r.h2.anodeOutletWater,3)}</strong>mol/s`],
+      ['阳极出口温度(℃) = 操作温度',
+       '阳极出口压力(kPa) = 阳极入口压力 - 阳极压损',
+       '阳极出口相对湿度(%) = 阳极出口压力 × (阳极出口总水量/(阳极出口总水量+氢气循环量))/饱和蒸汽压 × 100',
+       '阳极出口总水量(mol/s) = 理论反应消耗氢气量 × 水分布系数 + 进入电堆水量']);
   set('sep',[`液态水:<strong>${f(r.h2.anodeLiquidWater,3)}</strong>mol/s`,
-             `冷凝放热:<strong>${f(r.h2.anodeCondensationHeat,2)}</strong>kW`]);
+             `冷凝放热:<strong>${f(r.h2.anodeCondensationHeat,2)}</strong>kW`],
+      ['阳极出口液态水量(mol/s) = 相对湿度>100 时取 阳极出口总水量 - 氢气循环量×饱和蒸汽压/(阳极出口压力-饱和蒸汽压)，否则为 0',
+       '阳极冷凝水放热(kW) = 阳极出口液态水量 × 18 × 2258/1000（18 为水的摩尔质量，2258 为汽化潜热）']);
   set('recirc',[`循环量:<strong>${f(r.h2.recircNLPM,1)}</strong>NLPM`,
-                `尾气:<strong>${f(r.h2.exhaust,1)}</strong>NLPM`]);
+                `尾气:<strong>${f(r.h2.exhaust,1)}</strong>NLPM`],
+      ['出口氢气循环量(NLPM) = 出口氢气循环量(mol/s) × 22.4 × 60；出口氢气循环量 = 理论反应消耗氢气量 × (氢气计量比 - 1)',
+       '氢气尾气排气(NLPM) = 系统供氢量(NLPM) × (1 - 氢气利用率/100)']);
   set('cathode_out',[`阴极出 T:<strong>${f(r.air.cathodeOutletTemp,1)}</strong>℃`,
                      `阴极出 P:<strong>${f(r.air.cathodeOutletPressure,0)}</strong>kPa`,
-                     `RH:<strong>${f(r.air.airOutletHumidity,1)}</strong>%`]);
+                     `RH:<strong>${f(r.air.airOutletHumidity,1)}</strong>%`],
+      ['阴极出口温度(℃) = 操作温度',
+       '阴极出口压力(kPa) = 阴极入口压力 - 阴极压损',
+       '空气出口相对湿度(%) = 阴极出口压力 × (阴极出口总水量/(阴极出口总水量+出口空气流量))/对应的饱和蒸汽压 × 100']);
   set('exhaust',[`排气量:<strong>${f(r.air.outletNLPM,1)}</strong>NLPM`,
                  `液态水:<strong>${f(r.air.outletLiquidWater,3)}</strong>mol/s`,
-                 `露点:<strong>${f(r.air.outletDewPointTemp,1)}</strong>℃`]);
+                 `露点:<strong>${f(r.air.outletDewPointTemp,1)}</strong>℃`],
+      ['出口空气流量(NLPM) = 出口空气流量(mol/s) × 22.4 × 60；出口空气流量 = 实际入口Air流量 - 理论反应消耗氢气量/2',
+       '出口液态水量(mol/s) = 相对湿度>100 时取 阴极出口总水量 - 出口空气流量×饱和蒸汽压/(阴极出口压力-饱和蒸汽压)，否则为 0',
+       '出口露点温度(℃) = 1657.46/(7.07406 - log10(出口水蒸气分压)) - 227.02']);
   set('cool_pump',[`冷却液流量:<strong>${f(r.cool.flow,1)}</strong>L/min`,
                    `密度:<strong>${f(r.cool.density,0)}</strong>kg/m³`,
-                   `比热:<strong>${f(r.cool.cp,2)}</strong>kJ/(kg·K)`]);
+                   `比热:<strong>${f(r.cool.cp,2)}</strong>kJ/(kg·K)`],
+      ['系统冷却液流量(L/min) = 系统总热负荷/温度差/冷却液密度/冷却液比热 × 1000 × 60',
+       '冷却液密度(kg/m³) = 乙二醇占比 × 1.7657 + 981.43',
+       '冷却液比热(kJ/(kg·K)) = -0.0002 × 乙二醇占比² - 0.004 × 乙二醇占比 + 4.2']);
   set('heat_sum',[`热负荷汇总:`,
                   `中冷器:<strong>${f(r.cool.intercoolerHeat,1)}</strong>kW`,
                   `冷凝放热:<strong>${f(r.cool.superSatHeat,1)}</strong>kW`,
                   `反应产热:<strong>${f(r.cool.reactionHeat,1)}</strong>kW`,
-                  `总热负荷:<strong>${f(r.cool.totalHeat,1)}</strong>kW`]);
+                  `总热负荷:<strong>${f(r.cool.totalHeat,1)}</strong>kW`],
+      [null,
+       '中冷器热负荷(kW) = 1.005 × (系统供空气量×28.96/1000) × (空压机出口温度 - 中冷器出口温度)',
+       '过饱和水冷凝放热量(kW) = 阴极冷凝水放热 + 阳极冷凝水放热',
+       '反应产热量(LHV-kW) = 电堆功率 × (1.254 - 单电池电压)/单电池电压',
+       '系统总热负荷(kW) = 中冷器热负荷 + 过饱和水冷凝放热量 + 反应产热量']);
 
   document.getElementById('statusTag').textContent = '● 已同步';
   document.getElementById('statusTag').style.color = '#34d399';
@@ -2100,31 +2169,44 @@ function renderHxResults(){
   const f0 = v => (Number(v)||0).toFixed(0);
   const f4 = v => (Number(v)||0).toFixed(4);
   const f3 = v => (Number(v)||0).toFixed(3);
-  const row = (l,val,warn)=>`<div class="hx-result-row"><span class="hx-r-label">${l}</span><span class="hx-r-value${warn?' warn':''}">${val}</span></div>`;
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const row = (l,val,warn,tip)=>`<div class="hx-result-row"${tip?` title="${esc(tip)}"`:''}><span class="hx-r-label">${l}</span><span class="hx-r-value${warn?' warn':''}">${val}</span></div>`;
   const vWarn = v.kv>1 || v.kv<0.012;
   // 阀门流体计算结果
   document.getElementById('hx-valve-results').innerHTML = [
-    ['介质密度(kg/m³)',f3(v.density)],['压差ΔP(bar)',f2(v.deltaP)],
-    ['Kv(m³/h)',f4(v.kv)],['DN(mm)',f3(v.dn)]
-  ].map(([l,val])=>row(l,val,(l.includes('Kv')||l.includes('DN'))?vWarn:false)).join('');
+    ['介质密度(kg/m³)',f3(v.density),'介质密度 = 输入参数「选择介质」中所选介质的密度'],
+    ['压差ΔP(bar)',f2(v.deltaP),'压差ΔP = 入口压力 - 出口压力（下限取 0.001）'],
+    ['Kv(m³/h)',f4(v.kv),'液体(密度≥1000)：Kv = 流量(m³/h)×√(密度/(1000×ΔP))；气体：出口压力>入口压力/2 时 Kv = 流量(m³/h)/514×√(温度K×密度/(出口压力×ΔP))，否则 Kv = 流量(m³/h)/(257×入口压力)×√(温度K×密度)'],
+    ['DN(mm)',f3(v.dn),'DN = -77.861Kv⁶ + 256.11Kv⁵ - 331.17Kv⁴ + 215.74Kv³ - 77.502Kv² + 20.183Kv + 0.476']
+  ].map(([l,val,tip])=>row(l,val,(l.includes('Kv')||l.includes('DN'))?vWarn:false,tip)).join('');
   // 散热器计算结果
   document.getElementById('hx-rad-results').innerHTML = [
-    ['系统总热负荷(kW)',f2(rad.sysHeat)],['环境温度(℃)',f1(rad.ambient)],
-    ['冷却空气出散热器温度(℃)',f1(rad.outletAir)],['冷却液密度(kg/m³)',f0(rad.density)],
-    ['冷却液比热(kJ/(kg·K))',f2(rad.cp)],['冷却水进口温度(℃)',f1(rad.coolantIn)],
-    ['冷却水出口温度(℃)',f1(rad.coolantOut)],['冷却循环流量(L/min)',f2(rad.coolantFlow)],
-    ['错流对数温差修正系数εΔt',f2(rad.lmtdCorr)],['所需散热面积(m²)',f2(rad.area)],
-    ['散热器迎风面积(m²)',f2(rad.frontalArea)],['所需冷却空气流量(m³/h)',f0(rad.airFlow)],
-    ['单风扇风量需求(m³/h)',f0(rad.singleFanFlow)]
-  ].map(([l,val])=>row(l,val,false)).join('');
+    ['系统总热负荷(kW)',f2(rad.sysHeat),'系统总热负荷 = 中冷器热负荷 + 过饱和水冷凝放热量 + 反应产热量'],
+    ['环境温度(℃)',f1(rad.ambient),'环境温度 = 输入参数「环境温度」'],
+    ['冷却空气出散热器温度(℃)',f1(rad.outletAir),'冷却空气出散热器温度 = 环境温度 + 冷却空气流经散热器温差'],
+    ['冷却液密度(kg/m³)',f0(rad.density),'冷却液密度 = 乙二醇占比 × 1.7657 + 981.43'],
+    ['冷却液比热(kJ/(kg·K))',f2(rad.cp),'冷却液比热 = -0.0002 × 乙二醇占比² - 0.004 × 乙二醇占比 + 4.2'],
+    ['冷却水进口温度(℃)',f1(rad.coolantIn),'冷却水进口温度 = 操作温度'],
+    ['冷却水出口温度(℃)',f1(rad.coolantOut),'冷却水出口温度 = 操作温度 - 温度差'],
+    ['冷却循环流量(L/min)',f2(rad.coolantFlow),'系统冷却液流量 = 系统总热负荷/温度差/冷却液密度/冷却液比热 × 1000 × 60'],
+    ['错流对数温差修正系数εΔt',f2(rad.lmtdCorr),'错流修正系数 εΔt：R = 温度差/冷却空气温差，E = 冷却空气温差/(冷却水进口温度-环境温度)，按 P-NTU 关系式取对数比后限幅在 0.5~2.0'],
+    ['所需散热面积(m²)',f2(rad.area),'所需散热面积 = 冷却液带走热量比重 ξ × 系统总热负荷×1000 / (散热器总传热系数Ka × 修正后对数平均温差)；对数平均温差按 (进口冷却液-出口空气) 与 (出口冷却液-环境温度) 两端温差计算'],
+    ['散热器迎风面积(m²)',f2(rad.frontalArea),'散热器迎风面积 = π × 单风扇叶轮直径(mm)²/4 × 风扇个数 / 风扇面积比率α / 10⁶'],
+    ['所需冷却空气流量(m³/h)',f0(rad.airFlow),'所需冷却空气流量 = ξ × 系统总热负荷×3600 / (冷却空气温差 × 1.005 × 高度处空气密度)'],
+    ['单风扇风量需求(m³/h)',f0(rad.singleFanFlow),'单风扇风量需求 = 所需冷却空气流量 / 风扇个数']
+  ].map(([l,val,tip])=>row(l,val,false,tip)).join('');
   // 中冷器计算结果
   document.getElementById('hx-ic-results').innerHTML = [
-    ['中冷器热负荷(kW)',f2(ic.heat)],['增压空气进口温度(℃)',f1(ic.airIn)],
-    ['增压空气出口温度(℃)',f1(ic.airOut)],['冷却液进口温度(℃)',f1(ic.coolantIn)],
-    ['冷却液出口温度(℃)',f1(ic.coolantOut)],['增压空气流量(L/min)',f2(ic.airFlow)],
-    ['冷却液流量(L/min)',f2(ic.coolantFlow)],['错流对数温差修正系数εΔt',f2(ic.lmtdCorr)],
-    ['所需散热面积(m²)',f2(ic.area)]
-  ].map(([l,val])=>row(l,val,false)).join('');
+    ['中冷器热负荷(kW)',f2(ic.heat),'中冷器热负荷 = 1.005 × (系统供空气量(mol/s)×28.96/1000) × (空压机出口温度 - 中冷器出口温度)'],
+    ['增压空气进口温度(℃)',f1(ic.airIn),'增压空气进口温度 = 空压机出口温度'],
+    ['增压空气出口温度(℃)',f1(ic.airOut),'中冷器出口温度 = 操作温度 - 温度差/2'],
+    ['冷却液进口温度(℃)',f1(ic.coolantIn),'冷却液进口温度 = 操作温度 - 温度差'],
+    ['冷却液出口温度(℃)',f1(ic.coolantOut),'冷却液出口温度 = 冷却水出口温度 + 冷却液流经中冷器温差'],
+    ['增压空气流量(L/min)',f2(ic.airFlow),'增压空气流量 = 系统供空气量(NLPM)'],
+    ['冷却液流量(L/min)',f2(ic.coolantFlow),'冷却液流量 = 中冷器热负荷/冷却液流经中冷器温差/冷却液密度/冷却液比热 × 1000 × 60'],
+    ['错流对数温差修正系数εΔt',f2(ic.lmtdCorr),'错流修正系数 εΔt：R = (增压空气进口温度-出口温度)/冷却液温差，E = 冷却液温差/(增压空气进口温度-冷却液出口温度)，按 P-NTU 关系式取对数比后限幅在 0.5~2.0'],
+    ['所需散热面积(m²)',f2(ic.area),'所需散热面积 = 中冷器热负荷×1000 / (中冷器总传热系数Ka × 修正后对数平均温差)；对数平均温差按 (增压空气进口-冷却液出口) 与 (增压空气出口-冷却水出口) 两端温差计算']
+  ].map(([l,val,tip])=>row(l,val,false,tip)).join('');
 }
 
 /* ========== Tab 切换 ========== */
