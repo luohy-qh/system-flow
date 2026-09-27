@@ -162,9 +162,12 @@
   .data-bubble {
     fill: rgba(8, 18, 32, 0.92); stroke: #475569; stroke-width: 1; rx: 4;
   }
-  .data-text { fill: #e2e8f0; font-size: 10px; font-family: monospace; }
+  .data-text { fill: #e2e8f0; font-size: 12px; font-weight: 500;
+    font-family: "Microsoft YaHei", "Segoe UI", -apple-system, sans-serif;
+    letter-spacing: 0.2px; }
   .data-text strong { fill: #7dd3fc; }
-  .data-key { fill: #94a3b8; font-size: 9px; }
+  .data-key { fill: #94a3b8; font-size: 10.5px;
+    font-family: "Microsoft YaHei", "Segoe UI", sans-serif; }
 
   .section-tag { fill: #7dd3fc; font-size: 12px; font-weight: bold; letter-spacing: 2px; }
   .arrow { fill: #94a3b8; }
@@ -1082,8 +1085,8 @@ el('text',{x:560,y:675,class:'section-tag'}).textContent='▎ 换热子系统';
 // 坐标：x 640-880, y 300-540
 (function(){
   el('rect',{x:640,y:300,width:240,height:240,rx:6,class:'equip-stack'});
-  el('text',{x:806,y:319,'text-anchor':'middle',fill:'#a7f3d0','font-size':12,'font-weight':'bold'}).textContent='燃料电池电堆';
-  el('text',{x:806,y:331,'text-anchor':'middle',fill:'#6ee7b7','font-size':9}).textContent='Fuel Cell Stack';
+  el('text',{x:816,y:319,'text-anchor':'middle',fill:'#a7f3d0','font-size':12,'font-weight':'bold'}).textContent='燃料电池电堆';
+  el('text',{x:816,y:331,'text-anchor':'middle',fill:'#6ee7b7','font-size':9}).textContent='Fuel Cell Stack';
 
   // 阴极区（空气 / 氧气）
   el('rect',{x:644,y:340,width:208,height:62,rx:4,fill:'#0b2436',stroke:'#38bdf8','stroke-width':1.2});
@@ -1351,7 +1354,7 @@ function addData(id, x, y, anchor='start'){
 }
 addData('ambient', 60, 158);
 addData('comp', 360, 158);
-addData('intercooler', 510, 158);
+addData('intercooler', 532, 158);
 addData('hum_dry', 715, 185);
 addData('hum_wet', 1035, 395);
 addData('stack_top', 640, 262);
@@ -1370,8 +1373,10 @@ function updateData(r){
   const set = (id, lines)=>{
     const n = nodes[id]; if(!n) return;
     n.g.innerHTML='';
-    const pad=6, lh=13;
-    const w = Math.max(...lines.map(l=>l.replace(/<[^>]+>/g,'').length))*6.5 + pad*2;
+    const pad=7, lh=15;
+    // 按中/英文字符宽度分别估算，避免无衬线字体下文字溢出气泡
+    const textW = s => [...s].reduce((a,ch)=> a + (/[\u2e80-\u9fff\uff00-\uffef]/.test(ch) ? 12.5 : 7.2), 0);
+    const w = Math.max(...lines.map(l=> textW(l.replace(/<[^>]+>/g,'')))) + pad*2;
     const h = lines.length*lh + pad*2 - 4;
     const bx = n.anchor==='middle'? n.x-w/2 : n.x;
     const rct = document.createElementNS(SVG_NS,'rect');
