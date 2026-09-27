@@ -2747,7 +2747,8 @@ const CHART_DEFS = [
   { id:'simChTemp',   title:'电堆温度',   unit:'℃',      key:'T',      refLine:80 },
   { id:'simChLambda', title:'膜含水量 λ', unit:'',        key:'lambda', bandLow:4, bandHigh:14 },
   { id:'simChH2',     title:'氢耗功率',   unit:'kW(LHV)', key:'pH2',    zero:true },
-  { id:'simChEta',    title:'系统效率',   unit:'%',       key:'eta' }
+  { id:'simChEta',    title:'系统效率',   unit:'%',       key:'eta',
+    skipStandstill:true, note:'停机观察段已省略（效率为 0）' }
 ];
 // 悬停十字线所需的绘图状态：几何换算 + 基础绘图参数（含 hover 时复用）
 const CHART_GEOM = {};
@@ -2819,6 +2820,10 @@ function drawChart(cv, opt){
   ctx.fillStyle = '#7dd3fc'; ctx.font = 'bold 12px sans-serif';
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   ctx.fillText(opt.title, 10, 15);
+  if(opt.note){
+    ctx.fillStyle = '#64748b'; ctx.font = '9.5px sans-serif';
+    ctx.fillText(opt.note, 10, 28);
+  }
 
   let yMin=Infinity, yMax=-Infinity, xMax=0;
   for(const s of opt.series){
@@ -2982,12 +2987,23 @@ function drawCharts(){
       const multi = SIM.keys.length > 1;
       for(const k of SIM.keys){
         const meta = SIM.runs[k];
+        const tArr = meta.series.t;
+        // 系统效率：停机观察段（车速 0、电堆净功率 0）效率恒为 0，
+        // 留着会把 y 轴一路拉到 0，压扁有效段的曲线差异，故整段略去不画
+        let pt = tArr, py = meta.series[d.key];
+        if(d.skipStandstill){
+          pt = []; py = [];
+          for(let i=0;i<tArr.length;i++){
+            if(tArr[i] < SIM.cycle.duration){ pt.push(tArr[i]); py.push(meta.series[d.key][i]); }
+          }
+        }
         series.push({ label: multi ? meta.short : meta.label, color:meta.color,
-                      x:meta.series.t, y:meta.series[d.key], width: multi?1.4:1.9 });
+                      x:pt, y:py, width: multi?1.4:1.9 });
       }
     }
     // λ 阈值带与温度目标线跟随仿真页输入，避免「图里的带」与「表里的判据」不一致
     const opt = { title: d.title + (d.unit ? ' ('+d.unit+')' : ''), unit: d.unit || '', series, zero:!!d.zero,
+                  note: d.note,
                   bandLow:  d.key==='lambda' ? SIM.cfg.sim.lambdaDry  : d.bandLow,
                   bandHigh: d.key==='lambda' ? SIM.cfg.sim.lambdaFlood : d.bandHigh,
                   refLine:  d.key==='T'      ? SIM.cfg.sim.Tset       : d.refLine };
