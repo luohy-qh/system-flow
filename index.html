@@ -315,7 +315,7 @@
   .sim-kpi-item .k-value.ok { color: #34d399; }
   .sim-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
   .sim-chart-card { padding: 10px 12px; }
-  .sim-canvas { width: 100%; height: 210px; display: block; }
+  .sim-canvas { width: 100%; height: 210px; display: block; cursor: crosshair; }
   .sim-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
   .sim-table th { color: #7dd3fc; text-align: left; padding: 6px 8px; border-bottom: 1px solid #2a4a6b; font-weight: bold; white-space: nowrap; }
   .sim-table td { padding: 5px 8px; border-bottom: 1px dashed #1e3a5f; color: #cbd5e1; white-space: nowrap; }
@@ -2749,6 +2749,37 @@ const CHART_DEFS = [
   { id:'simChH2',     title:'氢耗功率',   unit:'kW(LHV)', key:'pH2',    zero:true },
   { id:'simChEta',    title:'系统效率',   unit:'%',       key:'eta' }
 ];
+// 悬停十字线所需的绘图状态：几何换算 + 基础绘图参数（含 hover 时复用）
+const CHART_GEOM = {};
+const CHART_OPT  = {};
+function nearestIndex(arr, t){
+  if(!arr || !arr.length) return -1;
+  let lo = 0, hi = arr.length - 1;
+  while(lo < hi){ const mid = (lo + hi) >> 1; if(arr[mid] < t) lo = mid + 1; else hi = mid; }
+  if(lo > 0 && Math.abs(arr[lo-1] - t) <= Math.abs(arr[lo] - t)) lo--;
+  return lo;
+}
+function bindChartHover(cv){
+  if(!cv || cv.dataset.hoverBound) return;
+  cv.dataset.hoverBound = '1';
+  let pending = null, raf = 0;
+  const flush = ()=>{
+    raf = 0;
+    const base = CHART_OPT[cv.id];
+    if(pending === null || !base) return;
+    drawChart(cv, pending < 0 ? base : Object.assign({}, base, { hover: pending }));
+    pending = null;
+  };
+  const schedule = ()=>{ if(!raf) raf = requestAnimationFrame(flush); };
+  cv.addEventListener('mousemove', e=>{
+    const g = CHART_GEOM[cv.id];
+    if(!g) return;
+    const mx = e.clientX - cv.getBoundingClientRect().left;
+    pending = (mx < g.L || mx > g.L + g.pw) ? -1 : (mx - g.L) / g.pw * g.xMax;
+    schedule();
+  });
+  cv.addEventListener('mouseleave', ()=>{ pending = -1; schedule(); });
+}
 function ensureCharts(){
   const host = document.getElementById('simCharts');
   if(!host || host.childElementCount) return;
@@ -2814,6 +2845,8 @@ function drawChart(cv, opt){
 
   const X = t => L + t/xMax*pw;
   const Y = v => Tp + ph - (v-yMin)/Math.max(1e-9, yMax-yMin)*ph;
+  // 记录几何，供悬停时把鼠标像素换算成时刻
+  CHART_GEOM[cv.id] = { L, Tp, pw, ph, xMax };
 
   if(opt.bandLow !== undefined && opt.bandHigh !== undefined){
     // 越界区域（λ 高于上限=水淹，低于下限=干膜）
@@ -2878,6 +2911,62 @@ function drawChart(cv, opt){
       x0 += widths[i];
     });
   }
+
+  // ---- 悬停十字线：鼠标位置画一条竖直虚线，并给出该时刻各策略的读数 ----
+  if(opt.hover !== undefined && isFinite(opt.hover) && opt.series.length){
+    const ref = opt.series[0].x;
+    const idx = nearestIndex(ref, Math.max(0, Math.min(xMax, opt.hover)));
+    const tx = idx >= 0 ? Math.round(X(ref[idx])) + 0.5 : -1;
+    if(idx >= 0 && tx >= L && tx <= L + pw){
+      ctx.setLineDash([4,3]);
+      ctx.strokeStyle = 'rgba(226,232,240,0.8)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(tx, Tp); ctx.lineTo(tx, Tp+ph); ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.textBaseline = 'alphabetic';
+
+      // 各策略在该时刻的取值 + 数据点标记
+      const rows = [];
+      for(const s of opt.series){
+        const i = nearestIndex(s.x, ref[idx]);
+        if(i < 0 || !isFinite(s.y[i])) continue;
+        rows.push({ color:s.color, label:s.label || opt.title, v:s.y[i] });
+        ctx.fillStyle = s.color;
+        ctx.beginPath(); ctx.arc(X(s.x[i]), Y(s.y[i]), 2.8, 0, Math.PI*2); ctx.fill();
+      }
+
+      const unit = opt.unit || '';
+      if(rows.length){
+        ctx.font = '10px sans-serif'; ctx.textAlign = 'left';
+        const lines = rows.map(r=>`${r.label}: ${fmtTick(r.v)}${unit}`);
+        const bw = Math.max(...lines.map(l=>ctx.measureText(l).width)) + 20;
+        const bh = lines.length*13 + 8;
+        let bx = tx + 10;
+        if(bx + bw > L + pw) bx = tx - 10 - bw;
+        bx = Math.max(L + 2, Math.min(bx, L + pw - bw));
+        let by = Tp + 6;
+        if(by + bh > Tp + ph) by = Math.max(Tp + 2, Tp + ph - bh);
+        ctx.fillStyle = 'rgba(8,18,32,0.94)';
+        ctx.fillRect(bx, by, bw, bh);
+        ctx.strokeStyle = '#475569'; ctx.lineWidth = 1;
+        ctx.strokeRect(bx + 0.5, by + 0.5, bw, bh);
+        lines.forEach((l,k)=>{
+          ctx.fillStyle = rows[k].color; ctx.fillRect(bx + 6, by + 7 + k*13, 8, 3);
+          ctx.fillStyle = '#e2e8f0'; ctx.fillText(l, bx + 18, by + 11 + k*13);
+        });
+      }
+
+      // 时刻标签（贴在横轴下方）
+      const tTxt = ref[idx].toFixed(0) + ' s';
+      ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+      const tw = ctx.measureText(tTxt).width + 10;
+      const lx = Math.max(L, Math.min(L + pw - tw, tx - tw/2));
+      ctx.fillStyle = 'rgba(8,18,32,0.94)';
+      ctx.fillRect(lx, h - 19, tw, 14);
+      ctx.strokeStyle = '#475569'; ctx.strokeRect(lx + 0.5, h - 18.5, tw, 13);
+      ctx.fillStyle = '#e2e8f0'; ctx.fillText(tTxt, lx + tw/2, h - 8);
+    }
+  }
 }
 function drawCharts(){
   if(!SIM.started) return;
@@ -2898,10 +2987,13 @@ function drawCharts(){
       }
     }
     // λ 阈值带与温度目标线跟随仿真页输入，避免「图里的带」与「表里的判据」不一致
-    drawChart(cv, { title: d.title + (d.unit ? ' ('+d.unit+')' : ''), series, zero:!!d.zero,
-                    bandLow:  d.key==='lambda' ? SIM.cfg.sim.lambdaDry  : d.bandLow,
-                    bandHigh: d.key==='lambda' ? SIM.cfg.sim.lambdaFlood : d.bandHigh,
-                    refLine:  d.key==='T'      ? SIM.cfg.sim.Tset       : d.refLine });
+    const opt = { title: d.title + (d.unit ? ' ('+d.unit+')' : ''), unit: d.unit || '', series, zero:!!d.zero,
+                  bandLow:  d.key==='lambda' ? SIM.cfg.sim.lambdaDry  : d.bandLow,
+                  bandHigh: d.key==='lambda' ? SIM.cfg.sim.lambdaFlood : d.bandHigh,
+                  refLine:  d.key==='T'      ? SIM.cfg.sim.Tset       : d.refLine };
+    CHART_OPT[d.id] = opt;
+    drawChart(cv, opt);
+    bindChartHover(cv);
   }
 }
 
