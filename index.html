@@ -284,6 +284,48 @@
   .hybrid-reference li { color: #94a3b8; font-size: 0.78rem; line-height: 1.6; }
   @media (max-width: 1200px) { .hybrid-input-grid { grid-template-columns: repeat(4, 1fr); } .hybrid-results-grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 700px) { .hybrid-input-grid { grid-template-columns: repeat(2, 1fr); } .hybrid-results-grid { grid-template-columns: 1fr; } }
+
+  /* ====== 整车工况仿真页面 ====== */
+  .sim-page { padding: 16px 24px; }
+  .sim-grid { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 16px; align-items: start; }
+  .sim-panel { position: sticky; top: 84px; max-height: calc(100vh - 104px); overflow-y: auto; }
+  .sim-panel h2 { color: #e8eef5; font-size: 1rem; margin-bottom: 10px; }
+  .sim-group { margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid #1e3a5f; }
+  .sim-group:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+  .sim-group-title { font-size: 0.78rem; color: #7dd3fc; font-weight: bold; margin-bottom: 8px; letter-spacing: 0.5px; }
+  .sim-strat-list { display: flex; flex-direction: column; gap: 7px; }
+  .sim-strat-item { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: #cbd5e1; cursor: pointer; }
+  .sim-strat-item input { accent-color: #38bdf8; cursor: pointer; }
+  .sim-chip { width: 11px; height: 11px; border-radius: 3px; flex-shrink: 0; }
+  .sim-hint { font-size: 0.7rem; color: #94a3b8; line-height: 1.5; margin-top: 4px; }
+  .sim-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .sim-status { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .sim-status .st-text { font-size: 0.82rem; color: #cbd5e1; white-space: nowrap; }
+  .sim-status .st-text b { color: #7dd3fc; }
+  .sim-progress { flex: 1; min-width: 140px; height: 6px; background: #14253c; border-radius: 3px; overflow: hidden; }
+  .sim-progress > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #0ea5e9, #34d399); }
+  .sim-kpi { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+  .sim-kpi-item { background: rgba(11,22,40,0.75); border: 1px solid #2a4a6b; border-radius: 8px; padding: 9px 11px; }
+  .sim-kpi-item .k-label { font-size: 0.7rem; color: #94a3b8; margin-bottom: 3px; white-space: nowrap; }
+  .sim-kpi-item .k-value { font-size: 1rem; color: #7dd3fc; font-weight: bold; }
+  .sim-kpi-item .k-value.warn { color: #f87171; }
+  .sim-kpi-item .k-value.ok { color: #34d399; }
+  .sim-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .sim-chart-card { padding: 10px 12px; }
+  .sim-canvas { width: 100%; height: 210px; display: block; }
+  .sim-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  .sim-table th { color: #7dd3fc; text-align: left; padding: 6px 8px; border-bottom: 1px solid #2a4a6b; font-weight: bold; white-space: nowrap; }
+  .sim-table td { padding: 5px 8px; border-bottom: 1px dashed #1e3a5f; color: #cbd5e1; white-space: nowrap; }
+  .sim-table td.num { color: #7dd3fc; font-weight: bold; }
+  .sim-table td.warn { color: #f87171; }
+  .sim-table tr.best td { background: rgba(56,189,248,0.08); }
+  .sim-note { font-size: 0.72rem; color: #94a3b8; line-height: 1.6; }
+  .sim-note b { color: #fca5a5; }
+  .sim-textarea { width: 100%; padding: 5px 8px; font-size: 0.78rem; background: #0b1628; border: 1px solid #334e6e; border-radius: 4px; color: #e8eef5; resize: vertical; font-family: inherit; }
+  .sim-textarea:focus { outline: none; border-color: #38bdf8; }
+  @media (max-width: 1400px) { .sim-kpi { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  @media (max-width: 1200px) { .sim-charts { grid-template-columns: 1fr; } .sim-kpi { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 900px) { .sim-grid { grid-template-columns: 1fr; } .sim-panel { position: static; max-height: none; } }
 </style>
 </head>
 <body>
@@ -297,7 +339,8 @@
 
 <div class="tab-bar">
   <button class="tab-btn active" data-page="pfd">燃料电池系统设计</button>
-  <button class="tab-btn" data-page="hybrid">燃料电池混合动力系统设计</button>
+  <button class="tab-btn" data-page="hybrid">混合动力系统设计</button>
+  <button class="tab-btn" data-page="sim">整车工况仿真</button>
 </div>
 
 <!-- 隐藏的电堆功率传递元素 -->
@@ -666,6 +709,158 @@
 </div>
 </div><!-- /page-hybrid -->
 
+<div class="page" id="page-sim">
+<div class="sim-page">
+  <div class="sim-grid">
+
+  <!-- ====== 仿真参数栏 ====== -->
+  <aside class="hybrid-section sim-panel">
+    <h2>仿真参数</h2>
+    <div class="io-bar">
+      <button type="button" class="io-btn" id="simRunBtn">开始仿真</button>
+      <button type="button" class="io-btn" id="simPauseBtn">暂停</button>
+      <button type="button" class="io-btn" id="simStopBtn">停止</button>
+      <button type="button" class="io-btn io-import" id="simResetBtn">重置</button>
+    </div>
+    <div class="io-bar">
+      <button type="button" class="io-btn" id="simExportBtn">导出参数</button>
+      <button type="button" class="io-btn io-import" id="simImportBtn">导入参数</button>
+      <input type="file" id="simImportFile" accept=".json,application/json" style="display:none">
+    </div>
+
+    <div class="sim-group">
+      <div class="sim-group-title">▎ 行驶工况</div>
+      <div class="hx-inputs">
+        <div class="hx-input-group"><label for="sim_cycle">工况类型</label>
+          <select id="sim_cycle">
+            <option value="cruise">等速巡航</option>
+            <option value="nedc_approx">近似 NEDC（轮廓）</option>
+            <option value="wltc_approx">近似 WLTC（轮廓）</option>
+            <option value="cltc_approx">近似 CLTC-P（轮廓）</option>
+            <option value="custom">自定义折线</option>
+          </select></div>
+        <div class="hx-input-group"><label for="sim_duration">仿真时长(s)</label><input type="number" id="sim_duration" value="1800" step="60"></div>
+        <div class="hx-input-group"><label for="sim_cruiseSpeed">巡航车速(km/h)</label><input type="number" id="sim_cruiseSpeed" value="60" step="5"></div>
+        <div class="hx-input-group"><label for="sim_grade">坡道坡度(%)</label><input type="number" id="sim_grade" value="0" step="0.5"></div>
+        <div class="hx-input-group"><label for="sim_payload">附加载荷(kg)</label><input type="number" id="sim_payload" value="0" step="50"></div>
+        <div class="hx-input-group"><label for="sim_auxLoad">附加电负载(kW)</label><input type="number" id="sim_auxLoad" value="0" step="0.1"></div>
+      </div>
+      <div class="hx-input-group"><label for="sim_customProfile">自定义折线（每行「时间,车速」）</label>
+        <textarea id="sim_customProfile" class="sim-textarea" rows="3" placeholder="0,0&#10;30,40&#10;120,60&#10;180,0"></textarea></div>
+      <div class="sim-hint">内置标准工况为<b>轮廓近似</b>，非逐秒权威数据；可粘贴真实逐秒车速覆盖。</div>
+    </div>
+
+    <div class="sim-group">
+      <div class="sim-group-title">▎ 电堆与极化曲线</div>
+      <div class="hx-inputs">
+        <div class="hx-input-group"><label for="sim_Vocv">开路电压 OCV(V)</label><input type="number" id="sim_Vocv" value="0.95" step="0.005"></div>
+        <div class="hx-input-group"><label for="sim_tafelB">Tafel 系数 b(V)</label><input type="number" id="sim_tafelB" value="0.035" step="0.001"></div>
+        <div class="hx-input-group"><label for="sim_j0">参考电流密度 j₀(A/cm²)</label><input type="number" id="sim_j0" value="0.02" step="0.005"></div>
+        <div class="hx-input-group"><label for="sim_dVdT">电压温度系数(V/K)</label><input type="number" id="sim_dVdT" value="-0.002" step="0.0001"></div>
+        <div class="hx-input-group"><label for="sim_lambdaV">湿度电压灵敏度(V/λ)</label><input type="number" id="sim_lambdaV" value="0.006" step="0.001"></div>
+        <div class="hx-input-group"><label for="sim_pMin">最小净功率(kW)</label><input type="number" id="sim_pMin" value="6" step="0.5"></div>
+        <div class="hx-input-group"><label for="sim_pRated">额定净功率(kW)</label><input type="number" id="sim_pRated" value="72" step="1"></div>
+        <div class="hx-input-group"><label for="sim_pMax">最大净功率(kW)</label><input type="number" id="sim_pMax" value="80" step="1"></div>
+        <div class="hx-input-group"><label for="sim_rampUp">功率上升率(kW/s)</label><input type="number" id="sim_rampUp" value="5" step="0.5"></div>
+        <div class="hx-input-group"><label for="sim_rampDown">功率下降率(kW/s)</label><input type="number" id="sim_rampDown" value="5" step="0.5"></div>
+        <div class="hx-input-group"><label for="sim_tauFc">功率时间常数(s)</label><input type="number" id="sim_tauFc" value="2" step="0.5"></div>
+      </div>
+    </div>
+
+    <div class="sim-group">
+      <div class="sim-group-title">▎ 动力电池</div>
+      <div class="hx-inputs">
+        <div class="hx-input-group"><label for="sim_batCap">电池容量(kWh)</label><input type="number" id="sim_batCap" value="20" step="1"></div>
+        <div class="hx-input-group"><label for="sim_batVnom">额定电压(V)</label><input type="number" id="sim_batVnom" value="350" step="5"></div>
+        <div class="hx-input-group"><label for="sim_batRint">内阻(mΩ)</label><input type="number" id="sim_batRint" value="60" step="1"></div>
+        <div class="hx-input-group"><label for="sim_socInit">SOC 初值</label><input type="number" id="sim_socInit" value="0.65" step="0.05"></div>
+        <div class="hx-input-group"><label for="sim_socMin">SOC 下限</label><input type="number" id="sim_socMin" value="0.25" step="0.05"></div>
+        <div class="hx-input-group"><label for="sim_socMax">SOC 上限</label><input type="number" id="sim_socMax" value="0.9" step="0.05"></div>
+        <div class="hx-input-group"><label for="sim_pBatChgMax">最大充电功率(kW)</label><input type="number" id="sim_pBatChgMax" value="40" step="5"></div>
+        <div class="hx-input-group"><label for="sim_pBatDisMax">最大放电功率(kW)</label><input type="number" id="sim_pBatDisMax" value="60" step="5"></div>
+        <div class="hx-input-group"><label for="sim_dcdcEff">DC/DC 效率</label><input type="number" id="sim_dcdcEff" value="0.96" step="0.01"></div>
+        <div class="hx-input-group"><label for="sim_socTarget">目标 SOC</label><input type="number" id="sim_socTarget" value="0.6" step="0.05"></div>
+        <div class="hx-input-group"><label for="sim_socLo">SOC 滞环下限</label><input type="number" id="sim_socLo" value="0.45" step="0.05"></div>
+        <div class="hx-input-group"><label for="sim_socHi">SOC 滞环上限</label><input type="number" id="sim_socHi" value="0.75" step="0.05"></div>
+        <div class="hx-input-group"><label for="sim_dwell">最小驻留时间(s)</label><input type="number" id="sim_dwell" value="10" step="1"></div>
+      </div>
+    </div>
+
+    <div class="sim-group">
+      <div class="sim-group-title">▎ 热管理</div>
+      <div class="hx-inputs">
+        <div class="hx-input-group"><label for="sim_Tinit">启动冷却液温度(℃)</label><input type="number" id="sim_Tinit" value="25" step="1"></div>
+        <div class="hx-input-group"><label for="sim_Tset">目标工作温度(℃)</label><input type="number" id="sim_Tset" value="80" step="1"></div>
+        <div class="hx-input-group"><label for="sim_Cstack">冷却回路热容(kJ/K)</label><input type="number" id="sim_Cstack" value="150" step="5"></div>
+        <div class="hx-input-group"><label for="sim_radArea">散热器面积(m²)</label><input type="number" id="sim_radArea" value="65" step="1"></div>
+        <div class="hx-input-group"><label for="sim_fanRatio">风扇风量系数</label><input type="number" id="sim_fanRatio" value="1" step="0.05"></div>
+        <div class="hx-input-group"><label for="sim_ptcMax">PTC 最大功率(kW)</label><input type="number" id="sim_ptcMax" value="10" step="1"></div>
+        <div class="hx-input-group"><label for="sim_ptcKp">PTC 比例增益(kW/℃)</label><input type="number" id="sim_ptcKp" value="0.5" step="0.1"></div>
+        <div class="hx-input-group"><label for="sim_KpThermo">阀 PI 比例 Kp</label><input type="number" id="sim_KpThermo" value="0.15" step="0.01"></div>
+        <div class="hx-input-group"><label for="sim_KiThermo">阀 PI 积分 Ki</label><input type="number" id="sim_KiThermo" value="0.02" step="0.005"></div>
+        <div class="hx-input-group"><label for="sim_valveSlew">阀最大变化率(1/s)</label><input type="number" id="sim_valveSlew" value="0.1" step="0.01"></div>
+        <div class="hx-input-group"><label for="sim_Tcold">冷态参考温度(℃)</label><input type="number" id="sim_Tcold" value="20" step="1"></div>
+        <div class="hx-input-group"><label for="sim_coldMinFrac">冷态最低功率系数</label><input type="number" id="sim_coldMinFrac" value="0.15" step="0.05"></div>
+      </div>
+    </div>
+
+    <div class="sim-group">
+      <div class="sim-group-title">▎ 水管理与仿真控制</div>
+      <div class="hx-inputs">
+        <div class="hx-input-group"><label for="sim_lambdaDry">干膜阈值 λ</label><input type="number" id="sim_lambdaDry" value="4" step="0.5"></div>
+        <div class="hx-input-group"><label for="sim_lambdaFlood">水淹阈值 λ</label><input type="number" id="sim_lambdaFlood" value="14" step="0.5"></div>
+        <div class="hx-input-group"><label for="sim_speed">仿真倍速</label>
+          <select id="sim_speed">
+            <option value="1">1×</option>
+            <option value="5">5×</option>
+            <option value="20" selected>20×</option>
+            <option value="60">60×</option>
+          </select></div>
+        <div class="hx-input-group"><label for="sim_plotStride">绘图抽样间隔(s)</label><input type="number" id="sim_plotStride" value="2" step="1"></div>
+      </div>
+    </div>
+
+    <div class="sim-group">
+      <div class="sim-group-title">▎ 控制策略（多选对比）</div>
+      <div class="sim-strat-list">
+        <label class="sim-strat-item"><input type="checkbox" id="sim_strat_const" checked><span class="sim-chip" style="background:#38bdf8"></span>恒功率规则型</label>
+        <label class="sim-strat-item"><input type="checkbox" id="sim_strat_follow" checked><span class="sim-chip" style="background:#34d399"></span>功率跟随</label>
+        <label class="sim-strat-item"><input type="checkbox" id="sim_strat_effmax" checked><span class="sim-chip" style="background:#fbbf24"></span>最高效率点 + SOC 滞环</label>
+        <label class="sim-strat-item"><input type="checkbox" id="sim_strat_hybrid" checked><span class="sim-chip" style="background:#c084fc"></span>效率优先 + SOC 维持</label>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ====== 仿真主区 ====== -->
+  <main class="sim-main">
+    <div class="hybrid-section sim-status">
+      <span class="st-text" id="simStateText">就绪 · 未运行</span>
+      <div class="sim-progress"><i id="simProgress"></i></div>
+      <span class="st-text" id="simClock">t = 0 s</span>
+    </div>
+
+    <div class="sim-kpi" id="simKpi"></div>
+
+    <div class="sim-charts" id="simCharts"></div>
+
+    <div class="hybrid-section">
+      <h2>策略对比汇总</h2>
+      <div id="simSummary"><div class="sim-note">尚未运行仿真。</div></div>
+    </div>
+
+    <div class="hybrid-section">
+      <h2>模型说明</h2>
+      <div class="sim-note">
+        L1 准静态仿真，步长 1 s。纵向动力学取整车页公式；电堆性能由稳态页公式在「电流密度 × 温度」上扫描成 MAP，极化曲线以稳态页输入的节电压为锚点自校准（保证仿真起点与稳态结果零漂移）；电池为 Rint 等效电路 + SOC 库仑积分；冷却回路为一阶集总热容，三通阀由 PI 闭环、低温段由 PTC 补热；膜含水量 λ 由电堆干侧 / 湿侧与阴极出口中最湿润的 RH 再叠加阴极出口液态水推算。工况结束后的 60 s 为停机观察段（车辆已停，仅保留附件负载）。<br>
+        <b>注意</b>：内置 NEDC / WLTC / CLTC 曲线为轮廓近似，仅供趋势参考，不代表标准工况逐秒真值。
+      </div>
+    </div>
+  </main>
+
+  </div>
+</div>
+</div><!-- /page-sim -->
+
 <script>
 /* ========== 输入参数定义 ========== */
 const INPUTS = [
@@ -711,7 +906,21 @@ INPUTS.forEach(it => {
 });
 
 /* ========== 计算引擎 (与 script.js 公式一致) ========== */
-function num(id){ return parseFloat(document.getElementById(id).value) || 0; }
+/* 参数覆盖层：仿真时把工作点参数注入 num()，使 calc() 可在不改公式的前提下被反复调用 */
+let paramOverride = null;
+/* 仿真运行标志：仿真期间禁止稳态页联动重算（气泡/结果面板不参与仿真） */
+let SIM_RUNNING = false;
+function num(id){
+  if(paramOverride && Object.prototype.hasOwnProperty.call(paramOverride, id)) return paramOverride[id];
+  const el = document.getElementById(id);
+  return el ? (parseFloat(el.value) || 0) : 0;
+}
+/* 在覆盖参数下执行 fn，执行完毕（含异常）必还原，避免污染静态页面 */
+function withParams(ov, fn){
+  const prev = paramOverride;
+  paramOverride = ov;
+  try { return fn(); } finally { paramOverride = prev; }
+}
 
 function satVaporP(T){
   return 0.00000097*Math.pow(T,4) - 0.00003455*Math.pow(T,3)
@@ -1467,6 +1676,7 @@ function updateData(r){
 
 /* ========== 初始化 & 事件 ========== */
 function run(){
+  if(SIM_RUNNING) return;          // 仿真期间冻结稳态页联动，避免无谓的 DOM 重写
   const r = calc();
   updateData(r);
   renderHxResults();
@@ -1482,6 +1692,20 @@ document.getElementById('altitude').addEventListener('input', run);
 run();
 
 /* ========== 燃料电池混合动力系统计算 ========== */
+/* 纵向动力学：给定车速/加速度/坡度，返回驱动力(N)与整车需求功率(kW)
+   cfg = { vehicleMass, rollingResistance, dragCoefficient, frontalArea,
+           powertrainEfficiency, rotatingMassCoefficient }
+   逐字复刻整车页原有公式，供稳态页与仿真页共用，避免两处公式漂移 */
+function vehicleRoadLoad(cfg, vKmh, aMs2, gradePct){
+  const g = 9.8, gr = Math.atan((gradePct || 0) / 100);
+  const force = cfg.vehicleMass * g * cfg.rollingResistance * Math.cos(gr)
+              + cfg.vehicleMass * g * Math.sin(gr)
+              + cfg.dragCoefficient * cfg.frontalArea * vKmh * vKmh / 21.15
+              + cfg.rotatingMassCoefficient * cfg.vehicleMass * aMs2;
+  const power = (vKmh / 3600 / Math.max(0.1, cfg.powertrainEfficiency)) * force;
+  return { force, power };
+}
+
 function calculateHybridSystem(){
   const get = id => { const el = document.getElementById(id); return el ? parseFloat(el.value) : NaN; };
   const getText = id => { const el = document.getElementById(id); return el ? parseFloat(el.textContent) : 0; };
@@ -1520,18 +1744,12 @@ function calculateHybridSystem(){
   const maxClimbingAngle = Math.atan(maxGradeability / 100) * 180 / Math.PI;
   const acceleration = accelerationEndSpeed / accelerationTime / 3.6 * 1000;
 
-  const maxSpeedPower = (maxSpeed / 3600 / safePowertrainEfficiency) *
-                        (vehicleMass * 9.8 * rollingResistance + dragCoefficient * frontalArea * maxSpeed**2 / 21.15);
-
-  const maxGradeabilityPower = (gradeabilitySpeed / 3600 / safePowertrainEfficiency) *
-                               (vehicleMass * 9.8 * rollingResistance * Math.cos(maxClimbingAngle * Math.PI / 180) +
-                                vehicleMass * 9.8 * Math.sin(maxClimbingAngle * Math.PI / 180) +
-                                dragCoefficient * frontalArea * gradeabilitySpeed**2 / 21.15);
-
-  const maxAccelerationPower = (accelerationEndSpeed / 3600 / safePowertrainEfficiency) *
-                               (vehicleMass * 9.8 * rollingResistance +
-                                dragCoefficient * frontalArea * accelerationEndSpeed**2 / 21.15 +
-                                rotatingMassCoefficient * vehicleMass * (accelerationEndSpeed / accelerationTime / 3.6));
+  const roadCfg = { vehicleMass, rollingResistance, dragCoefficient, frontalArea,
+                    powertrainEfficiency: safePowertrainEfficiency, rotatingMassCoefficient };
+  const maxSpeedPower = vehicleRoadLoad(roadCfg, maxSpeed, 0, 0).power;
+  const maxGradeabilityPower = vehicleRoadLoad(roadCfg, gradeabilitySpeed, 0, maxGradeability).power;
+  const maxAccelerationPower = vehicleRoadLoad(roadCfg, accelerationEndSpeed,
+                                               accelerationEndSpeed / accelerationTime / 3.6, 0).power;
 
   const motorPeakPower = Math.max(maxSpeedPower, maxGradeabilityPower, maxAccelerationPower);
   const motorRatedPower = maxSpeedPower;
@@ -1637,6 +1855,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     btn.classList.add('active');
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.getElementById('page-'+btn.dataset.page).classList.add('active');
+    if(btn.dataset.page === 'sim') onSimTabShown();   // 仿真页隐藏时 canvas 尺寸为 0，切回需重绘
     window.scrollTo(0,0);
   });
 });
@@ -1755,12 +1974,752 @@ setupParamIO({
 // 第二页：整车参数表
 setupParamIO({
   pageId: 'page-hybrid',
-  name: '燃料电池混合动力系统设计 · 整车参数',
-  fileBase: '燃料电池混合动力系统设计_整车参数',
+  name: '混合动力系统设计 · 整车参数',
+  fileBase: '混合动力系统设计_整车参数',
   exportId: 'hyExportBtn',
   importBtnId: 'hyImportBtn',
   importFileId: 'hyImportFile',
   onImported: ()=>{ calculateHybridSystem(); }
+});
+
+/* ============================================================
+   整车工况仿真（L1 准静态，固定步长 1 s）
+   ------------------------------------------------------------
+   设计要点：
+   1) 复用 calc()：通过 withParams() 把工作点参数注入 num()，零公式重复；
+   2) 电堆性能在「冷却液温度 × 膜含水量」上扫描成 MAP 并缓存，极化曲线
+      以稳态页节电压为锚点自校准，保证仿真起点与稳态页零漂移；
+   3) 仿真期间不写任何稳态页 DOM（SIM_RUNNING 冻结 run()），结束必还原覆盖层。
+   ============================================================ */
+
+/* ---------- 常量与工具 ---------- */
+const STRATS = [
+  { key:'const',  on:'sim_strat_const',  label:'恒功率规则型',       short:'恒功率', color:'#38bdf8' },
+  { key:'follow', on:'sim_strat_follow', label:'功率跟随',           short:'跟随',   color:'#34d399' },
+  { key:'effmax', on:'sim_strat_effmax', label:'最高效率点+SOC滞环', short:'效率点', color:'#fbbf24' },
+  { key:'hybrid', on:'sim_strat_hybrid', label:'效率优先+SOC维持',   short:'维持',   color:'#c084fc' }
+];
+const BOP_FIXED_KW = 0.5;          // 冷却泵 + 氢气循环泵等效固定功耗
+const H2_LHV_KJ_PER_MOL = 241.92;  // 120 MJ/kg × 2.016 g/mol
+const J_MIN = 0.02, J_MAX = 3.0, J_STEPS = 40;
+const SOC_PROTECT = 0.005;         // SOC 触顶/触底保护带
+
+const SIM = {
+  started:false, running:false, paused:false, done:false,
+  rafId:0, lastReal:0, acc:0, t:0, totalTime:0, lastDraw:0,
+  cfg:null, cycle:null, pol:null, keys:[], runs:{}, states:{},
+  mapCache:new Map(), storedKg:0
+};
+
+const clampN = (v,a,b)=>Math.min(b, Math.max(a, isFinite(v)?v:a));
+const lerpN = (a,b,f)=>a+(b-a)*f;
+const simVal = (id,dft)=>{ const el=document.getElementById(id); if(!el) return dft;
+  const v=parseFloat(el.value); return isFinite(v)?v:dft; };
+const simSel = (id,dft)=>{ const el=document.getElementById(id); return (el&&el.value)?el.value:dft; };
+const simChk = id=>{ const el=document.getElementById(id); return el?!!el.checked:false; };
+
+/* ---------- 1. 行驶工况生成 ---------- */
+function microTrip(vT,tA,tC,tD){
+  const s=[]; if(tA>0) s.push([tA,vT]); if(tC>0) s.push([tC,vT]); if(tD>0) s.push([tD,0]);
+  s.push([10,0]);
+  return s;
+}
+function presetSegments(key){
+  if(key==='nedc_approx'){
+    let s=[]; for(let i=0;i<4;i++) s=s.concat(microTrip(15,26,65,28));
+    return s.concat([[41,30],[69,50],[90,70],[80,70],[75,50],[30,0],[20,0]]);
+  }
+  if(key==='wltc_approx'){
+    return microTrip(30,15,100,15).concat(microTrip(50,20,120,20))
+         .concat(microTrip(70,25,140,20)).concat(microTrip(90,30,150,25))
+         .concat([[25,100],[120,110],[25,0],[20,0]]);
+  }
+  if(key==='cltc_approx'){
+    return microTrip(20,15,60,15).concat(microTrip(45,20,90,20))
+         .concat(microTrip(65,25,100,20)).concat([[25,80],[80,90],[20,0],[20,0]]);
+  }
+  return null;
+}
+function finishCycle(t,v,g){
+  const n=t.length, a=new Array(n).fill(0);
+  let dist=0;
+  for(let i=1;i<n;i++){
+    const dt=Math.max(1e-6, t[i]-t[i-1]);
+    a[i]=(v[i]-v[i-1])/dt/3.6;         // km/h per s → m/s²
+    dist += v[i]*dt/3600;              // km
+  }
+  return { t, v, a, g, n, duration:t[n-1]||0, dist };
+}
+function buildCycle(cfg){
+  const grade = cfg.sim.grade, t=[], v=[], g=[];
+  if(cfg.sim.cycle==='custom'){
+    const box = document.getElementById('sim_customProfile');
+    const raw = box ? box.value : '';
+    const pts = raw.split(/\r?\n+/)
+      .map(l=>l.split(/[,，;\s]+/).map(Number))
+      .filter(p=>p.length>=2 && isFinite(p[0]) && isFinite(p[1]))
+      .map(p=>({ t:p[0], v:Math.max(0,p[1]), g:isFinite(p[2])?p[2]:grade }))
+      .sort((x,y)=>x.t-y.t);
+    if(pts.length>=2){
+      const end = Math.max(2, Math.round(pts[pts.length-1].t));
+      let k=0;
+      for(let s=0;s<=end;s++){
+        while(k<pts.length-2 && pts[k+1].t<s) k++;
+        const a0=pts[k], a1=pts[k+1], span=Math.max(1e-6, a1.t-a0.t), f=clampN((s-a0.t)/span,0,1);
+        t.push(s); v.push(lerpN(a0.v,a1.v,f)); g.push(lerpN(a0.g,a1.g,f));
+      }
+      return finishCycle(t,v,g);
+    }
+    // 解析失败：回退为等速巡航
+  }
+  const segs = cfg.sim.cycle==='cruise' ? null : presetSegments(cfg.sim.cycle);
+  if(!segs){
+    const dur = Math.max(20, Math.round(cfg.sim.duration));
+    for(let s=0;s<=dur;s++){ t.push(s); v.push(Math.max(0,cfg.sim.cruiseSpeed)); g.push(grade); }
+    return finishCycle(t,v,g);
+  }
+  t.push(0); v.push(0); g.push(0);
+  let base=0, vPrev=0;
+  for(const seg of segs){
+    const d=seg[0], vEnd=seg[1];
+    if(d<=0) continue;
+    for(let k=1;k<=d;k++){
+      const f=k/d;
+      t.push(base+k); v.push(lerpN(vPrev,vEnd,f)); g.push(vEnd>1?grade:0);
+    }
+    base+=d; vPrev=vEnd;
+  }
+  return finishCycle(t,v,g);
+}
+
+/* ---------- 2. 参数快照 ---------- */
+function snapshotSimConfig(){
+  const P = collectParams(document.getElementById('page-pfd'));
+  const H = collectParams(document.getElementById('page-hybrid'));
+  const g = (o,k,d)=>{ const v=parseFloat(o[k]); return isFinite(v)?v:d; };
+  const anchor = {
+    cellVoltage:g(P,'cellVoltage',0.619), cellCount:g(P,'cellCount',400),
+    reactionArea:g(P,'reactionArea',300), currentDensity:g(P,'currentDensity',2.02),
+    operatingTemp:g(P,'operatingTemp',81), airRatio:g(P,'airRatio',2),
+    ambientTemp:g(P,'ambientTemp',25)
+  };
+  const veh = {
+    vehicleMass: g(H,'vehicleMass',15000) + simVal('sim_payload',0),
+    rollingResistance: g(H,'rollingResistance',0.008),
+    dragCoefficient: g(H,'dragCoefficient',0.6),
+    frontalArea: g(H,'frontalArea',7.5),
+    powertrainEfficiency: g(H,'powertrainEfficiency',0.9),
+    rotatingMassCoefficient: g(H,'rotatingMassCoefficient',0.05),
+    accessoryPower: g(H,'accessoryPower',0) + simVal('sim_auxLoad',0)
+  };
+  const ka = g(P,'hx_radiatorKa',100);
+  const sim = {
+    cycle: simSel('sim_cycle','cruise'), duration: simVal('sim_duration',1800),
+    cruiseSpeed: simVal('sim_cruiseSpeed',60), grade: simVal('sim_grade',0),
+    Vocv: simVal('sim_Vocv',0.95), tafelB: Math.max(0.005,simVal('sim_tafelB',0.035)),
+    j0: Math.max(1e-4,simVal('sim_j0',0.02)), dVdT: simVal('sim_dVdT',-0.002),
+    lambdaV: simVal('sim_lambdaV',0.006),
+    pMin: Math.max(0,simVal('sim_pMin',6)), pRated: Math.max(0,simVal('sim_pRated',72)),
+    pMax: Math.max(0.5,simVal('sim_pMax',80)),
+    rampUp: Math.max(0.1,simVal('sim_rampUp',5)), rampDown: Math.max(0.1,simVal('sim_rampDown',5)),
+    tauFc: Math.max(0.1,simVal('sim_tauFc',2)),
+    batCap: Math.max(0.5,simVal('sim_batCap',20)),
+    socInit: clampN(simVal('sim_socInit',0.65),0.02,0.98),
+    socMin: simVal('sim_socMin',0.25), socMax: simVal('sim_socMax',0.9),
+    pBatChgMax: Math.max(0,simVal('sim_pBatChgMax',40)), pBatDisMax: Math.max(0,simVal('sim_pBatDisMax',60)),
+    dcdcEff: clampN(simVal('sim_dcdcEff',0.96),0.5,1),
+    socTarget: simVal('sim_socTarget',0.6), socLo: simVal('sim_socLo',0.45), socHi: simVal('sim_socHi',0.75),
+    dwell: Math.max(0,simVal('sim_dwell',10)),
+    Tinit: simVal('sim_Tinit',25), Tset: simVal('sim_Tset',80),
+    Cstack: Math.max(5,simVal('sim_Cstack',150)),
+    radArea: Math.max(0.5,simVal('sim_radArea',65)),
+    fanRatio: clampN(simVal('sim_fanRatio',1),0.05,2),
+    ptcMax: Math.max(0,simVal('sim_ptcMax',10)), ptcKp: Math.max(0,simVal('sim_ptcKp',0.5)),
+    KpThermo: simVal('sim_KpThermo',0.15), KiThermo: simVal('sim_KiThermo',0.02),
+    valveSlew: Math.max(0.01,simVal('sim_valveSlew',0.1)),
+    Tcold: simVal('sim_Tcold',20), coldMinFrac: clampN(simVal('sim_coldMinFrac',0.15),0,1),
+    lambdaDry: simVal('sim_lambdaDry',4), lambdaFlood: simVal('sim_lambdaFlood',14),
+    speed: clampN(parseFloat(simSel('sim_speed','20')),1,60),
+    plotStride: Math.max(1, Math.round(simVal('sim_plotStride',2)))
+  };
+  const picked = STRATS.filter(s=>simChk(s.on)).map(s=>s.key);
+  return { anchor, veh, sim, ka: ka>0?ka:100, strategies: picked.length?picked:['const'] };
+}
+
+/* ---------- 3. 膜含水量估计与极化曲线 ---------- */
+/* 膜含水量 λ 估计：取「电堆干侧入口 / 湿侧出口 / 阴极出口」三者中最湿润的 RH 再叠加
+   阴极出口液态水量。避免单一信号为 0（如默认加湿器效率=0 时干侧 RH=0）把 λ 钉在干膜下限。 */
+function estimateLambda(r){
+  const hm = r.hum || {}, ar = r.air || {};
+  const rh = Math.max(clampN(hm.dryRH||0,0,100), clampN(hm.wetRH||0,0,100),
+                      clampN(ar.airOutletHumidity||0,0,100));
+  const liq = clampN(ar.outletLiquidWater||0, 0, 1.5);
+  return clampN(1 + 10*rh/100 + 8*liq, 1, 30);
+}
+function buildPolarization(cfg){
+  const a = cfg.anchor;
+  const refJ = Math.max(0.05, a.currentDensity);
+  const b = cfg.sim.tafelB, j0 = cfg.sim.j0;
+  const base = cfg.sim.Vocv - b*Math.log((refJ+j0)/j0);
+  const Rcal = clampN((base - a.cellVoltage)/refJ, 0.0002, 0.5);
+  // 参考 λ 由同一套估算器在稳态锚点求出，使 j=refJ、T=Tref 时电压严格等于稳态页节电压
+  const lambdaRef = estimateLambda(calc());
+  return { vocv:cfg.sim.Vocv, b, j0, Rcal, refJ, refT:a.operatingTemp, lambdaRef,
+           dVdT:cfg.sim.dVdT, lambdaV:cfg.sim.lambdaV };
+}
+function cellVAt(pol, j, T, lambda){
+  const jj = Math.max(0.001, j);
+  return pol.vocv - pol.b*Math.log((jj+pol.j0)/pol.j0) - pol.Rcal*jj
+       + pol.dVdT*(T - pol.refT) + pol.lambdaV*(lambda - pol.lambdaRef);
+}
+function evalPoint(cfg, pol, j, T, lambda){
+  const v = cellVAt(pol, j, T, lambda);
+  const r = withParams({ currentDensity:j, cellVoltage:v, operatingTemp:T,
+                         airRatio:cfg.anchor.airRatio }, calc);
+  const pBop = r.airThermal.compressorPowerConsumption/1000 + BOP_FIXED_KW;
+  return { r, j, v, pStack:r.stack.power, pBop, pNet:r.stack.power - pBop };
+}
+/* 在「温度桶 × λ 桶」上扫描电流密度，得到净功率 / 氢耗 / 产热 / 系统效率 MAP */
+function getMap(cfg, pol, T, lambda){
+  const tb = Math.round(clampN(T,-20,150));
+  const lb = Math.round(clampN(lambda,1,30)*10)/10;
+  const key = tb+'|'+lb;
+  let m = SIM.mapCache.get(key);
+  if(m) return m;
+  const j=[], p=[], h=[], q=[], eta=[];
+  for(let k=0;k<=J_STEPS;k++){
+    const jj = J_MIN + (J_MAX-J_MIN)*k/J_STEPS;
+    const v = cellVAt(pol, jj, tb, lb);
+    if(v < 0.30) break;                                  // 低于 0.3 V/片视为不可用
+    const r = withParams({ currentDensity:jj, cellVoltage:v, operatingTemp:tb,
+                           airRatio:cfg.anchor.airRatio }, calc);
+    const pn = r.stack.power - (r.airThermal.compressorPowerConsumption/1000 + BOP_FIXED_KW);
+    j.push(jj); p.push(pn); h.push(r.stack.h2); q.push(r.stack.heat);
+    eta.push(pn>0 ? pn/(r.stack.h2*H2_LHV_KJ_PER_MOL) : 0);
+  }
+  m = { j, p, h, q, eta, T:tb, lambda:lb };
+  if(SIM.mapCache.size > 600) SIM.mapCache.clear();
+  SIM.mapCache.set(key, m);
+  return m;
+}
+/* 在 MAP 的递增分支上反解「净功率 = target」对应的电流密度 */
+function solveJ(m, target){
+  if(!m.p.length) return 0;
+  let pTop=-Infinity, kTop=0;
+  for(let k=0;k<m.p.length;k++) if(m.p[k]>pTop){ pTop=m.p[k]; kTop=k; }
+  if(target <= m.p[0]) return m.j[0];
+  if(target >= pTop) return m.j[kTop];
+  let k=0; while(k<kTop && m.p[k+1] < target) k++;
+  const f = (target-m.p[k])/Math.max(1e-9, m.p[k+1]-m.p[k]);
+  return lerpN(m.j[k], m.j[k+1], clampN(f,0,1));
+}
+function bestEffPower(m, pFloor){
+  if(!m.p.length) return 0;
+  let best=0, bestEta=0;
+  for(let k=0;k<m.eta.length;k++)
+    if(m.p[k] >= pFloor && m.eta[k] > bestEta){ bestEta=m.eta[k]; best=m.p[k]; }
+  return best>0 ? best : m.p[0];
+}
+
+/* ---------- 4. 初始化与单步推进 ---------- */
+function initSimStates(cfg){
+  SIM.states = {};
+  for(const k of cfg.strategies){
+    SIM.states[k] = {
+      soc:cfg.sim.socInit, tCool:cfg.sim.Tinit, lambda:cfg.sim.lambdaDry,
+      pCmd:0, pFc:0, j:0, valve:0, integ:0, mode:'lo', dwellT:0,
+      acc:{ need:0, pH2:0, h2kg:0, eBat:0, dist:0, shortfall:0, dump:0, eFc:0, eBatBus:0,
+            tDry:0, tFlood:0, Tmax:cfg.sim.Tinit, socMin:cfg.sim.socInit, socMax:cfg.sim.socInit }
+    };
+  }
+}
+function batLimits(cfg, soc){
+  const span = Math.max(0.05, cfg.sim.socMax - cfg.sim.socMin);
+  return {
+    dis: cfg.sim.pBatDisMax * clampN((soc - cfg.sim.socMin)/span, 0, 1),
+    chg: cfg.sim.pBatChgMax * clampN((cfg.sim.socMax - soc)/span, 0, 1)
+  };
+}
+function stepOnce(){
+  const cfg = SIM.cfg, cy = SIM.cycle;
+  const shutting = SIM.t >= cy.duration;      // 工况结束后的停机观察段：车辆已停，只留附件负载
+  const i = Math.min(SIM.t, cy.n-1);
+  const v   = shutting ? 0 : cy.v[i];
+  const acc = shutting ? 0 : cy.a[i];
+  const gr  = shutting ? 0 : cy.g[i];
+  const pNeed = vehicleRoadLoad(cfg.veh, v, acc, gr).power + cfg.veh.accessoryPower;
+
+  for(const k of cfg.strategies){
+    const st = SIM.states[k], R = SIM.runs[k], A = st.acc, S = R.series;
+    const m  = getMap(cfg, SIM.pol, st.tCool, st.lambda);
+    // 冷态功率上限：温度越低可用功率越低
+    const pMaxNow = cfg.sim.pMax * (cfg.sim.coldMinFrac + (1-cfg.sim.coldMinFrac)
+                    * clampN((st.tCool - cfg.sim.Tcold)/Math.max(1,(cfg.sim.Tset - cfg.sim.Tcold)),0,1));
+    const pTop = Math.min(cfg.sim.pMax, pMaxNow);
+    const pMinNow = Math.min(cfg.sim.pMin, pTop);
+    const pRatedNow = clampN(cfg.sim.pRated, pMinNow, pTop);
+    const pEff = clampN(bestEffPower(m, pMinNow), pMinNow, pTop);
+    const warm = !shutting && st.tCool < cfg.sim.Tset - 5;
+
+    /* --- 控制策略 --- */
+    let cmd;
+    if(shutting){
+      cmd = 0;
+    } else if(k==='const'){
+      cmd = pRatedNow;
+    } else if(k==='follow'){
+      cmd = clampN(pNeed, pMinNow, pTop);
+    } else if(k==='effmax'){
+      st.dwellT += 1;
+      if(st.mode==='lo' && st.soc <= cfg.sim.socLo && st.dwellT >= cfg.sim.dwell){ st.mode='hi'; st.dwellT=0; }
+      else if(st.mode==='hi' && st.soc >= cfg.sim.socHi && st.dwellT >= cfg.sim.dwell){ st.mode='lo'; st.dwellT=0; }
+      cmd = clampN(st.mode==='hi' ? pRatedNow : pEff, pMinNow, pTop);
+    } else {  // hybrid：前馈跟随 + SOC 反馈维持
+      cmd = clampN(pNeed + 2.5*cfg.sim.batCap*(cfg.sim.socTarget - st.soc), pMinNow, pTop);
+    }
+    if(warm) cmd = clampN(Math.max(cmd, pTop*0.7), pMinNow, pTop);   // 暖机阶段优先产热
+    // SOC 保护：触顶不让电堆继续充、触底强制电堆出力
+    if(st.soc >= cfg.sim.socMax - SOC_PROTECT) cmd = Math.min(cmd, Math.max(pMinNow, pNeed + 2));
+    if(st.soc <= cfg.sim.socMin + SOC_PROTECT) cmd = Math.max(cmd, Math.min(pTop, pNeed));
+    let target = clampN(cmd, 0, pTop);
+
+    /* --- 执行器：速率限制 + 一阶滞后 --- */
+    st.pCmd += clampN(target - st.pCmd, -cfg.sim.rampDown, cfg.sim.rampUp);
+    st.pFc  += (st.pCmd - st.pFc) * (1 - Math.exp(-1/cfg.sim.tauFc));
+    st.pFc  = clampN(st.pFc, 0, pTop);
+    const fcOn = st.pFc >= 0.5;
+    if(!fcOn) st.pFc = 0;
+
+    /* --- 工作点求解与详细结果 --- */
+    // 极端参数可能把极化曲线整条压到 0.3 V/片 以下（MAP 退化），此时判为电堆不可用，避免注入 NaN
+    const usable = fcOn && m.j.length >= 2;
+    const ep = usable ? evalPoint(cfg, SIM.pol, solveJ(m, st.pFc), st.tCool, st.lambda) : null;
+    if(fcOn && !usable) st.pFc = 0;
+    const pFcNet = ep ? ep.pNet : 0;
+    st.j = ep ? ep.j : 0;
+
+    /* --- 电池 Rint + SOC 库仑积分 --- */
+    const lim = batLimits(cfg, st.soc);
+    const rawBat = pNeed - pFcNet;
+    const pBatBus = clampN(rawBat, -lim.chg, lim.dis);
+    const shortfall = Math.max(0, rawBat - lim.dis);        // 电堆 + 电池都供不上的缺功率
+    const dump = Math.max(0, -rawBat - lim.chg);            // 电池已满而电堆富余、无处可去的弃电
+    const pBatInt = pBatBus >= 0 ? pBatBus/cfg.sim.dcdcEff : pBatBus*cfg.sim.dcdcEff;
+    st.soc = clampN(st.soc - pBatInt/3600/cfg.sim.batCap, 0.001, 1);
+
+    /* --- 热管理：一阶集总热容 + 三通阀 PI + PTC 补热 --- */
+    const Qgen = ep ? ep.r.cool.totalHeat : 0;
+    const Qptc = st.tCool < cfg.sim.Tset
+               ? clampN(cfg.sim.ptcKp*(cfg.sim.Tset - st.tCool), 0, cfg.sim.ptcMax) : 0;
+    const UA = cfg.ka*cfg.sim.radArea*cfg.sim.fanRatio/1000;                 // kW/K
+    const QradMax = Math.max(0, UA*(st.tCool - cfg.anchor.ambientTemp));
+    const errT = st.tCool - cfg.sim.Tset;
+    st.integ = clampN(st.integ + errT*1, -300, 300);
+    const uTarget = clampN(cfg.sim.KpThermo*errT + cfg.sim.KiThermo*st.integ, 0, 1);
+    st.valve = clampN(st.valve + clampN(uTarget - st.valve, -cfg.sim.valveSlew, cfg.sim.valveSlew), 0, 1);
+    st.tCool = clampN(st.tCool + (Qgen + Qptc - QradMax*st.valve)/cfg.sim.Cstack, -40, 200);
+
+    /* --- 膜含水量 --- */
+    const lamTarget = ep ? estimateLambda(ep.r) : cfg.sim.lambdaDry;
+    st.lambda += (lamTarget - st.lambda)*0.15;
+
+    /* --- 记账 --- */
+    const dt = 1;
+    const h2rate = ep ? ep.r.stack.h2*2.016e-3 : 0;        // kg/s
+    const pLH2   = h2rate*120000;                          // kW（按 LHV）
+    A.need += pNeed*dt/3600; A.pH2 += pLH2*dt/3600;
+    A.h2kg += h2rate*dt; A.eBat += pBatInt*dt/3600;
+    A.eFc += pFcNet*dt/3600; A.eBatBus += pBatBus*dt/3600; A.dump += dump*dt/3600;
+    A.dist += v*dt/3600; A.shortfall += shortfall*dt/3600;
+    if(st.lambda < cfg.sim.lambdaDry) A.tDry += 1;
+    if(st.lambda > cfg.sim.lambdaFlood) A.tFlood += 1;
+    A.Tmax = Math.max(A.Tmax, st.tCool);
+    A.socMin = Math.min(A.socMin, st.soc); A.socMax = Math.max(A.socMax, st.soc);
+
+    if(SIM.t % cfg.sim.plotStride === 0){
+      S.t.push(SIM.t); S.v.push(v); S.pFc.push(pFcNet); S.pBat.push(pBatBus);
+      S.soc.push(st.soc*100); S.T.push(st.tCool); S.lambda.push(st.lambda);
+      S.pH2.push(pLH2);
+      S.eta.push(pLH2 > 0.5 ? pFcNet/pLH2*100 : 0);
+    }
+  }
+  SIM.t++;
+}
+
+/* ---------- 5. 汇总 ---------- */
+function computeSummaries(){
+  for(const k of SIM.keys){
+    const st = SIM.states[k], A = st.acc;
+    const km = Math.max(1e-4, A.dist);
+    const secs = Math.max(1, SIM.t);
+    SIM.runs[k].summary = {
+      km:A.dist, h2kg:A.h2kg, per100:A.h2kg/km*100,
+      // 系统效率 = 实际交付整车的电功 / (氢 LHV 化学能 + 电池净放能)，恒 ≤ 100%
+      eta: (A.pH2 + A.eBat) > 1e-6 ? (A.need - A.shortfall)/(A.pH2 + A.eBat)*100 : 0,
+      socEnd:st.soc*100, socMin:A.socMin*100, socMax:A.socMax*100,
+      tMax:A.Tmax, tEnd:st.tCool, eBat:A.eBat, shortfall:A.shortfall, dump:A.dump,
+      dryPct:A.tDry/secs*100, floodPct:A.tFlood/secs*100,
+      need:A.need, pH2:A.pH2,
+      // 能量平衡自检：∫电堆净功 + ∫电池母线功 应恒等于「需求 − 缺功率 + 弃电」，误差应为 0
+      auditPct: A.need > 1e-6
+        ? (A.eFc + A.eBatBus - (A.need - A.shortfall + A.dump))/A.need*100 : 0,
+      range: (A.h2kg/km>1e-6 && SIM.storedKg>0) ? SIM.storedKg/(A.h2kg/km) : 0
+    };
+  }
+}
+
+/* ---------- 6. canvas 绘图引擎 ---------- */
+const CHART_DEFS = [
+  { id:'simChSpeed',  title:'车速',       unit:'km/h',    key:'v',      single:true },
+  { id:'simChFc',     title:'电堆净功率', unit:'kW',      key:'pFc',    zero:true },
+  { id:'simChBat',    title:'电池功率',   unit:'kW',      key:'pBat',   zero:true },
+  { id:'simChSoc',    title:'SOC',        unit:'%',       key:'soc' },
+  { id:'simChTemp',   title:'电堆温度',   unit:'℃',      key:'T',      refLine:80 },
+  { id:'simChLambda', title:'膜含水量 λ', unit:'',        key:'lambda', bandLow:4, bandHigh:14 },
+  { id:'simChH2',     title:'氢耗功率',   unit:'kW(LHV)', key:'pH2',    zero:true },
+  { id:'simChEta',    title:'系统效率',   unit:'%',       key:'eta' }
+];
+function ensureCharts(){
+  const host = document.getElementById('simCharts');
+  if(!host || host.childElementCount) return;
+  host.innerHTML = CHART_DEFS.map(d=>
+    `<div class="hybrid-section sim-chart-card"><canvas class="sim-canvas" id="${d.id}"></canvas></div>`
+  ).join('');
+}
+function setupCanvas(cv){
+  const dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth || 0, h = cv.clientHeight || 0;
+  const W = Math.max(1, Math.round(w*dpr)), H = Math.max(1, Math.round(h*dpr));
+  if(cv.width !== W || cv.height !== H){ cv.width = W; cv.height = H; }
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return { ctx, w, h };
+}
+function niceNum(range, round){
+  const exp = Math.floor(Math.log10(Math.max(1e-9, range)));
+  const f = range/Math.pow(10, exp);
+  const nf = round ? (f<1.5?1:f<3?2:f<7?5:10) : (f<=1?1:f<=2?2:f<=5?5:10);
+  return nf*Math.pow(10, exp);
+}
+function fmtTick(v){
+  const av = Math.abs(v);
+  if(av >= 100) return v.toFixed(0);
+  if(av >= 10) return v.toFixed(1);
+  if(av >= 1) return v.toFixed(2);
+  return v.toFixed(3).replace(/0+$/,'').replace(/\.$/,'');
+}
+function drawChart(cv, opt){
+  const { ctx, w, h } = setupCanvas(cv);
+  if(w < 80 || h < 60) return;
+  ctx.clearRect(0,0,w,h);
+  const L=54, Rp=12, Tp=40, Bp=22;
+  const pw = Math.max(10, w-L-Rp), ph = Math.max(10, h-Tp-Bp);
+
+  ctx.fillStyle = '#7dd3fc'; ctx.font = 'bold 12px sans-serif';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.fillText(opt.title, 10, 15);
+
+  let yMin=Infinity, yMax=-Infinity, xMax=0;
+  for(const s of opt.series){
+    for(let i=0;i<s.y.length;i++){
+      const y=s.y[i];
+      if(isFinite(y)){ if(y<yMin) yMin=y; if(y>yMax) yMax=y; }
+    }
+    const xl = s.x.length ? s.x[s.x.length-1] : 0;
+    if(xl > xMax) xMax = xl;
+  }
+  if(!isFinite(yMin)){ yMin=0; yMax=1; }
+  if(opt.zero){ yMin=Math.min(0,yMin); yMax=Math.max(0,yMax); }
+  if(opt.bandLow !== undefined && opt.bandHigh !== undefined){
+    yMin=Math.min(yMin,opt.bandLow); yMax=Math.max(yMax,opt.bandHigh);
+  }
+  if(opt.refLine !== undefined){ yMin=Math.min(yMin,opt.refLine); yMax=Math.max(yMax,opt.refLine); }
+  if(yMax-yMin < 1e-6) yMax = yMin + 1;
+  const pad = (yMax-yMin)*0.08;
+  yMin -= pad; yMax += pad;
+  const yStep = niceNum((yMax-yMin)/4, true) || 1;
+  yMin = Math.floor(yMin/yStep)*yStep;
+  yMax = Math.ceil(yMax/yStep)*yStep;
+  xMax = Math.max(60, Math.ceil((xMax||1)/60)*60);
+
+  const X = t => L + t/xMax*pw;
+  const Y = v => Tp + ph - (v-yMin)/Math.max(1e-9, yMax-yMin)*ph;
+
+  if(opt.bandLow !== undefined && opt.bandHigh !== undefined){
+    // 越界区域（λ 高于上限=水淹，低于下限=干膜）
+    ctx.fillStyle = 'rgba(248,113,113,0.10)';
+    const yHi = Y(opt.bandHigh), yLo = Y(opt.bandLow);
+    if(yHi > Tp) ctx.fillRect(L, Tp, pw, Math.min(ph, yHi-Tp));
+    if(yLo < Tp+ph) ctx.fillRect(L, Math.max(Tp,yLo), pw, Tp+ph-Math.max(Tp,yLo));
+  }
+  ctx.strokeStyle = '#1e3a5f'; ctx.lineWidth = 1;
+  ctx.font = '10px sans-serif'; ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'right';
+  for(let v=yMin; v<=yMax+yStep*0.001; v+=yStep){
+    const y = Math.round(Y(v))+0.5;
+    ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(L+pw,y); ctx.stroke();
+    ctx.fillText(fmtTick(v), L-6, y+3);
+  }
+  ctx.textAlign = 'center';
+  const xStep = niceNum(xMax/5, true) || 60;
+  for(let t=0; t<=xMax*1.001; t+=xStep){
+    const x = Math.round(X(t))+0.5;
+    ctx.strokeStyle = '#16283f';
+    ctx.beginPath(); ctx.moveTo(x, Tp); ctx.lineTo(x, Tp+ph); ctx.stroke();
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText(t.toFixed(0), x, h-8);
+  }
+  ctx.strokeStyle = '#2a4a6b'; ctx.strokeRect(L+0.5, Tp+0.5, pw, ph);
+
+  if(opt.refLine !== undefined){
+    const y = Math.round(Y(opt.refLine))+0.5;
+    if(y >= Tp && y <= Tp+ph){
+      ctx.strokeStyle = 'rgba(248,113,113,0.75)'; ctx.setLineDash([5,4]);
+      ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(L+pw,y); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(248,113,113,0.95)'; ctx.font = '10px sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText('目标 '+opt.refLine, L+6, y-3);
+    }
+  }
+
+  for(const s of opt.series){
+    if(!s.y.length) continue;
+    ctx.strokeStyle = s.color; ctx.lineWidth = s.width || 1.6;
+    ctx.setLineDash(s.dash ? [4,3] : []);
+    ctx.beginPath();
+    let started = false;
+    for(let i=0;i<s.y.length;i++){
+      const y = s.y[i];
+      if(!isFinite(y)){ started = false; continue; }
+      const px = X(s.x[i]), py = Y(y);
+      if(!started){ ctx.moveTo(px,py); started = true; } else ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  const items = opt.series.filter(s=>s.label);
+  if(items.length){
+    ctx.font = '10px sans-serif'; ctx.textAlign = 'left';
+    const widths = items.map(s=>ctx.measureText(s.label).width+18);
+    const total = widths.reduce((a,b)=>a+b,0);
+    let x0 = Math.max(L+2, w-Rp-total), y0 = 31;
+    items.forEach((s,i)=>{
+      ctx.fillStyle = s.color; ctx.fillRect(x0, y0-7, 10, 3);
+      ctx.fillStyle = '#cbd5e1'; ctx.fillText(s.label, x0+14, y0-3);
+      x0 += widths[i];
+    });
+  }
+}
+function drawCharts(){
+  if(!SIM.started) return;
+  ensureCharts();
+  for(const d of CHART_DEFS){
+    const cv = document.getElementById(d.id);
+    if(!cv) continue;
+    const series = [];
+    if(d.single){
+      const k0 = SIM.keys[0];
+      series.push({ label:'工况车速', color:'#7dd3fc', x:SIM.runs[k0].series.t, y:SIM.runs[k0].series.v });
+    } else {
+      const multi = SIM.keys.length > 1;
+      for(const k of SIM.keys){
+        const meta = SIM.runs[k];
+        series.push({ label: multi ? meta.short : meta.label, color:meta.color,
+                      x:meta.series.t, y:meta.series[d.key], width: multi?1.4:1.9 });
+      }
+    }
+    drawChart(cv, { title: d.title + (d.unit ? ' ('+d.unit+')' : ''), series,
+                    zero:!!d.zero, bandLow:d.bandLow, bandHigh:d.bandHigh, refLine:d.refLine });
+  }
+}
+
+/* ---------- 7. 界面渲染 ---------- */
+function setStatus(){
+  const st = document.getElementById('simStateText');
+  const pr = document.getElementById('simProgress');
+  const ck = document.getElementById('simClock');
+  if(!st || !pr || !ck) return;
+  if(!SIM.started){ st.textContent = '就绪 · 未运行'; pr.style.width='0%'; ck.textContent='t = 0 s'; return; }
+  const label = SIM.done ? '已完成' : (SIM.paused ? '已暂停' : '运行中');
+  const pct = SIM.totalTime>0 ? Math.min(100, SIM.t/SIM.totalTime*100) : 0;
+  st.innerHTML = `${label} · 步长 1 s · 策略 <b>${SIM.keys.length}</b> 种 · 工况 <b>${SIM.cfg.sim.cycle}</b>`;
+  pr.style.width = pct.toFixed(1)+'%';
+  ck.textContent = `t = ${SIM.t.toFixed(0)} / ${SIM.totalTime.toFixed(0)} s（${pct.toFixed(0)}%）· ${SIM.cfg.sim.speed}×`;
+}
+function renderKpi(){
+  const host = document.getElementById('simKpi');
+  if(!host) return;
+  if(!SIM.started || !SIM.keys.length){ host.innerHTML=''; return; }
+  const parts = [`<div class="sim-kpi-item">
+      <div class="k-label">仿真工况 / 里程</div>
+      <div class="k-value">${SIM.cycle.dist.toFixed(2)} <span style="font-size:.7rem">km</span></div>
+      <div class="k-label">时长 ${SIM.cycle.duration.toFixed(0)} s · 环境 ${SIM.anchorEnv.toFixed(0)}℃</div>
+    </div>`];
+  for(const k of SIM.keys){
+    const s = SIM.runs[k].summary;
+    if(!s) continue;
+    parts.push(`<div class="sim-kpi-item">
+      <div class="k-label" style="color:${SIM.runs[k].color};font-weight:bold">${SIM.runs[k].label}</div>
+      <div class="k-value">${s.per100.toFixed(2)} <span style="font-size:.7rem">kg/100km</span></div>
+      <div class="k-label">效率 ${s.eta.toFixed(1)}% · SOC ${s.socEnd.toFixed(1)}%</div>
+      <div class="k-label">峰值温度 ${s.tMax.toFixed(0)}℃${s.shortfall>0.01?` · <span style="color:#f87171">缺功率 ${s.shortfall.toFixed(2)} kWh</span>`:''}</div>
+    </div>`);
+  }
+  host.innerHTML = parts.join('');
+}
+function renderSummary(){
+  const host = document.getElementById('simSummary');
+  if(!host) return;
+  if(!SIM.started){ host.innerHTML = '<div class="sim-note">尚未运行仿真。</div>'; return; }
+  const rows = SIM.keys.map(k=>({ k, s:SIM.runs[k].summary })).filter(r=>r.s);
+  if(!rows.length){ host.innerHTML = '<div class="sim-note">尚未产生有效数据。</div>'; return; }
+  let best = rows[0];
+  for(const r of rows) if(r.s.per100 < best.s.per100) best = r;
+  const head = ['策略','里程(km)','总氢耗(kg)','百公里氢耗(kg/100km)','系统效率(%)','SOC终值(%)','SOC最低(%)',
+                '电池吞吐(kWh)','温度峰值(℃)','温度终值(℃)','λ越限(s)','估算续航(km)','缺功率(kWh)','弃电(kWh)'];
+  const body = rows.map(r=>{
+    const s = r.s, over = s.dryPct + s.floodPct;
+    const cells = [
+      `<td style="color:${SIM.runs[r.k].color};font-weight:bold">${SIM.runs[r.k].label}</td>`,
+      `<td class="num">${s.km.toFixed(2)}</td>`,
+      `<td class="num">${s.h2kg.toFixed(3)}</td>`,
+      `<td class="num">${s.per100.toFixed(2)}</td>`,
+      `<td class="num">${s.eta.toFixed(1)}</td>`,
+      `<td class="num${s.socEnd < SIM.cfg.sim.socMin*100 ? ' warn':''}">${s.socEnd.toFixed(1)}</td>`,
+      `<td class="num${s.socMin < SIM.cfg.sim.socMin*100 ? ' warn':''}">${s.socMin.toFixed(1)}</td>`,
+      `<td class="num">${s.eBat.toFixed(2)}</td>`,
+      `<td class="num">${s.tMax.toFixed(1)}</td>`,
+      `<td class="num">${s.tEnd.toFixed(1)}</td>`,
+      `<td class="num${over > 60 ? ' warn':''}">${over.toFixed(0)}</td>`,
+      `<td class="num">${s.range>0 ? s.range.toFixed(0) : '—'}</td>`,
+      `<td class="num${s.shortfall > 0.01 ? ' warn':''}">${s.shortfall.toFixed(2)}</td>`,
+      `<td class="num${s.dump > 0.01 ? ' warn':''}">${s.dump.toFixed(2)}</td>`
+    ].join('');
+    return `<tr class="${r.k===best.k ? 'best':''}">${cells}</tr>`;
+  }).join('');
+  host.innerHTML =
+    `<div style="overflow-x:auto"><table class="sim-table">
+       <thead><tr>${head.map(x=>`<th>${x}</th>`).join('')}</tr></thead>
+       <tbody>${body}</tbody></table></div>
+     <div class="sim-note" style="margin-top:8px">
+       氢耗最优：<b style="color:${SIM.runs[best.k].color}">${SIM.runs[best.k].label}</b>
+       ；估算续航按整车页「单瓶储氢质量 × 所需瓶数」折算，为量级参考。
+     </div>`;
+}
+
+/* ---------- 8. 运行控制 ---------- */
+function startSim(){
+  const cfg = snapshotSimConfig();
+  SIM.cfg = cfg;
+  SIM.cycle = buildCycle(cfg);
+  SIM.pol = buildPolarization(cfg);
+  SIM.anchorEnv = cfg.anchor.ambientTemp;
+  SIM.mapCache.clear();
+  // 车载储氢质量（沿用整车页已算出的结果，避免重复公式）
+  const perBottle = parseFloat((document.getElementById('singleBottleHydrogenMass')||{}).textContent) || 0;
+  const nBottle = Math.ceil(parseFloat((document.getElementById('requiredBottleCount')||{}).textContent) || 0);
+  SIM.storedKg = perBottle*nBottle;
+  SIM.keys = cfg.strategies;
+  SIM.runs = {};
+  for(const k of SIM.keys){
+    const meta = STRATS.find(s=>s.key===k);
+    SIM.runs[k] = { key:k, label:meta.label, short:meta.short, color:meta.color, summary:null,
+      series:{ t:[], v:[], pFc:[], pBat:[], soc:[], T:[], lambda:[], pH2:[], eta:[] } };
+  }
+  initSimStates(cfg);
+  SIM.totalTime = SIM.cycle.duration + 60;      // 停机后留 60 s 观察降温
+  SIM.t = 0; SIM.acc = 0; SIM.lastReal = 0; SIM.lastDraw = 0;
+  SIM.started = true; SIM.running = true; SIM.paused = false; SIM.done = false;
+  SIM_RUNNING = true;
+  ensureCharts();
+  setStatus(); renderKpi(); renderSummary(); drawCharts();
+  SIM.rafId = requestAnimationFrame(simTick);
+}
+function simTick(now){
+  if(!SIM.running) return;
+  if(!SIM.lastReal) SIM.lastReal = now;
+  const dtReal = Math.min(0.3, (now - SIM.lastReal)/1000);
+  SIM.lastReal = now;
+  if(SIM.paused){ SIM.rafId = requestAnimationFrame(simTick); return; }
+  SIM.acc += dtReal*SIM.cfg.sim.speed;
+  const t0 = performance.now();
+  let guard = 0;
+  try{
+    while(SIM.acc >= 1 && SIM.t < SIM.totalTime && guard < 600){
+      stepOnce();
+      SIM.acc -= 1;
+      guard++;
+      if(performance.now() - t0 > 10) break;      // 单帧推进预算 10 ms
+    }
+  }catch(err){
+    console.error('仿真中断：', err);
+    stopSim();
+    const st = document.getElementById('simStateText');
+    if(st) st.textContent = '已中断 · ' + (err && err.message ? err.message : '未知错误');
+    return;
+  }
+  if(SIM.t >= SIM.totalTime){ finishSim(); return; }
+  if(now - SIM.lastDraw > 180){ SIM.lastDraw = now; setStatus(); drawCharts(); }
+  SIM.rafId = requestAnimationFrame(simTick);
+}
+function finishSim(){
+  SIM.running = false; SIM.done = true; SIM_RUNNING = false;
+  computeSummaries();
+  setStatus(); renderKpi(); renderSummary(); drawCharts();
+}
+function stopSim(){
+  if(SIM.rafId) cancelAnimationFrame(SIM.rafId);
+  SIM.rafId = 0;
+  const had = SIM.running;
+  SIM.running = false; SIM_RUNNING = false; SIM.paused = false;
+  if(had && SIM.t > 0){ SIM.done = true; computeSummaries(); }
+  setStatus(); renderKpi(); renderSummary(); drawCharts();
+}
+function resetSim(){
+  if(SIM.rafId) cancelAnimationFrame(SIM.rafId);
+  SIM.rafId = 0;
+  SIM.started = false; SIM.running = false; SIM.paused = false; SIM.done = false;
+  SIM.t = 0; SIM.acc = 0; SIM.keys = []; SIM.runs = {}; SIM.states = {};
+  SIM.mapCache.clear();
+  SIM_RUNNING = false;
+  const kpi = document.getElementById('simKpi'); if(kpi) kpi.innerHTML = '';
+  const sum = document.getElementById('simSummary');
+  if(sum) sum.innerHTML = '<div class="sim-note">尚未运行仿真。</div>';
+  ensureCharts();
+  for(const d of CHART_DEFS){
+    const cv = document.getElementById(d.id);
+    if(cv){ const c = cv.getContext('2d'); c.setTransform(1,0,0,1,0,0); c.clearRect(0,0,cv.width,cv.height); }
+  }
+  setStatus();
+}
+function onSimTabShown(){
+  ensureCharts();
+  if(SIM.started) drawCharts();
+}
+
+document.getElementById('simRunBtn').addEventListener('click', ()=>{
+  if(SIM.done || !SIM.started) startSim();
+  else { SIM.paused = false; setStatus(); }
+});
+document.getElementById('simPauseBtn').addEventListener('click', ()=>{
+  if(SIM.started && !SIM.done){ SIM.paused = !SIM.paused; setStatus(); }
+});
+document.getElementById('simStopBtn').addEventListener('click', ()=>{ if(SIM.started) stopSim(); });
+document.getElementById('simResetBtn').addEventListener('click', resetSim);
+
+let simResizeTimer = 0;
+window.addEventListener('resize', ()=>{
+  if(simResizeTimer) clearTimeout(simResizeTimer);
+  simResizeTimer = setTimeout(()=>{ if(SIM.started) drawCharts(); }, 150);
+});
+
+setupParamIO({
+  pageId: 'page-sim',
+  name: '整车工况仿真 · 仿真参数',
+  fileBase: '整车工况仿真_仿真参数',
+  exportId: 'simExportBtn',
+  importBtnId: 'simImportBtn',
+  importFileId: 'simImportFile',
+  onImported: ()=>{ resetSim(); }
 });
 </script>
 </body>
