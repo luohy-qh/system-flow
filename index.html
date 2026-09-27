@@ -1079,7 +1079,7 @@ el('feMergeNode',{in:'SourceGraphic'},merge);
 /* ---- 分区标题 ---- */
 el('text',{x:70,y:55,class:'section-tag'}).textContent='▎ 空气子系统';
 el('text',{x:70,y:385,class:'section-tag'}).textContent='▎ 氢气子系统';
-el('text',{x:560,y:675,class:'section-tag'}).textContent='▎ 换热子系统';
+el('text',{x:825,y:651,class:'section-tag'}).textContent='▎ 换热子系统';
 
 /* ====== 电堆 (中心)：MEA 剖面 + 氢氧反应过程 ====== */
 // 坐标：x 640-880, y 300-540
@@ -1192,9 +1192,9 @@ el('line',{x1:935,y1:278,x2:935,y2:312,stroke:'#67e8f9','stroke-width':1.5,'stro
 el('line',{x1:995,y1:312,x2:995,y2:278,stroke:'#67e8f9','stroke-width':1.5,'stroke-dasharray':'3 3','marker-end':'url(#ahC)'});
 
 // 中冷器出口(620,118) → 干侧顶部入口(935,170)
-pipe('M620,118 L620,142 L935,142 L935,170','pipe-air','flow-air');
-// 干侧出口(左壁 905,300) → 电堆阴极入口(760,300)，抬升至电堆顶缘上方接入
-pipe('M905,300 L850,300 L850,288 L760,288 L760,300','pipe-air','flow-air');
+pipe('M620,118 L935,118 L935,170','pipe-air','flow-air');
+// 干侧出口(左壁 905,300) → 上抬后向左 → 电堆阴极入口(760,300)
+pipe('M905,300 L905,272 L760,272 L760,300','pipe-air','flow-air');
 // 阴极出口(880,380) → 湿侧底部入口(995,370)
 pipe('M880,380 L995,380 L995,370','pipe-air','flow-air');
 // 湿侧顶部出口(995,170) → 尾气排放箱(1170,318)
@@ -1249,8 +1249,8 @@ el('text',{x:428,y:491,fill:'#a78bfa','font-size':9},ejec).textContent='Ejector'
 
 // 引射器出口 → 阳极入口(640,460)
 pipe('M520,428 L560,428 L560,460 L640,460','pipe-h2','flow-h2');
-// 阳极出口(640,500) → 气液分离器
-pipe('M640,500 L560,500 L560,610 L460,610','pipe-h2','flow-h2');
+// 阳极出口(640,500) → 提前折向下方（避开阳极出气泡） → 气液分离器
+pipe('M640,500 L610,500 L610,610 L460,610','pipe-h2','flow-h2');
 /* 气液分离器：立式承压罐（椭圆封头+液位+丝网除沫） (340-460) */
 (function(){
   stub(424,605,36,10,'#a78bfa','#1f1638');         // 进气（右）
@@ -1272,11 +1272,11 @@ pipe('M340,610 L250,610','pipe-h2','flow-h2');       // 分离器→泵入口
 (function(){
   stub(195,603,55,10,'#a78bfa','#1f1638');          // 入口（右）
   rotaryMachine(175,608,20,'#241a44','#a78bfa',6);
-  el('path',{d:'M175,588 L175,580 L250,580',fill:'none',stroke:'#a78bfa','stroke-width':4,'stroke-linecap':'round'}); // 出口L短节
+  el('path',{d:'M175,588 L175,556 L250,556',fill:'none',stroke:'#a78bfa','stroke-width':4,'stroke-linecap':'round'}); // 出口L短节
   el('text',{x:225,y:605,'text-anchor':'middle',fill:'#e8eef5','font-size':9,'font-weight':'bold'}).textContent='氢气循环泵';
   el('text',{x:225,y:617,'text-anchor':'middle',fill:'#a78bfa','font-size':8}).textContent='Recirc Pump';
 })();
-pipe('M250,580 L420,580 L420,454','pipe-h2','flow-h2'); // 泵出口→引射器二次流口
+pipe('M250,556 L420,556 L420,454','pipe-h2','flow-h2'); // 泵出口→引射器二次流口
 // 分离器排水
 pipe('M400,640 L400,730','pipe-water','flow-water');
 el('text',{x:410,y:700,class:'equip-sub',fill:'#a5f3fc'}).textContent='液态水排放';
@@ -1340,9 +1340,9 @@ pipe('M1040,771 L1075,771 L1075,835 L640,835 L640,816','pipe-coolant','flow-cool
 
 /* ====== 热流标注 (局部短箭头) ====== */
 arrow(760,540,760,640);          // 电堆反应热 → 冷却液
-el('text',{x:766,y:600,class:'equip-sub',fill:'#fca5a5'}).textContent='反应热';
-arrow(565,146,565,230);          // 中冷器热
-el('text',{x:572,y:200,class:'equip-sub',fill:'#fca5a5'}).textContent='中冷器热';
+el('text',{x:740,y:600,class:'equip-sub',fill:'#fca5a5'}).textContent='反应热';
+arrow(565,146,565,275);          // 中冷器热
+el('text',{x:572,y:224,class:'equip-sub',fill:'#fca5a5'}).textContent='中冷器热';
 arrow(400,640,400,690);          // 冷凝热(已随水流) - 用文字
 el('text',{x:410,y:670,class:'equip-sub',fill:'#fca5a5'}).textContent='冷凝放热';
 
@@ -1354,19 +1354,19 @@ function addData(id, x, y, anchor='start'){
 }
 addData('ambient', 60, 158);
 addData('comp', 360, 158);
-addData('intercooler', 532, 158);
-addData('hum_dry', 715, 185);
+addData('intercooler', 580, 158);
+addData('hum_dry', 830, 185, 'middle');
 addData('hum_wet', 1035, 395);
 addData('stack_top', 640, 262);
 addData('h2_supply', 60, 466);
 addData('h2_mix', 420, 372, 'middle');
 addData('anode_out', 470, 528);
-addData('sep', 470, 600);
-addData('recirc', 60, 560);
-addData('cathode_out', 875, 398);
-addData('exhaust', 1280, 300);
+addData('sep', 440, 652);
+addData('recirc', 195, 640, 'middle');
+addData('cathode_out', 915, 398);
+addData('exhaust', 1216, 232, 'middle');
 addData('cool_pump', 430, 745);
-addData('heat_sum', 1180, 620);
+addData('heat_sum', 980, 552, 'middle');
 
 function updateData(r){
   const f = (v,d=2)=> (isFinite(v)?v.toFixed(d):'--');
