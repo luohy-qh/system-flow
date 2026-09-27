@@ -323,6 +323,43 @@
   .sim-note b { color: #fca5a5; }
   .sim-textarea { width: 100%; padding: 5px 8px; font-size: 0.78rem; background: #0b1628; border: 1px solid #334e6e; border-radius: 4px; color: #e8eef5; resize: vertical; font-family: inherit; }
   .sim-textarea:focus { outline: none; border-color: #38bdf8; }
+
+  /* ====== 使用说明：问号按钮 + 弹窗 ====== */
+  .sim-help-btn { width: 18px; height: 18px; padding: 0; margin-left: 7px; vertical-align: 1px;
+    border-radius: 50%; border: 1px solid #38bdf8; background: rgba(56,189,248,0.14);
+    color: #7dd3fc; font-size: 0.72rem; font-weight: bold; line-height: 1; cursor: pointer; }
+  .sim-help-btn:hover { background: #38bdf8; color: #0b1628; }
+  .sim-help-overlay { display: none; position: fixed; inset: 0; z-index: 999;
+    background: rgba(3,8,18,0.74); padding: 30px 16px; }
+  .sim-help-overlay.open { display: flex; align-items: flex-start; justify-content: center; }
+  .sim-help-modal { display: flex; flex-direction: column; width: min(920px, 100%); max-height: 100%;
+    background: #0d1a2c; border: 1px solid #2a4a6b; border-radius: 10px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.6); }
+  .sim-help-head { display: flex; align-items: center; padding: 11px 18px; flex-shrink: 0;
+    border-bottom: 1px solid #1e3a5f; }
+  .sim-help-head h3 { margin: 0; font-size: 1rem; color: #7dd3fc; }
+  .sim-help-close { margin-left: auto; width: 24px; height: 24px; padding: 0; cursor: pointer;
+    background: transparent; border: 1px solid #334e6e; border-radius: 5px; color: #94a3b8; font-size: 0.8rem; }
+  .sim-help-close:hover { border-color: #f87171; color: #f87171; }
+  .sim-help-body { padding: 2px 22px 24px; overflow-y: auto; font-size: 0.82rem; color: #cbd5e1; line-height: 1.7; }
+  .sim-help-body h4 { margin: 20px 0 8px; padding-left: 8px; font-size: 0.92rem; color: #7dd3fc;
+    border-left: 3px solid #38bdf8; }
+  .sim-help-body h5 { margin: 14px 0 6px; font-size: 0.84rem; color: #a5d8ff; }
+  .sim-help-body p { margin: 6px 0; }
+  .sim-help-body ul, .sim-help-body ol { margin: 6px 0 6px 20px; padding: 0; }
+  .sim-help-body li { margin: 3px 0; }
+  .sim-help-body table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-size: 0.78rem; }
+  .sim-help-body th { padding: 5px 8px; text-align: left; color: #7dd3fc; font-weight: bold;
+    border-bottom: 1px solid #2a4a6b; vertical-align: top; }
+  .sim-help-body td { padding: 5px 8px; border-bottom: 1px dashed #1e3a5f; vertical-align: top; }
+  .sim-help-body code { padding: 1px 5px; border-radius: 3px; background: #14253c; color: #7dd3fc; font-size: 0.76rem; }
+  .sim-help-body pre { margin: 8px 0; padding: 10px 12px; overflow-x: auto; font-size: 0.76rem;
+    color: #e8eef5; background: #0b1628; border: 1px solid #1e3a5f; border-radius: 6px; }
+  .sim-help-body blockquote { margin: 8px 0; padding: 6px 12px; font-size: 0.78rem; color: #94a3b8;
+    background: rgba(20,37,60,0.5); border-left: 3px solid #334e6e; }
+  .sim-help-body b, .sim-help-body strong { color: #f1f5f9; }
+  .sim-help-body .hl { color: #fca5a5; }
+  .sim-help-body hr { margin: 18px 0; border: none; border-top: 1px solid #1e3a5f; }
   @media (max-width: 1400px) { .sim-kpi { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
   @media (max-width: 1200px) { .sim-charts { grid-template-columns: 1fr; } .sim-kpi { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   @media (max-width: 900px) { .sim-grid { grid-template-columns: 1fr; } .sim-panel { position: static; max-height: none; } }
@@ -715,7 +752,7 @@
 
   <!-- ====== 仿真参数栏 ====== -->
   <aside class="hybrid-section sim-panel">
-    <h2>仿真参数</h2>
+    <h2>仿真参数<button type="button" class="sim-help-btn" id="simHelpBtn" title="查看使用说明" aria-label="查看使用说明">?</button></h2>
     <div class="io-bar">
       <button type="button" class="io-btn" id="simRunBtn">开始仿真</button>
       <button type="button" class="io-btn" id="simPauseBtn">暂停</button>
@@ -725,6 +762,7 @@
     <div class="io-bar">
       <button type="button" class="io-btn" id="simExportBtn">导出参数</button>
       <button type="button" class="io-btn io-import" id="simImportBtn">导入参数</button>
+      <button type="button" class="io-btn" id="simExportCsvBtn">导出结果(CSV)</button>
       <input type="file" id="simImportFile" accept=".json,application/json" style="display:none">
     </div>
 
@@ -790,6 +828,7 @@
       <div class="sim-group-title">▎ 热管理</div>
       <div class="hx-inputs">
         <div class="hx-input-group"><label for="sim_Tinit">启动冷却液温度(℃)</label><input type="number" id="sim_Tinit" value="25" step="1"></div>
+        <div class="hx-input-group"><label for="sim_Tamb">环境温度(℃)</label><input type="number" id="sim_Tamb" value="25" step="1"></div>
         <div class="hx-input-group"><label for="sim_Tset">目标工作温度(℃)</label><input type="number" id="sim_Tset" value="80" step="1"></div>
         <div class="hx-input-group"><label for="sim_Cstack">冷却回路热容(kJ/K)</label><input type="number" id="sim_Cstack" value="150" step="5"></div>
         <div class="hx-input-group"><label for="sim_radArea">散热器面积(m²)</label><input type="number" id="sim_radArea" value="65" step="1"></div>
@@ -851,8 +890,8 @@
     <div class="hybrid-section">
       <h2>模型说明</h2>
       <div class="sim-note">
-        L1 准静态仿真，步长 1 s。纵向动力学取整车页公式；电堆性能由稳态页公式在「电流密度 × 温度」上扫描成 MAP，极化曲线以稳态页输入的节电压为锚点自校准（保证仿真起点与稳态结果零漂移）；电池为 Rint 等效电路 + SOC 库仑积分；冷却回路为一阶集总热容，三通阀由 PI 闭环、低温段由 PTC 补热；膜含水量 λ 由电堆干侧 / 湿侧与阴极出口中最湿润的 RH 再叠加阴极出口液态水推算。工况结束后的 60 s 为停机观察段（车辆已停，仅保留附件负载）。<br>
-        <b>注意</b>：内置 NEDC / WLTC / CLTC 曲线为轮廓近似，仅供趋势参考，不代表标准工况逐秒真值。
+        L1 准静态仿真，步长 1 s。纵向动力学取整车页公式；电堆性能由稳态页公式在「电流密度 × 温度」上扫描成 MAP，极化曲线以稳态页输入的节电压为锚点自校准（保证仿真起点与稳态结果零漂移）；电池为 Rint 等效电路 + DC/DC 效率 + SOC 库仑积分（欧姆损耗按 I²R = R·(P/V)² 计入）；冷却回路为一阶集总热容，冷端取仿真页「环境温度」，三通阀由 PI 闭环、低温段由 PTC 补热；膜含水量 λ 由电堆干侧 / 湿侧与阴极出口中最湿润的 RH 再叠加阴极出口液态水推算。工况结束后的 60 s 为停机观察段（车辆已停，仅保留附件负载）。<br>
+        <b>注意</b>：内置 NEDC / WLTC / CLTC 曲线为轮廓近似，仅供趋势参考，不代表标准工况逐秒真值；全部参数在点击「开始仿真」时一次性快照，运行中修改稳态页参数不会影响本次结果。
       </div>
     </div>
   </main>
@@ -860,6 +899,246 @@
   </div>
 </div>
 </div><!-- /page-sim -->
+
+<!-- ====== 整车工况仿真 · 使用说明弹窗 ====== -->
+<div class="sim-help-overlay" id="simHelpOverlay">
+  <div class="sim-help-modal" role="dialog" aria-modal="true" aria-labelledby="simHelpTitle">
+    <div class="sim-help-head">
+      <h3 id="simHelpTitle">整车工况仿真 · 使用说明</h3>
+      <button type="button" class="sim-help-close" id="simHelpClose" title="关闭" aria-label="关闭">✕</button>
+    </div>
+    <div class="sim-help-body" id="simHelpBody">
+
+      <blockquote>纯前端单文件，无需安装、无需联网、无外部依赖，双击 HTML 即可运行。</blockquote>
+
+      <h4>一、它在整个工具里的位置</h4>
+      <p>三个页面是一条从「部件设计」到「整车表现」的链路，参数自上而下传递：</p>
+      <table>
+        <tr><th>页面</th><th>作用</th><th>输出</th></tr>
+        <tr><td>① 燃料电池系统设计</td><td>稳态设计点：电堆、氢气、空气、换热、COG 加湿器</td><td>电堆功率、氢耗、节电压、产热、各支路流量</td></tr>
+        <tr><td>② 混合动力系统设计</td><td>整车匹配：动力性（最高车速 / 爬坡 / 加速）、储氢量、电池需求</td><td>所需电堆功率、百公里氢耗、单瓶储氢质量、所需瓶数</td></tr>
+        <tr><td>③ <b>整车工况仿真</b></td><td><b>时域仿真</b>：把①②的设计点放进真实行驶工况里跑，看动态表现</td><td>时刻曲线、多策略对比、能耗 / 温度 / SOC / 水管理指标</td></tr>
+      </table>
+      <p><b>关键设计</b>：第三页不重复任何公式。它把①②页的稳态公式当作「性能查表引擎」——在「电流密度 × 冷却液温度」网格上扫描出电堆 MAP，再用一张极化曲线把 MAP 平滑成连续曲面。因此<b>改①②页的参数，第三页的仿真结果会跟着变</b>。</p>
+
+      <h4>二、快速上手（5 步）</h4>
+      <ol>
+        <li>打开 <code>system-flow.html</code>，确认 ①② 页参数是你要的设计点（默认值即可直接跑）。</li>
+        <li>切到「整车工况仿真」Tab。</li>
+        <li>左侧「▎ 控制策略」勾选你要对比的策略（默认 4 种全选，可对比也可只留一种）。</li>
+        <li>点 <b>开始仿真</b>。进度条和 <code>t = ... / 1860 s</code> 会实时推进，默认 20 倍速，约 3 秒跑完。</li>
+        <li>看结果：上方 KPI 卡片 → 中间 8 张曲线图 → 下方「策略对比汇总」表。</li>
+        <li>（可选）点 <b>导出结果(CSV)</b> 把逐秒数据存下来做后续分析。</li>
+      </ol>
+      <blockquote>第一次点「开始仿真」前，图表区是空的——这是正常的，图表在运行后才绘制。</blockquote>
+
+      <h4>三、按钮说明</h4>
+      <table>
+        <tr><th>按钮</th><th>行为</th></tr>
+        <tr><td><b>开始仿真</b></td><td>参数快照 → 生成工况 → 标定极化曲线 → 从 t=0 开始跑。已跑完时点它 = 重新开始</td></tr>
+        <tr><td><b>暂停</b></td><td>冻结推进，保留已有结果；再点一次继续（或点「开始仿真」继续）</td></tr>
+        <tr><td><b>停止</b></td><td>结束推进并按已跑到的时刻结算汇总表（不跑完也能看部分结果）</td></tr>
+        <tr><td><b>重置</b></td><td>清空结果、清空图表、回到「未运行」状态</td></tr>
+        <tr><td><b>导出参数</b></td><td>把本页全部参数存成 JSON（弹出系统「另存为」，可自选文件夹）</td></tr>
+        <tr><td><b>导入参数</b></td><td>读取 JSON 覆盖本页参数，并自动重置仿真</td></tr>
+        <tr><td><b>导出结果(CSV)</b></td><td>导出逐秒结果 + 汇总表；文件名带时间戳，首行带 BOM（Excel 直接打开不乱码）</td></tr>
+      </table>
+
+      <h4>四、参数详解</h4>
+
+      <h5>4.1 ▎ 行驶工况</h5>
+      <table>
+        <tr><th>参数</th><th>默认</th><th>说明</th></tr>
+        <tr><td>工况类型</td><td>等速巡航</td><td><code>等速巡航</code> / <code>近似 NEDC</code> / <code>近似 WLTC</code> / <code>近似 CLTC-P</code> / <code>自定义折线</code></td></tr>
+        <tr><td>仿真时长(s)</td><td>1800</td><td>仅「等速巡航」生效；其它预设工况的时长由曲线自身决定</td></tr>
+        <tr><td>巡航车速(km/h)</td><td>60</td><td>仅「等速巡航」生效</td></tr>
+        <tr><td>坡道坡度(%)</td><td>0</td><td>全程恒定坡度，叠加在滚阻 + 风阻之上</td></tr>
+        <tr><td>附加载荷(kg)</td><td>0</td><td>叠加在整车页整备质量上（货重 / 乘员）</td></tr>
+        <tr><td>附加电负载(kW)</td><td>0</td><td>叠加在整车页附件功率上（空调 / 上装设备）</td></tr>
+        <tr><td>自定义折线</td><td>空</td><td><b>每行「时间(s),车速(km/h)」</b>，可加第三列坡度(%)。空行自动忽略</td></tr>
+      </table>
+      <p><b>自定义折线是最实用的入口</b>：把实测逐秒车速（如从 GPX / 车联网数据导出的）直接粘进来，用「秒,车速」两列即可，内部会自动线性插值到每秒一点并算出加速度。</p>
+      <blockquote>内置的 NEDC / WLTC / CLTC 是<b>轮廓近似</b>（用匀速段 + 匀加速段拼出的形状），只用于观察趋势差异，<b>不能当作标准工况的逐秒权威数据</b>，也不要用它去报法规油耗。</blockquote>
+
+      <h5>4.2 ▎ 电堆与极化曲线</h5>
+      <p>电堆性能用一个三参数极化模型描述，再用①②页的稳态结果把第三条参数「反解」出来：</p>
+      <pre>V(j, T, λ) = OCV − b·ln((j + j₀)/j₀) − R_cal·j + dVdT·(T − T_ref) + k_λ·(λ − λ_ref)</pre>
+      <table>
+        <tr><th>参数</th><th>默认</th><th>说明</th></tr>
+        <tr><td>开路电压 OCV(V)</td><td>0.95</td><td>单节可逆电压</td></tr>
+        <tr><td>Tafel 系数 b(V)</td><td>0.035</td><td>活化极化斜率，越大越「软」</td></tr>
+        <tr><td>参考电流密度 j₀(A/cm²)</td><td>0.02</td><td>活化极化起点</td></tr>
+        <tr><td>电压温度系数(V/K)</td><td>−0.002</td><td>见 §8「已知近似」，建议按实测标定</td></tr>
+        <tr><td>湿度电压灵敏度(V/λ)</td><td>0.006</td><td>膜越干电压越低</td></tr>
+        <tr><td>最小净功率(kW)</td><td>6</td><td>电堆怠速下限</td></tr>
+        <tr><td>额定净功率(kW)</td><td>72</td><td>「恒功率型」策略的目标值</td></tr>
+        <tr><td>最大净功率(kW)</td><td>80</td><td>电堆净输出上限（已扣空压机等 BOP）</td></tr>
+        <tr><td>功率上升率(kW/s)</td><td>5</td><td>加载速率限制</td></tr>
+        <tr><td>功率下降率(kW/s)</td><td>5</td><td>降载速率限制</td></tr>
+        <tr><td>功率时间常数(s)</td><td>2</td><td>一阶滞后，模拟空气/氢气供给响应</td></tr>
+      </table>
+      <p><b><code>R_cal</code> 不用你填</b>：程序用①②页的「节电压」作锚点反解它，保证仿真的起点（t=0 的第一个工作点）与稳态页结果<b>零漂移</b>。这是整套模型可信度的地基。</p>
+
+      <h5>4.3 ▎ 动力电池</h5>
+      <table>
+        <tr><th>参数</th><th>默认</th><th>说明</th></tr>
+        <tr><td>电池容量(kWh)</td><td>20</td><td>决定 SOC 变化快慢</td></tr>
+        <tr><td>额定电压(V)</td><td>350</td><td>与内阻一起决定欧姆损耗</td></tr>
+        <tr><td>内阻(mΩ)</td><td>60</td><td>欧姆损耗按 <code>P = R·(P_bus/V)²</code> 计入</td></tr>
+        <tr><td>SOC 初值</td><td>0.65</td><td>起点电量</td></tr>
+        <tr><td>SOC 下限 / 上限</td><td>0.25 / 0.9</td><td>触发 SOC 保护的边界</td></tr>
+        <tr><td>最大充电功率(kW)</td><td>40</td><td>在两端 SOC 区间内按线性衰减</td></tr>
+        <tr><td>最大放电功率(kW)</td><td>60</td><td>同上</td></tr>
+        <tr><td>DC/DC 效率</td><td>0.96</td><td>母线↔电池的双向变换损耗</td></tr>
+        <tr><td>目标 SOC</td><td>0.6</td><td>「效率优先+SOC维持」策略的维持目标</td></tr>
+        <tr><td>SOC 滞环下限 / 上限</td><td>0.45 / 0.75</td><td>「最高效率点+SOC滞环」策略的切换点</td></tr>
+        <tr><td>最小驻留时间(s)</td><td>10</td><td>滞环策略切换后的最短保持时间，防止抖动</td></tr>
+      </table>
+      <p>充放电可用功率会随 SOC 向两端<b>线性收窄</b>，这是「缺功率」和「弃电」两个指标的来源。</p>
+
+      <h5>4.4 ▎ 热管理</h5>
+      <table>
+        <tr><th>参数</th><th>默认</th><th>说明</th></tr>
+        <tr><td>启动冷却液温度(℃)</td><td>25</td><td>冷启动出发点</td></tr>
+        <tr><td><b>环境温度(℃)</b></td><td>25</td><td><b>散热器冷端温度</b>，决定散热能力上限</td></tr>
+        <tr><td>目标工作温度(℃)</td><td>80</td><td>三通阀 PI 的设定值，也是温度图上的目标虚线</td></tr>
+        <tr><td>冷却回路热容(kJ/K)</td><td>150</td><td>等效热质量，越大升温越慢</td></tr>
+        <tr><td>散热器面积(m²)</td><td>65</td><td>与风扇系数、第一页散热系数 ka 共同决定 UA</td></tr>
+        <tr><td>风扇风量系数</td><td>1</td><td>1.0 = 额定风量，可调 0.05~2</td></tr>
+        <tr><td>PTC 最大功率(kW)</td><td>10</td><td>低温补热上限</td></tr>
+        <tr><td>PTC 比例增益(kW/℃)</td><td>0.5</td><td>低于目标温度时的补热强度</td></tr>
+        <tr><td>阀 PI 比例 Kp</td><td>0.15</td><td>阀开度比例项</td></tr>
+        <tr><td>阀 PI 积分 Ki</td><td>0.02</td><td>阀开度积分项（消除稳态温差）</td></tr>
+        <tr><td>阀最大变化率(1/s)</td><td>0.1</td><td>阀动作速率限制（执行器惯性）</td></tr>
+        <tr><td>冷态参考温度(℃)</td><td>20</td><td>功率限制曲线的下参考点</td></tr>
+        <tr><td>冷态最低功率系数</td><td>0.15</td><td>温度 = 冷态参考点时，可用功率仅为最大值的 15%</td></tr>
+      </table>
+      <p><b>两条温度相关但作用不同</b>：</p>
+      <ul>
+        <li>「环境温度」= 散热器的冷端，影响<b>散热能力</b>；</li>
+        <li>「冷态参考温度 + 冷态最低功率系数」= 低温<b>功率限制</b>（低温下膜电阻大、水管理难，不许大电流）。</li>
+      </ul>
+      <p>把「环境温度」调成 45℃ 就是高温工况，散热能力下降；调成 −10℃ 就是寒区工况。</p>
+
+      <h5>4.5 ▎ 水管理与仿真控制</h5>
+      <table>
+        <tr><th>参数</th><th>默认</th><th>说明</th></tr>
+        <tr><td>干膜阈值 λ</td><td>4</td><td>λ 低于此值计入「λ越限」秒数（图上是下限红带）</td></tr>
+        <tr><td>水淹阈值 λ</td><td>14</td><td>λ 高于此值计入「λ越限」秒数（图上是上限红带）</td></tr>
+        <tr><td>仿真倍速</td><td>20×</td><td>1× / 5× / 20× / 60×，只影响观看速度，不影响结果</td></tr>
+        <tr><td>绘图抽样间隔(s)</td><td>2</td><td>每 N 秒存一个绘图点，同时决定导出 CSV 的行数</td></tr>
+      </table>
+      <blockquote>这两个阈值同时也是 λ 曲线图上的红色越界带位置，图与表的判据始终一致。</blockquote>
+
+      <h5>4.6 ▎ 控制策略（可多选对比）</h5>
+      <table>
+        <tr><th>策略</th><th>逻辑</th><th>适合场景</th></tr>
+        <tr><td><b>恒功率规则型</b></td><td>电堆恒定输出额定净功率，差额由电池吞吐</td><td>最简单的基线，通常氢耗最差，用来「垫底」对比</td></tr>
+        <tr><td><b>功率跟随</b></td><td>电堆尽量等于整车需求功率</td><td>直白、电池吞吐小；冷启动时会被强制拉高功率暖机</td></tr>
+        <tr><td><b>最高效率点+SOC滞环</b></td><td>电堆锁在最高效率点，用 SOC 上下限做双点滞环切换</td><td>追求电堆自身效率最高，但两态跳变会让 SOC 波动大</td></tr>
+        <tr><td><b>效率优先+SOC维持</b></td><td>前馈跟随需求 + 按 <code>2.5·容量·(目标SOC − 实际SOC)</code> 反馈修正</td><td>综合表现通常最好，SOC 稳、氢耗低</td></tr>
+      </table>
+      <p><b>所有策略都叠加两条硬约束</b>：</p>
+      <ol>
+        <li><b>暖机优先</b>：冷却液低于（目标温度 − 5℃）时，命令功率不低于当前可用功率的 70%，优先产热快速升温；</li>
+        <li><b>SOC 保护</b>：SOC 触顶时压低电堆功率避免过充，触底时强制电堆出力。</li>
+      </ol>
+
+      <h4>五、结果怎么读</h4>
+
+      <h5>5.1 KPI 卡片</h5>
+      <p>第一张是工况本身（里程 / 时长 / 环境温度）；之后每种策略一张，包含 <b>百公里氢耗、系统效率、SOC 终值、峰值温度</b>，存在缺功率时会额外红字提示。</p>
+
+      <h5>5.2 八张曲线图</h5>
+      <table>
+        <tr><th>图</th><th>看点</th></tr>
+        <tr><td>车速</td><td>工况形状；停机观察段车速归零</td></tr>
+        <tr><td>电堆净功率</td><td>各策略的功率跟随能力、加载速率、暖机时的强制拉高</td></tr>
+        <tr><td>电池功率</td><td>正 = 放电，负 = 充电；看吞吐强度与是否顶到限制</td></tr>
+        <tr><td>SOC</td><td>趋势与终值；滞环策略能看到明显锯齿</td></tr>
+        <tr><td>电堆温度</td><td><b>红线为目标工作温度</b>；看升温时长与是否超温</td></tr>
+        <tr><td>膜含水量 λ</td><td><b>红色区间为越界区</b>（下 = 干膜，上 = 水淹）</td></tr>
+        <tr><td>氢耗功率</td><td>按 LHV 折算的瞬时氢耗功率（kW）</td></tr>
+        <tr><td>系统效率</td><td>瞬时 <code>电堆净功率 / 氢耗功率</code>，反映工作点优劣</td></tr>
+      </table>
+      <p>多策略时每条曲线用策略专属颜色，图例在右上角。</p>
+
+      <h5>5.3 策略对比汇总表（14 列）</h5>
+      <table>
+        <tr><th>列</th><th>含义</th></tr>
+        <tr><td>里程(km)</td><td>工况实际行驶里程（停机观察段不计）</td></tr>
+        <tr><td>总氢耗(kg) / 百公里氢耗(kg/100km)</td><td>氢耗绝对量与归一化强度</td></tr>
+        <tr><td><b>系统效率(%)</b></td><td><code>实际交付给整车的电功 ÷ (氢 LHV 化学能 + 电池净输出电能)</code>，恒 ≤ 100%</td></tr>
+        <tr><td>SOC 终值 / SOC 最低(%)</td><td>电量收尾与最低点，红色 = 跌破 SOC 下限</td></tr>
+        <tr><td>电池吞吐(kWh)</td><td>电池内部能量变化（含 DC/DC 与内阻损耗）</td></tr>
+        <tr><td>温度峰值 / 温度终值(℃)</td><td>热管理压力与停机后残余温度</td></tr>
+        <tr><td>λ越限(s)</td><td>干膜 + 水淹超阈秒数之和，&gt;60 s 标红</td></tr>
+        <tr><td>估算续航(km)</td><td>由②页「单瓶储氢质量 × 所需瓶数」折算，<b>量级参考</b></td></tr>
+        <tr><td><b>缺功率(kWh)</b></td><td>电堆 + 电池都供不上的能量，即「动力不足」</td></tr>
+        <tr><td><b>弃电(kWh)</b></td><td>电池吸不完、电堆富余被浪费的能量</td></tr>
+      </table>
+      <p>表下方会自动标出<b>氢耗最优</b>策略。注意：<b>存在缺功率的策略不参与最优评选</b>——它「跑不动所以不耗氢」，不构成有效比较，此时会有文字提示。</p>
+
+      <h4>六、重要机制：参数快照</h4>
+      <p>点「开始仿真」的瞬间，程序会把①②③三页的全部相关参数<b>一次性快照</b>下来。此后：</p>
+      <ul>
+        <li>运行中修改①②页参数 → <b>不影响</b>本次结果。要生效必须重新点「开始仿真」；</li>
+        <li>运行中修改③页参数 → 同样只在下一次仿真生效（阈值带、目标线等<b>显示类</b>参数除外，它们实时跟随）；</li>
+        <li>①②页的仿真结果面板（数据气泡、结果卡片）在仿真期间被<b>冻结</b>，不会被仿真内部计算干扰。</li>
+      </ul>
+      <p>这样设计是为了保证一次仿真内部参数自洽——否则逐秒数据里混入中途变更的参数，结果无法解释。</p>
+
+      <h4>七、推荐实验清单</h4>
+      <p>按顺序做下来，能把这套模型的能力摸清：</p>
+      <ol>
+        <li><b>策略基线</b>：默认 30 km 等速巡航，4 策略全选 → 建立氢耗排序直觉。</li>
+        <li><b>载荷敏感性</b>：附加载荷 0 / 2000 / 10000 kg → 看氢耗与温度峰值同步上升。</li>
+        <li><b>坡度边界</b>：坡度 0 / 5 / 10% → 10% 坡大概率出现「缺功率」，理解动力边界。</li>
+        <li><b>冷启动对比</b>：启动温度 −30℃ vs 25℃ → 看功率受限时长、PTC 补热量，以及「效率优先」策略氢耗抬升幅度。</li>
+        <li><b>电池容量敏感性</b>：5 / 20 / 60 kWh → 容量越小，「弃电」越少但「缺功率」越容易发生。</li>
+        <li><b>工况形状对比</b>：等速巡航 vs 近似 WLTC → 变工况的氢耗显著更高。</li>
+        <li><b>实测数据导入</b>：用「自定义折线」粘贴真实逐秒车速，得到有工程意义的结论。</li>
+      </ol>
+
+      <h4>八、模型边界与已知近似（务必了解）</h4>
+      <p>这套模型是 <b>L1 准静态仿真</b>，定位是「设计点趋势与策略对比」，<b>不是</b>高保真车辆仿真工具。</p>
+      <p><b>能信的部分</b></p>
+      <ul>
+        <li>能量守恒严格闭合（内部有自检：∫电堆净功 + ∫电池母线功 ≡ 需求 − 缺功率 + 弃电，误差恒为 0）</li>
+        <li>仿真起点与①②页稳态结果零漂移（极化曲线锚点自校准）</li>
+        <li>SOC 库仑积分精确</li>
+        <li>物理单调性正确（载荷↑ → 氢耗↑，坡道↑ → 缺功率↑）</li>
+      </ul>
+      <p><b>需要留意的近似</b></p>
+      <table>
+        <tr><th>近似</th><th>影响</th></tr>
+        <tr><td>1 s 定步长、准静态</td><td>不模拟电化学瞬态（双层电容、气体传输延迟），秒级以下动态不可信</td></tr>
+        <tr><td>电堆 MAP 由稳态页公式扫描</td><td>电堆模型精度 = ①页公式精度</td></tr>
+        <tr><td>电压温度系数</td><td>默认 −0.002 V/K 对<b>可逆电压</b>是正确的符号；用在「工作电压」上会让冷态电压偏高。冷态功率受限目前主要靠「冷态最低功率系数」兜住。<b>建议按实测极化曲线标定</b></td></tr>
+        <tr><td>膜含水量 λ</td><td><b>经验代理指标</b>，由干侧 / 湿侧 / 阴极出口中最湿润的相对湿度 + 液态水推算，不是严格的膜水平衡求解。可用于趋势与越限判断，<b>不可用于标定真实膜寿命</b></td></tr>
+        <tr><td>热管理为单节点集总热容</td><td>无电堆内温度梯度、无散热器出/入口温度分离、无管路滞后</td></tr>
+        <tr><td>电池为 Rint + 库仑积分</td><td>无温度依赖、无老化、无倍率特性曲线</td></tr>
+        <tr><td>附件负载为定值</td><td>不随工况变化（空调等实际会波动）</td></tr>
+        <tr><td>弃电是模型产物</td><td>真实控制器会通过降低电堆输出来避免浪费，「恒功率型」的大额弃电应理解为「该策略不合理」的信号，而非真实整车油耗</td></tr>
+      </table>
+
+      <h4>九、常见问题</h4>
+      <p><b>Q：点了开始仿真，图是空的？</b><br>A：图表在运行后才绘制。确认进度条在动；若已停止，点「开始仿真」重跑。</p>
+      <p><b>Q：改了参数，结果没变？</b><br>A：参数快照机制（见 §6）。必须重新点「开始仿真」。显示类参数（λ 阈值带、温度目标线）会实时跟随。</p>
+      <p><b>Q：出现「缺功率」怎么办？</b><br>A：说明这套动力系统扛不住当前工况。按优先级调：加大「最大净功率」→ 降「附加载荷 / 坡度 / 巡航车速」→ 放宽「SOC 下限」→ 加大「最大放电功率」。</p>
+      <p><b>Q：温度峰值超过 100℃？</b><br>A：散热能力不足。加大「散热器面积」或「风扇风量系数」，或降低第一页的冷却液温度设定 / 提高「冷却回路热容」。</p>
+      <p><b>Q：温度一直上不去（冷启动很久）？</b><br>A：检查「PTC 最大功率」是否足够；「冷态最低功率系数」过小会导致低温下功率被限制、产热不足，形成「升不上去」的困局。</p>
+      <p><b>Q：「弃电」很大是不是算错了？</b><br>A：不是。它表示电池吸不完电堆富余功率。这正是「恒功率规则型」策略氢耗最差的原因，属于有效的策略评价结果。</p>
+      <p><b>Q：λ 越限时间很长？</b><br>A：先看 λ 曲线整体水平。若整体偏高 → 调高「水淹阈值」或降低第一页加湿器效率；整体偏低 → 调低「干膜阈值」。若只在冷启动段越界，属于正常现象。</p>
+      <p><b>Q：导出的 CSV 用 Excel 打开中文乱码？</b><br>A：文件已带 BOM，正常不会乱码。若仍异常，用 Excel「数据 → 从文本/CSV」导入并指定 UTF-8。</p>
+      <p><b>Q：能同时对比两个以上策略吗？</b><br>A：可以，4 种可任意组合多选。分析的策略数越多，单帧计算量线性增加，但默认 20× 倍速下仍足够流畅。</p>
+
+      <h4>十、一句话总结</h4>
+      <p>把①②页当作「设计点定义」，用③页回答三个问题：<b>这套设计能不能跑完这个工况</b>（缺功率 / 温度 / SOC）、<b>跑下来要烧多少氢</b>（百公里氢耗 / 系统效率）、<b>哪种能量管理策略更好</b>（多策略同工况对比）。超出这三个问题的判断（法规油耗申报、膜寿命预测、电化学瞬态），需要更高保真度的模型。</p>
+
+    </div>
+  </div>
+</div>
 
 <script>
 /* ========== 输入参数定义 ========== */
@@ -1894,12 +2173,16 @@ function applyParams(root, data){
 }
 // 保存 JSON：优先弹出系统「另存为」对话框（可自由选择文件夹），不支持时回退为浏览器下载
 async function saveJSON(obj, filename){
-  const text = JSON.stringify(obj, null, 2);
+  return saveTextFile(JSON.stringify(obj, null, 2), filename,
+                      'JSON 参数文件', 'application/json', ['.json']);
+}
+/* 通用保存：优先系统「另存为」对话框（可选文件夹），不支持时回退为直接下载 */
+async function saveTextFile(text, filename, desc, mime, ext){
   if(window.showSaveFilePicker){
     try{
       const handle = await window.showSaveFilePicker({
         suggestedName: filename,
-        types: [{ description: 'JSON 参数文件', accept: { 'application/json': ['.json'] } }]
+        types: [{ description: desc, accept: { [mime]: ext } }]
       });
       const writable = await handle.createWritable();
       await writable.write(text);
@@ -1910,7 +2193,7 @@ async function saveJSON(obj, filename){
       // 其他异常（如权限、非安全上下文）回退到下载
     }
   }
-  const blob = new Blob([text], {type: 'application/json'});
+  const blob = new Blob([text], {type: mime});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = filename;
@@ -2124,13 +2407,15 @@ function snapshotSimConfig(){
     rampUp: Math.max(0.1,simVal('sim_rampUp',5)), rampDown: Math.max(0.1,simVal('sim_rampDown',5)),
     tauFc: Math.max(0.1,simVal('sim_tauFc',2)),
     batCap: Math.max(0.5,simVal('sim_batCap',20)),
+    batVnom: Math.max(50,simVal('sim_batVnom',350)),
+    batRint: Math.max(0,simVal('sim_batRint',60)),
     socInit: clampN(simVal('sim_socInit',0.65),0.02,0.98),
     socMin: simVal('sim_socMin',0.25), socMax: simVal('sim_socMax',0.9),
     pBatChgMax: Math.max(0,simVal('sim_pBatChgMax',40)), pBatDisMax: Math.max(0,simVal('sim_pBatDisMax',60)),
     dcdcEff: clampN(simVal('sim_dcdcEff',0.96),0.5,1),
     socTarget: simVal('sim_socTarget',0.6), socLo: simVal('sim_socLo',0.45), socHi: simVal('sim_socHi',0.75),
     dwell: Math.max(0,simVal('sim_dwell',10)),
-    Tinit: simVal('sim_Tinit',25), Tset: simVal('sim_Tset',80),
+    Tinit: simVal('sim_Tinit',25), Tamb: simVal('sim_Tamb',25), Tset: simVal('sim_Tset',80),
     Cstack: Math.max(5,simVal('sim_Cstack',150)),
     radArea: Math.max(0.5,simVal('sim_radArea',65)),
     fanRatio: clampN(simVal('sim_fanRatio',1),0.05,2),
@@ -2304,7 +2589,10 @@ function stepOnce(){
     const pBatBus = clampN(rawBat, -lim.chg, lim.dis);
     const shortfall = Math.max(0, rawBat - lim.dis);        // 电堆 + 电池都供不上的缺功率
     const dump = Math.max(0, -rawBat - lim.chg);            // 电池已满而电堆富余、无处可去的弃电
-    const pBatInt = pBatBus >= 0 ? pBatBus/cfg.sim.dcdcEff : pBatBus*cfg.sim.dcdcEff;
+    // Rint 欧姆损耗：mΩ × (kW/V)² 量纲恰为 kW。放电时叠加在内耗上，充电时同样吃掉一部分
+    const pRintLoss = cfg.sim.batRint * Math.pow(pBatBus/cfg.sim.batVnom, 2);
+    const pBatInt = pBatBus >= 0 ? pBatBus/cfg.sim.dcdcEff + pRintLoss
+                                 : pBatBus*cfg.sim.dcdcEff - pRintLoss;
     st.soc = clampN(st.soc - pBatInt/3600/cfg.sim.batCap, 0.001, 1);
 
     /* --- 热管理：一阶集总热容 + 三通阀 PI + PTC 补热 --- */
@@ -2312,7 +2600,7 @@ function stepOnce(){
     const Qptc = st.tCool < cfg.sim.Tset
                ? clampN(cfg.sim.ptcKp*(cfg.sim.Tset - st.tCool), 0, cfg.sim.ptcMax) : 0;
     const UA = cfg.ka*cfg.sim.radArea*cfg.sim.fanRatio/1000;                 // kW/K
-    const QradMax = Math.max(0, UA*(st.tCool - cfg.anchor.ambientTemp));
+    const QradMax = Math.max(0, UA*(st.tCool - cfg.sim.Tamb));
     const errT = st.tCool - cfg.sim.Tset;
     st.integ = clampN(st.integ + errT*1, -300, 300);
     const uTarget = clampN(cfg.sim.KpThermo*errT + cfg.sim.KiThermo*st.integ, 0, 1);
@@ -2354,8 +2642,8 @@ function computeSummaries(){
     const secs = Math.max(1, SIM.t);
     SIM.runs[k].summary = {
       km:A.dist, h2kg:A.h2kg, per100:A.h2kg/km*100,
-      // 系统效率 = 实际交付整车的电功 / (氢 LHV 化学能 + 电池净放能)，恒 ≤ 100%
-      eta: (A.pH2 + A.eBat) > 1e-6 ? (A.need - A.shortfall)/(A.pH2 + A.eBat)*100 : 0,
+      // 系统效率 = 实际交付整车的电功 / (氢 LHV 化学能 + 电池净输出到母线的电能)，恒 ≤ 100%
+      eta: (A.pH2 + A.eBatBus) > 1e-6 ? (A.need - A.shortfall)/(A.pH2 + A.eBatBus)*100 : 0,
       socEnd:st.soc*100, socMin:A.socMin*100, socMax:A.socMax*100,
       tMax:A.Tmax, tEnd:st.tCool, eBat:A.eBat, shortfall:A.shortfall, dump:A.dump,
       dryPct:A.tDry/secs*100, floodPct:A.tFlood/secs*100,
@@ -2527,8 +2815,11 @@ function drawCharts(){
                       x:meta.series.t, y:meta.series[d.key], width: multi?1.4:1.9 });
       }
     }
-    drawChart(cv, { title: d.title + (d.unit ? ' ('+d.unit+')' : ''), series,
-                    zero:!!d.zero, bandLow:d.bandLow, bandHigh:d.bandHigh, refLine:d.refLine });
+    // λ 阈值带与温度目标线跟随仿真页输入，避免「图里的带」与「表里的判据」不一致
+    drawChart(cv, { title: d.title + (d.unit ? ' ('+d.unit+')' : ''), series, zero:!!d.zero,
+                    bandLow:  d.key==='lambda' ? SIM.cfg.sim.lambdaDry  : d.bandLow,
+                    bandHigh: d.key==='lambda' ? SIM.cfg.sim.lambdaFlood : d.bandHigh,
+                    refLine:  d.key==='T'      ? SIM.cfg.sim.Tset       : d.refLine });
   }
 }
 
@@ -2572,8 +2863,11 @@ function renderSummary(){
   if(!SIM.started){ host.innerHTML = '<div class="sim-note">尚未运行仿真。</div>'; return; }
   const rows = SIM.keys.map(k=>({ k, s:SIM.runs[k].summary })).filter(r=>r.s);
   if(!rows.length){ host.innerHTML = '<div class="sim-note">尚未产生有效数据。</div>'; return; }
-  let best = rows[0];
-  for(const r of rows) if(r.s.per100 < best.s.per100) best = r;
+  // 缺功率的策略「跑不动所以不耗氢」，不能进入氢耗最优评选
+  const valid = rows.filter(r=>r.s.shortfall < 0.5);
+  const pool = valid.length ? valid : rows;
+  let best = pool[0];
+  for(const r of pool) if(r.s.per100 < best.s.per100) best = r;
   const head = ['策略','里程(km)','总氢耗(kg)','百公里氢耗(kg/100km)','系统效率(%)','SOC终值(%)','SOC最低(%)',
                 '电池吞吐(kWh)','温度峰值(℃)','温度终值(℃)','λ越限(s)','估算续航(km)','缺功率(kWh)','弃电(kWh)'];
   const body = rows.map(r=>{
@@ -2601,7 +2895,7 @@ function renderSummary(){
        <thead><tr>${head.map(x=>`<th>${x}</th>`).join('')}</tr></thead>
        <tbody>${body}</tbody></table></div>
      <div class="sim-note" style="margin-top:8px">
-       氢耗最优：<b style="color:${SIM.runs[best.k].color}">${SIM.runs[best.k].label}</b>
+       氢耗最优：<b style="color:${SIM.runs[best.k].color}">${SIM.runs[best.k].label}</b>${valid.length ? '' : '（本次所有策略均存在缺功率，氢耗不具可比性）'}
        ；估算续航按整车页「单瓶储氢质量 × 所需瓶数」折算，为量级参考。
      </div>`;
 }
@@ -2612,9 +2906,10 @@ function startSim(){
   SIM.cfg = cfg;
   SIM.cycle = buildCycle(cfg);
   SIM.pol = buildPolarization(cfg);
-  SIM.anchorEnv = cfg.anchor.ambientTemp;
+  SIM.anchorEnv = cfg.sim.Tamb;
   SIM.mapCache.clear();
-  // 车载储氢质量（沿用整车页已算出的结果，避免重复公式）
+  // 车载储氢质量：先刷新整车页结果，避免读到用户改参数后的过期文本
+  calculateHybridSystem();
   const perBottle = parseFloat((document.getElementById('singleBottleHydrogenMass')||{}).textContent) || 0;
   const nBottle = Math.ceil(parseFloat((document.getElementById('requiredBottleCount')||{}).textContent) || 0);
   SIM.storedKg = perBottle*nBottle;
@@ -2696,6 +2991,39 @@ function onSimTabShown(){
   if(SIM.started) drawCharts();
 }
 
+/* 结果导出：长表 CSV（一行为某策略某一时刻的全部通道），可直接用 Excel 透视/绘图 */
+document.getElementById('simExportCsvBtn').addEventListener('click', ()=>{
+  if(!SIM.started || !SIM.keys.length || !SIM.t){
+    alert('请先运行一次仿真，再导出结果。');
+    return;
+  }
+  const head = ['策略','时间(s)','车速(km/h)','电堆净功率(kW)','电池功率(kW)','SOC(%)',
+                '电堆温度(℃)','膜含水量lambda','氢耗功率(kW_LHV)','系统效率(%)'];
+  const lines = [head.join(',')];
+  for(const k of SIM.keys){
+    const S = SIM.runs[k].series, label = SIM.runs[k].label;
+    for(let i=0;i<S.t.length;i++){
+      lines.push([label, S.t[i], S.v[i].toFixed(2), S.pFc[i].toFixed(3), S.pBat[i].toFixed(3),
+                  S.soc[i].toFixed(2), S.T[i].toFixed(2), S.lambda[i].toFixed(3),
+                  S.pH2[i].toFixed(3), S.eta[i].toFixed(2)].join(','));
+    }
+  }
+  const sm = SIM.keys.map(k=>({ k, s:SIM.runs[k].summary })).filter(r=>r.s);
+  if(sm.length){
+    lines.push('', ['策略','里程(km)','总氢耗(kg)','百公里氢耗(kg/100km)','系统效率(%)','SOC终值(%)',
+                    '温度峰值(℃)','缺功率(kWh)','弃电(kWh)'].join(','));
+    for(const r of sm){
+      const s = r.s;
+      lines.push([SIM.runs[r.k].label, s.km.toFixed(3), s.h2kg.toFixed(3), s.per100.toFixed(3),
+                  s.eta.toFixed(2), s.socEnd.toFixed(2), s.tMax.toFixed(2),
+                  s.shortfall.toFixed(3), s.dump.toFixed(3)].join(','));
+    }
+  }
+  // 前置 BOM，保证 Excel 直接识别 UTF-8 中文
+  saveTextFile('\ufeff'+lines.join('\r\n'), '整车工况仿真_结果_'+timeStamp()+'.csv',
+               'CSV 结果文件', 'text/csv', ['.csv']);
+});
+
 document.getElementById('simRunBtn').addEventListener('click', ()=>{
   if(SIM.done || !SIM.started) startSim();
   else { SIM.paused = false; setStatus(); }
@@ -2705,6 +3033,19 @@ document.getElementById('simPauseBtn').addEventListener('click', ()=>{
 });
 document.getElementById('simStopBtn').addEventListener('click', ()=>{ if(SIM.started) stopSim(); });
 document.getElementById('simResetBtn').addEventListener('click', resetSim);
+
+/* 使用说明弹窗：问号按钮打开，点遮罩 / 关闭按钮 / Esc 关闭 */
+const simHelpOverlay = document.getElementById('simHelpOverlay');
+const simHelpBody = document.getElementById('simHelpBody');
+function openSimHelp(){
+  simHelpOverlay.classList.add('open');
+  simHelpBody.scrollTop = 0;
+}
+function closeSimHelp(){ simHelpOverlay.classList.remove('open'); }
+document.getElementById('simHelpBtn').addEventListener('click', openSimHelp);
+document.getElementById('simHelpClose').addEventListener('click', closeSimHelp);
+simHelpOverlay.addEventListener('click', (e)=>{ if(e.target === simHelpOverlay) closeSimHelp(); });
+document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeSimHelp(); });
 
 let simResizeTimer = 0;
 window.addEventListener('resize', ()=>{
