@@ -307,7 +307,10 @@
   }
   .hybrid-layout > .hybrid-side { grid-area: side; margin-bottom: 0; }
   .hybrid-layout > .vehicle-schematic { grid-area: schematic; margin-bottom: 0; }
-  .hybrid-layout > .hybrid-results-block { grid-area: results; margin-bottom: 0; }
+  .hybrid-layout > .hybrid-results-block {
+    grid-area: results; margin-bottom: 0;
+    background: none; border: none; border-radius: 0; padding: 0;
+  }
   /* 左栏参数：每个参数一行显示，标签在左、输入框在右 */
   .hybrid-side .hybrid-input-grid { grid-template-columns: 1fr; gap: 6px; }
   .hybrid-side .hybrid-input-group { flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; }
@@ -315,10 +318,8 @@
   .hybrid-side .hybrid-input-group input { flex: 0 0 92px; width: 92px; }
   /* 右栏示意图：居中显示并限制最大宽度，不铺满整栏 */
   .hybrid-layout > .vehicle-schematic svg { width: 75%; max-width: 860px; min-width: 0; margin: 0 auto; }
-  .vehicle-schematic {
-    background: rgba(18,32,54,0.8); border: 1px solid #2a4a6b; border-radius: 10px;
-    padding: 12px; margin-bottom: 16px;
-  }
+  /* 结构示意图：不加底色与边框，只保留底部间距 */
+  .vehicle-schematic { margin-bottom: 16px; }
   .vehicle-schematic svg { width: 80%; max-width: 920px; min-width: 560px; height: auto; display: block; margin: 0 auto; }
   .hybrid-section {
     background: rgba(18,32,54,0.9); border: 1px solid #2a4a6b; border-radius: 10px;
@@ -564,7 +565,7 @@
 
   <!-- 整车结构示意图 -->
   <div class="vehicle-schematic">
-    <svg viewBox="0 0 1000 300" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 1000 328" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="busBody" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.35"/>
@@ -576,11 +577,15 @@
         <marker id="arrowFC" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
           <path d="M0,0 L8,4 L0,8 Z" fill="#34d399"/>
         </marker>
-        <marker id="arrowBatR" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-          <path d="M0,0 L8,4 L0,8 Z" fill="#fbbf24"/>
+        <!-- 双向箭头：用 userSpaceOnUse 固定尺寸。默认 markerUnits=strokeWidth 会按线宽放大，
+             线宽 2.5 时箭头达 20px，在「母线→电池」这条 29px 短接线上两个箭头会互相叠住 -->
+        <marker id="arrowBatR" markerWidth="7" markerHeight="7" refX="7" refY="3.5"
+                orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M0,0 L7,3.5 L0,7 Z" fill="#fbbf24"/>
         </marker>
-        <marker id="arrowBatL" markerWidth="8" markerHeight="8" refX="1" refY="4" orient="auto">
-          <path d="M8,0 L0,4 L8,8 Z" fill="#fbbf24"/>
+        <marker id="arrowBatL" markerWidth="7" markerHeight="7" refX="0" refY="3.5"
+                orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M7,0 L0,3.5 L7,7 Z" fill="#fbbf24"/>
         </marker>
       </defs>
 
@@ -675,7 +680,7 @@
       </g>
       <line x1="341" y1="175" x2="370" y2="175" stroke="#fbbf24" stroke-width="2.5"
             marker-start="url(#arrowBatL)" marker-end="url(#arrowBatR)"/>
-      <text x="355" y="170" text-anchor="middle" fill="#fcd34d" font-size="9">充/放</text>
+      <text x="355.5" y="189" text-anchor="middle" fill="#fcd34d" font-size="8">充/放</text>
 
       <!-- ===== 多合一控制器（母线下侧支路，DC/AC 逆变） ===== -->
       <g>
@@ -722,8 +727,8 @@
         <line x1="612" y1="250" x2="612" y2="258" class="hy-flow hy-axle"/>
       </g>
 
-      <!-- 图例 -->
-      <g transform="translate(30,286)">
+      <!-- 图例（下移到车轮下方，左边与车身轮廓对齐） -->
+      <g transform="translate(110,306)">
         <line x1="0" y1="0" x2="22" y2="0" stroke="#a78bfa" stroke-width="2.5" marker-end="url(#arrowH2)"/>
         <text x="28" y="4" fill="#cbd5e1" font-size="10">氢气</text>
         <rect x="78" y="-4" width="20" height="8" rx="2" fill="#fbbf24" fill-opacity="0.85"/>
