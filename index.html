@@ -777,7 +777,7 @@
             <option value="cruise">等速巡航</option>
             <option value="nedc_approx">近似 NEDC（轮廓）</option>
             <option value="wltc_approx">近似 WLTC（轮廓）</option>
-            <option value="cltc_approx">近似 CLTC-P（轮廓）</option>
+            <option value="cltc_approx" selected>近似 CLTC-P（轮廓）</option>
             <option value="custom">自定义折线</option>
           </select></div>
         <div class="hx-input-group"><label for="sim_duration">仿真时长(s)</label><input type="number" id="sim_duration" value="1800" step="60"></div>
@@ -952,7 +952,7 @@
       <h5>4.1 ▎ 行驶工况</h5>
       <table>
         <tr><th>参数</th><th>默认</th><th>说明</th></tr>
-        <tr><td>工况类型</td><td>等速巡航</td><td><code>等速巡航</code> / <code>近似 NEDC</code> / <code>近似 WLTC</code> / <code>近似 CLTC-P</code> / <code>自定义折线</code></td></tr>
+        <tr><td>工况类型</td><td>近似 CLTC-P</td><td><code>等速巡航</code> / <code>近似 NEDC</code> / <code>近似 WLTC</code> / <code>近似 CLTC-P</code> / <code>自定义折线</code></td></tr>
         <tr><td>仿真时长(s)</td><td>1800</td><td>仅「等速巡航」生效；其它预设工况的时长由曲线自身决定</td></tr>
         <tr><td>巡航车速(km/h)</td><td>60</td><td>仅「等速巡航」生效</td></tr>
         <tr><td>坡道坡度(%)</td><td>0</td><td>全程恒定坡度，叠加在滚阻 + 风阻之上</td></tr>
@@ -1096,10 +1096,10 @@
       <h4>七、推荐实验清单</h4>
       <p>按顺序做下来，能把这套模型的能力摸清：</p>
       <ol>
-        <li><b>策略基线</b>：默认 30 km 等速巡航，4 策略全选 → 建立氢耗排序直觉。</li>
+        <li><b>策略基线</b>：工况类型选「等速巡航」、30 km，4 策略全选 → 建立氢耗排序直觉。</li>
         <li><b>载荷敏感性</b>：附加载荷 0 / 2000 / 10000 kg → 看氢耗与温度峰值同步上升。</li>
         <li><b>坡度边界</b>：坡度 0 / 5 / 10% → 10% 坡大概率出现「缺功率」，理解动力边界。</li>
-        <li><b>冷启动对比</b>：把「启动冷却液温度」设成 −30℃ vs 25℃（仿真时长保持默认 1800 s，太短则两档都饱和、看不出差别）→ 看汇总表的「功率受限(s)」与「PTC补热(kWh)」两列明显抬升；「效率优先」策略则表现为<b>氢耗变化不大但 SOC 终值明显下降</b>——电堆被功率封顶后差额由电池补上，冷启动的代价记在电池头上。</li>
+        <li><b>冷启动对比</b>：把「启动冷却液温度」设成 −30℃ vs 25℃（仿真段要够长——太短两档会一起饱和；预设工况时长由曲线自身决定，选「等速巡航」时请把仿真时长设到 1800 s）→ 看汇总表的「功率受限(s)」与「PTC补热(kWh)」两列明显抬升；「效率优先」策略则表现为<b>氢耗变化不大但 SOC 终值明显下降</b>——电堆被功率封顶后差额由电池补上，冷启动的代价记在电池头上。</li>
         <li><b>电池容量敏感性</b>：5 / 20 / 60 kWh → 容量越小，「弃电」越少但「缺功率」越容易发生。</li>
         <li><b>工况形状对比</b>：等速巡航 vs 近似 WLTC → 变工况的氢耗显著更高。</li>
         <li><b>实测数据导入</b>：用「自定义折线」粘贴真实逐秒车速，得到有工程意义的结论。</li>
@@ -2481,7 +2481,7 @@ function snapshotSimConfig(){
   };
   const ka = g(P,'hx_radiatorKa',100);
   const sim = {
-    cycle: simSel('sim_cycle','cruise'), duration: simVal('sim_duration',1800),
+    cycle: simSel('sim_cycle','cltc_approx'), duration: simVal('sim_duration',1800),
     cruiseSpeed: simVal('sim_cruiseSpeed',60), grade: simVal('sim_grade',0),
     Vocv: simVal('sim_Vocv',0.95), tafelB: Math.max(0.005,simVal('sim_tafelB',0.035)),
     j0: Math.max(1e-4,simVal('sim_j0',0.02)), dVdT: simVal('sim_dVdT',-0.002),
