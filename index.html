@@ -33,10 +33,14 @@
     overflow-y: auto;
   }
   .input-panel h2 { font-size: 1rem; color: #7dd3fc; margin-bottom: 12px; border-bottom: 1px solid #2a4a6b; padding-bottom: 8px; }
-  .input-group { margin-bottom: 9px; }
-  .input-group label { display: block; font-size: 0.78rem; color: #cbd5e1; margin-bottom: 2px; }
+  /* 每个参数一行显示：标签在左、输入框在右 */
+  .input-group {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; margin-bottom: 6px;
+  }
+  .input-group label { font-size: 0.78rem; color: #cbd5e1; flex: 1 1 auto; min-width: 0; }
   .input-group input {
-    width: 100%; padding: 5px 8px; font-size: 0.82rem;
+    flex: 0 0 86px; width: 86px; padding: 4px 7px; font-size: 0.8rem;
     background: #0b1628; border: 1px solid #334e6e; border-radius: 4px;
     color: #e8eef5;
   }
@@ -253,6 +257,29 @@
   .pfd-pow-table .pfd-pow-row.pfd-pow-group > span:first-child { color: #7dd3fc; font-weight: bold; }
   .pfd-pow-table .pfd-pow-row.pfd-pow-sys > span:last-child { color: #34d399; }
 
+  /* 流程图内嵌图签（版本说明，foreignObject） */
+  .pfd-titleblock {
+    box-sizing: border-box;
+    background: rgba(11,22,40,0.94); border: 1px solid #2a4a6b; border-radius: 6px;
+    padding: 8px 12px;
+  }
+  .pfd-titleblock .tb-name { color: #ffffff; font-weight: bold; font-size: 12px; }
+  .pfd-titleblock .tb-sub { color: #7dd3fc; font-size: 9px; margin-top: 2px; }
+  .pfd-titleblock .tb-line { border-top: 1px solid #2a4a6b; margin: 6px 0; }
+  .pfd-titleblock .tb-row {
+    display: flex; justify-content: space-between; gap: 10px;
+    font-size: 10px; line-height: 1.5; color: #ffffff;
+  }
+  .pfd-titleblock .tb-row > span:last-child { font-weight: bold; }
+
+  /* 流程图内嵌颜色图例（foreignObject，放在图签右侧，不带底板） */
+  .pfd-legend { box-sizing: border-box; }
+  .pfd-legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 9px; line-height: 1.3; color: #cbd5e1;
+  }
+  .pfd-legend-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+
   /* ====== Tab 导航 ====== */
   .tab-bar { display: flex; gap: 4px; background: rgba(10,22,40,0.6); padding: 0 28px; border-bottom: 1px solid #2a4a6b; }
   .tab-btn {
@@ -422,18 +449,11 @@
       <input type="file" id="pfdImportFile" accept=".json,application/json" style="display:none">
     </div>
     <div id="inputs"></div>
-    <div class="legend">
-      <div class="legend-item"><span class="legend-dot" style="background:#6366f1"></span>氢气流路</div>
-      <div class="legend-item"><span class="legend-dot" style="background:#0ea5e9"></span>空气流路</div>
-      <div class="legend-item"><span class="legend-dot" style="background:#06b6d4"></span>水流路</div>
-      <div class="legend-item"><span class="legend-dot" style="background:#f97316"></span>冷却液流路</div>
-      <div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span>热流</div>
-    </div>
   </div>
 
   <!-- 流程图 -->
   <div class="diagram-wrap">
-    <svg id="pfd" viewBox="0 0 1500 880" preserveAspectRatio="xMidYMid meet"></svg>
+    <svg id="pfd" viewBox="-60 0 1500 880" preserveAspectRatio="xMidYMid meet"></svg>
 
     <!-- 详细计算面板（流程图下方） -->
     <div class="calc-panels">
@@ -1933,6 +1953,35 @@ pipe('M250,556 L420,556 L420,454','pipe-h2','flow-h2'); // 泵出口→引射器
 pipe('M400,640 L400,730','pipe-water','flow-water');
 el('text',{x:410,y:700,class:'equip-sub',fill:'#a5f3fc'}).textContent='液态水排放';
 
+/* 图签：版本号说明（图纸左下角空白区，静态内容） */
+(function(){
+  const fo = document.createElementNS(SVG_NS,'foreignObject');
+  fo.setAttribute('x',80); fo.setAttribute('y',720);
+  fo.setAttribute('width',200); fo.setAttribute('height',120);
+  fo.innerHTML = '<div xmlns="http://www.w3.org/1999/xhtml" class="pfd-titleblock">'
+    + '<div class="tb-name">燃料电池系统流程图</div>'
+    + '<div class="tb-sub">PFD · Fuel Cell System</div>'
+    + '<div class="tb-line"></div>'
+    + '<div class="tb-row"><span>版本</span><span>V1.0</span></div>'
+    + '<div class="tb-row"><span>日期</span><span>2026-09-28</span></div>'
+    + '</div>';
+  svg.appendChild(fo);   // 高度与最终位置由 drawPfdFrame() 统一设置
+})();
+
+/* 颜色图例：内嵌到虚线框内、图签左侧（位置同样由 drawPfdFrame 摆） */
+(function(){
+  const fo = document.createElementNS(SVG_NS,'foreignObject');
+  fo.setAttribute('width',80); fo.setAttribute('height',130);
+  fo.innerHTML = '<div xmlns="http://www.w3.org/1999/xhtml" class="pfd-legend">'
+    + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#6366f1"></span>氢气流路</div>'
+    + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#0ea5e9"></span>空气流路</div>'
+    + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#06b6d4"></span>水流路</div>'
+    + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#f97316"></span>冷却液流路</div>'
+    + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#ef4444"></span>热流</div>'
+    + '</div>';
+  svg.appendChild(fo);
+})();
+
 /* ====== 换热/冷却液 (底部)：电堆 → 三通阀 → 散热器/PTC加热器并联 → 泵 ====== */
 /* 冷却液泵：离心式（蜗壳+叶轮，顶部出口/底部入口） (580-700) */
 (function(){
@@ -2263,11 +2312,98 @@ function updateData(r){
   document.getElementById('statusTag').style.color = '#34d399';
 }
 
+/* ====== 流程图外框（虚线）＋图签摆位 ======
+   按全部内容的实际包围盒自适应：内容变了框跟着变，图签固定在框内左下角。 */
+let pfdFrameRect = null;
+function drawPfdFrame(){
+  const svgEl = document.getElementById('pfd');
+  if(!svgEl) return;
+  let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+  const acc = (x,y,w,h)=>{
+    // 跳过未定位的模板元素（getBBox 会返回 (0,0,10,10) 或负坐标）
+    if(!isFinite(x) || !isFinite(y) || !(w>0) || !(h>0) || x<0 || y<0) return;
+    if(x<minX) minX=x; if(y<minY) minY=y;
+    if(x+w>maxX) maxX=x+w; if(y+h>maxY) maxY=y+h;
+  };
+  svgEl.querySelectorAll('text,rect,circle,path,line,polyline').forEach(e=>{
+    if(e.classList && e.classList.contains('pfd-frame')) return;
+    let b; try{ b = e.getBBox(); }catch(err){ return; }
+    if(!b || (b.x===0 && b.y===0)) return;
+    acc(b.x, b.y, b.width, b.height);
+  });
+  svgEl.querySelectorAll('foreignObject').forEach(fo=>{
+    // 图签、图例、汇总表都随后单独摆位，不参与包围盒计算（否则会与框互相撑大）
+    if(fo.querySelector('.pfd-titleblock') || fo.querySelector('.pfd-legend')
+       || fo.querySelector('.pfd-pow-table')) return;
+    acc(+fo.getAttribute('x'), +fo.getAttribute('y'),
+        +fo.getAttribute('width'), +fo.getAttribute('height'));
+  });
+  if(!isFinite(minX)) return;
+  const VB_W=1500, VB_H=880, pad=16, padX=36, edge=6;
+  /* svg 的 viewBox 左边界取负（-VB_SHIFT），等价于把整张图在视口里右移 VB_SHIFT，
+     因此屏幕坐标换算回逻辑坐标时要减掉这个偏移，右侧上限也跟着收进来。 */
+  const VB_SHIFT = 60;
+  // padX 只管左右两条边（比上下略宽一点，让框在水平方向包得更松）
+  const fx = Math.max(edge, minX-padX), fy = Math.max(edge, minY-pad);
+  let rightLimit = Math.min(VB_W-edge-VB_SHIFT, maxX+padX);
+  /* 让框左右留白相等：左侧留白 = 框左缘 → 下方计算面板区左缘；
+     框右缘则取「面板区右缘 − 同一个留白」，两侧视觉对称。
+     窄视口下 SVG 溢出容器时算出的值更小，用 max 兜住不会把框缩回去。 */
+  const panelsEl = document.querySelector('#page-pfd .calc-panels');
+  if(panelsEl){
+    const sr = svgEl.getBoundingClientRect(), sc = sr.width / VB_W;
+    if(sc > 0){
+      const pr = panelsEl.getBoundingClientRect();
+      const pLeft  = (pr.left  - sr.left) / sc - VB_SHIFT;
+      const pRight = (pr.right - sr.left) / sc - VB_SHIFT;
+      const leftMargin = Math.max(0, fx - pLeft);
+      rightLimit = Math.max(rightLimit, Math.min(VB_W-edge-VB_SHIFT, pRight - leftMargin));
+    }
+  }
+  const fw = rightLimit - fx;
+  const fh = Math.min(VB_H-edge, maxY+pad) - fy;
+  if(!pfdFrameRect){
+    pfdFrameRect = el('rect',{class:'pfd-frame', x:fx, y:fy, width:fw, height:fh, rx:10,
+      fill:'none', stroke:'#38bdf8', 'stroke-width':1.6,
+      'stroke-dasharray':'9 6', opacity:0.4, 'pointer-events':'none'});
+  } else {
+    pfdFrameRect.setAttribute('x',fx);       pfdFrameRect.setAttribute('y',fy);
+    pfdFrameRect.setAttribute('width',fw);   pfdFrameRect.setAttribute('height',fh);
+  }
+  // 左下角并排：图签在左、图例在右，一起贴框底
+  const GAPL = 14, GAPB = 14, GAPX = 12;
+  let cursorX = fx + GAPL;
+  const tb = svgEl.querySelector('.pfd-titleblock');
+  if(tb){
+    const fo = tb.parentNode, th = tb.offsetHeight;
+    fo.setAttribute('height', Math.ceil(th));
+    fo.setAttribute('x', cursorX);
+    fo.setAttribute('y', fy+fh-GAPB-th);
+    cursorX += (+fo.getAttribute('width')) + GAPX;
+  }
+  const lg = svgEl.querySelector('.pfd-legend');
+  if(lg){
+    const fo = lg.parentNode, lh = lg.offsetHeight;
+    fo.setAttribute('height', Math.ceil(lh));
+    fo.setAttribute('x', cursorX);
+    fo.setAttribute('y', fy+fh-GAPB-lh);
+  }
+  // 系统功率汇总表固定在框内右下角
+  const pow = svgEl.querySelector('.pfd-pow-table');
+  if(pow){
+    const fo = pow.parentNode, ph = pow.offsetHeight, pw = +fo.getAttribute('width');
+    fo.setAttribute('height', Math.ceil(ph));
+    fo.setAttribute('x', fx+fw-14-pw);
+    fo.setAttribute('y', fy+fh-14-ph);
+  }
+}
+
 /* ========== 初始化 & 事件 ========== */
 function run(){
   if(SIM_RUNNING) return;          // 仿真期间冻结稳态页联动，避免无谓的 DOM 重写
   const r = calc();
   updateData(r);
+  drawPfdFrame();                  // 数据气泡尺寸随数值变化，外框与图签跟着自适应
   renderHxResults();
   // 同步电堆功率到混合动力计算页
   const sp = document.getElementById('stackPower');
