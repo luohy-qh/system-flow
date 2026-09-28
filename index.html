@@ -232,6 +232,27 @@
   .hx-result-row .hx-r-value { color: #7dd3fc; font-weight: bold; }
   .hx-result-row .hx-r-value.warn { color: #f87171; }
 
+  /* 流程图内嵌「系统功率汇总」表（foreignObject，坐标随 SVG 缩放） */
+  .pfd-pow-table {
+    box-sizing: border-box;
+    background: rgba(11,22,40,0.94); border: 1px solid #2a4a6b; border-radius: 6px;
+    padding: 6px 10px;
+  }
+  .pfd-pow-table .pfd-pow-head {
+    color: #7dd3fc; font-weight: bold; font-size: 11px;
+    border-bottom: 1px solid #2a4a6b; padding-bottom: 4px; margin-bottom: 4px;
+  }
+  .pfd-pow-table .pfd-pow-row {
+    display: flex; justify-content: space-between; gap: 8px;
+    font-size: 10px; line-height: 1.35; padding: 1px 0; cursor: help;
+  }
+  /* 行标题（左侧说明文字）用白色，其余保持原配色 */
+  .pfd-pow-table .pfd-pow-row > span:first-child { color: #ffffff; }
+  .pfd-pow-table .pfd-pow-row > span:last-child { color: #7dd3fc; font-weight: bold; }
+  .pfd-pow-table .pfd-pow-row.pfd-pow-group { margin-top: 3px; border-top: 1px solid #2a4a6b; padding-top: 3px; }
+  .pfd-pow-table .pfd-pow-row.pfd-pow-group > span:first-child { color: #7dd3fc; font-weight: bold; }
+  .pfd-pow-table .pfd-pow-row.pfd-pow-sys > span:last-child { color: #34d399; }
+
   /* ====== Tab 导航 ====== */
   .tab-bar { display: flex; gap: 4px; background: rgba(10,22,40,0.6); padding: 0 28px; border-bottom: 1px solid #2a4a6b; }
   .tab-btn {
@@ -979,7 +1000,7 @@
         <tr><td>湿度电压灵敏度(V/λ)</td><td>0.006</td><td>膜越干电压越低</td></tr>
         <tr><td>最小净功率(kW)</td><td>6</td><td>电堆怠速下限</td></tr>
         <tr><td>额定净功率(kW)</td><td>72</td><td>「恒功率型」策略的目标值</td></tr>
-        <tr><td>最大净功率(kW)</td><td>80</td><td>电堆净输出上限（已扣空压机等 BOP）</td></tr>
+        <tr><td>最大净功率(kW)</td><td>80</td><td>电堆净输出上限（已扣空压机、泵、风扇、氢循环泵等 BOP 实算功耗）</td></tr>
         <tr><td>功率上升率(kW/s)</td><td>5</td><td>加载速率限制</td></tr>
         <tr><td>功率下降率(kW/s)</td><td>5</td><td>降载速率限制</td></tr>
         <tr><td>功率时间常数(s)</td><td>2</td><td>一阶滞后，模拟空气/氢气供给响应</td></tr>
@@ -1129,7 +1150,7 @@
         <tr><td>电池为 Rint + 库仑积分</td><td>无温度依赖、无老化、无倍率特性曲线</td></tr>
         <tr><td>附件负载为定值</td><td>不随工况变化（空调等实际会波动）</td></tr>
         <tr><td>弃电是模型产物</td><td>真实控制器会通过降低电堆输出来避免浪费，「恒功率型」的大额弃电应理解为「该策略不合理」的信号，而非真实整车油耗</td></tr>
-        <tr><td>空压机与尾气膨胀机（①页）</td><td>①页的「压缩级数」「带尾气膨胀机」会改变本页结果：仿真扣除的是<b>净功耗 = 空压机功耗 − 膨胀机回收功</b>。膨胀机按<b>纯气相</b>等熵膨胀计算，尾气含水时未计凝结潜热，也未计真实涡轮中凝结滞后造成的非平衡损失，回收功为气相估计值。阴极压损直接决定膨胀比 → <b>压损越小、回收越多</b></td></tr>
+        <tr><td>空压机与辅机功耗（①页）</td><td>①页的「压缩级数」「带尾气膨胀机」与泵/风扇/氢循环泵参数会改变本页结果：仿真扣除的是<b>BOP 总功耗 = 空压机净功耗（压缩功耗 − 膨胀机回收功）+ 冷却液泵 + 散热风扇 + 氢气循环泵</b>，四项均在①页实算，不再是固定值。膨胀机按<b>纯气相</b>等熵膨胀计算，尾气含水时未计凝结潜热，也未计真实涡轮中凝结滞后造成的非平衡损失，回收功为气相估计值。阴极压损直接决定膨胀比 → <b>压损越小、回收越多</b></td></tr>
       </table>
 
       <h4>九、常见问题</h4>
@@ -1187,6 +1208,12 @@ const INPUTS = [
   { id:'intercoolerMidTemp', label:'级间冷却后温度(℃)〔仅两级〕', val:'50', step:'1' },
   { id:'expanderEfficiency', label:'膨胀机等熵效率(%)', val:'75', step:'1' },
   { id:'expanderInletLoss', label:'膨胀机入口压损(kPa)', val:'5', step:'1' },
+  // ---- BOP 辅机功耗估算（泵 / 散热风扇 / 氢气循环泵） ----
+  { id:'coolantPumpHead', label:'冷却液泵压头(m)', val:'15', step:'1' },
+  { id:'coolantPumpEfficiency', label:'冷却液泵总效率(%)', val:'60', step:'1' },
+  { id:'fanPressure', label:'散热风扇全压(Pa)', val:'150', step:'1' },
+  { id:'fanEfficiency', label:'散热风扇效率(%)', val:'45', step:'1' },
+  { id:'h2PumpEfficiency', label:'氢气循环泵效率(%)', val:'45', step:'1' },
 ];
 
 /* 渲染输入框 */
@@ -1249,6 +1276,9 @@ function lmtdCorrF(R, P){
   const lm = Math.abs(d1-d2) < 1e-9 ? d1 : (d1-d2)/Math.log(d1/d2);
   return lm > 1e-9 ? (eps/NTU)/lm : 1;
 }
+
+/* 氢低热值口径：120 MJ/kg × 2.016 g/mol（用于氢耗功率与系统净效率） */
+const H2_LHV_KJ_PER_MOL = 241.92;
 
 function calc(){
   const cellVoltage=num('cellVoltage'), cellCount=num('cellCount'),
@@ -1483,6 +1513,34 @@ function calc(){
   const deltaTm22=icLmtdCorr*Math.max(0.1,Math.abs(deltaTm2));
   const icArea=icHeat>0?(icHeat*1000)/(b7*deltaTm22):0;
 
+  /* ===== BOP 辅机功耗估算：冷却液泵 / 散热风扇 / 氢气循环泵 =====
+     三者统一用「体积流量 × 压升 / 效率」的液压功率式，口径与空压机一致。
+     这一组结果既供第一页「系统功率汇总」显示，也作为第二/三页仿真里
+     电堆净功率的扣减项（替代原先的 0.5 kW 固定值）。 */
+  const pumpHead = Math.max(0, num('coolantPumpHead'));
+  const pumpEta = Math.min(1, Math.max(0.01, num('coolantPumpEfficiency')/100));
+  const pumpFlowM3s = Math.max(0, stackCoolantFlow)/60000;                         // L/min → m³/s
+  const pumpPower = coolantDensity*9.81*pumpHead*pumpFlowM3s/pumpEta;              // W
+  const fanPressure = Math.max(0, num('fanPressure'));
+  const fanEta = Math.min(1, Math.max(0.01, num('fanEfficiency')/100));
+  const fanFlowM3s = Math.max(0, reqAirFlow)/3600;                                // m³/h → m³/s
+  const fanPower = fanPressure*fanFlowM3s/fanEta;                                 // W
+  /* 氢气循环泵：压升取阳极压损（循环回路只需克服自身阻力）；
+     循环量是标准状态流量，按阳极实际压力/温度折算成体积流量。 */
+  const h2PumpEta = Math.min(1, Math.max(0.01, num('h2PumpEfficiency')/100));
+  const h2RecircM3s = Math.max(0, hydrogenRecirculationNLPM)/1000/60;             // NLPM → Nm³/s
+  const h2AnodePKPa = Math.max(1, anodeInletPressure - anodePressureLoss);        // 泵出口绝对压力
+  const h2PumpFlowM3s = h2RecircM3s*(101.325/h2AnodePKPa)*((operatingTemp+273.15)/273.15);
+  const h2PumpPower = Math.max(0, anodePressureLoss)*1000*h2PumpFlowM3s/h2PumpEta;  // W
+  const bopKW = {
+    compressor: netCompressorPower/1000,
+    pump: pumpPower/1000,
+    fan: fanPower/1000,
+    h2Pump: h2PumpPower/1000
+  };
+  bopKW.total = bopKW.compressor + bopKW.pump + bopKW.fan + bopKW.h2Pump;
+  const systemNetPower = stackPower - bopKW.total;                                 // kW
+
   // ===== 阀门流体计算 =====
   const vFlow=hx('hx_flowRateNLPM'), vInP=hx('hx_inletPressure'), vOutP=hx('hx_outletPressure'),
         vTemp=hx('hx_fluidTemperature');
@@ -1534,7 +1592,11 @@ function calc(){
              lmtdCorr:radLmtdCorr,area:radArea,frontalArea:radFrontalArea,airFlow:reqAirFlow,singleFanFlow},
         ic:{heat:icHeat,airIn:icAirIn,airOut:icAirOut,coolantIn:icCoolantIn,coolantOut:icCoolantOut,
             airFlow:icAirFlow,coolantFlow:icCoolantFlow,lmtdCorr:icLmtdCorr,area:icArea}},
-    valve:{flow:vFlow,inP:vInP,outP:vOutP,temp:vTemp,density:vDensity,kv:vKv,dn:vDN,deltaP:vDeltaP}
+    valve:{flow:vFlow,inP:vInP,outP:vOutP,temp:vTemp,density:vDensity,kv:vKv,dn:vDN,deltaP:vDeltaP},
+    bop:{compressor:bopKW.compressor,pump:bopKW.pump,fan:bopKW.fan,h2Pump:bopKW.h2Pump,
+         total:bopKW.total,systemNetPower,
+         pumpHead,pumpEta,pumpFlowM3s,fanPressure,fanEta,fanFlowM3s,
+         h2PumpEta,h2PumpFlowM3s,h2AnodePKPa}
   };
 }
 
@@ -1902,6 +1964,15 @@ el('text',{x:775,y:751,'text-anchor':'middle',fill:'#fcd34d','font-size':9}).tex
   rotaryMachine(980,682,13,'#1c0a0a','#fca5a5',5);                            // 轴流风扇（置于芯体前）
 })();
 
+/* 系统功率汇总表：内嵌在散热器右侧的空白区，内容由 updateData 填充 */
+(function(){
+  const fo = document.createElementNS(SVG_NS,'foreignObject');
+  fo.setAttribute('x',1140); fo.setAttribute('y',540);
+  fo.setAttribute('width',172); fo.setAttribute('height',330);
+  fo.innerHTML = '<div xmlns="http://www.w3.org/1999/xhtml" class="pfd-pow-table" id="pfdPowTable"></div>';
+  svg.appendChild(fo);
+})();
+
 /* PTC加热器：卧式加热筒体 + 电热丝 (920-1040) */
 (function(){
   el('text',{x:980,y:741,'text-anchor':'middle',fill:'#e8eef5','font-size':10,'font-weight':'bold'}).textContent='PTC加热器';
@@ -2158,6 +2229,38 @@ function updateData(r){
        '过饱和水冷凝放热量(kW) = 阴极冷凝水放热 + 阳极冷凝水放热',
        '反应产热量(LHV-kW) = 电堆功率 × (1.254 - 单电池电压)/单电池电压',
        '系统总热负荷(kW) = 中冷器热负荷 + 过饱和水冷凝放热量 + 反应产热量']);
+
+  /* 系统功率汇总表：内嵌在流程图散热器右侧的空白区 */
+  const bop = r.bop;
+  const h2Lhv = r.stack.h2*H2_LHV_KJ_PER_MOL;          // 氢耗功率(kW，低热值口径)
+  const netEta = h2Lhv>0 ? bop.systemNetPower/h2Lhv*100 : 0;
+  const powTable = document.getElementById('pfdPowTable');
+  if(powTable){
+    const ptRow = (l,val,tip,cls)=>{
+      const t = tip ? ` title="${String(tip).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}"` : '';
+      return `<div class="pfd-pow-row${cls?' '+cls:''}"${t}><span>${l}</span><span>${val}</span></div>`;
+    };
+    const ptGroup = t=>`<div class="pfd-pow-row pfd-pow-group"><span>${t}</span><span></span></div>`;
+    powTable.innerHTML = '<div class="pfd-pow-head">系统功率汇总</div>'
+      + ptRow('电堆电流(A)',f(r.stack.current,1),'电堆电流 = 反应面积(cm²) × 电流密度(A/cm²)')
+      + ptRow('电堆电压(V)',f(r.stack.voltage,1),'电堆电压 = 单片电压(V) × 单电池片数')
+      + ptRow('电堆功率(kW)',f(r.stack.power,2),'电堆功率 = 电堆电流 × 电堆电压 / 1000（毛功率，未扣辅机）')
+      + ptRow('电堆效率(%)',f(r.stack.efficiency,1),'电堆效率 = 单片电压 / 1.254 × 100')
+      + ptRow('反应产热(kW)',f(r.stack.heat,2),'反应产热 = 电堆功率 × (1.254 - 单片电压) / 单片电压')
+      + ptGroup('辅机功耗（BOP）')
+      + ptRow('空压机净功耗(kW)',f(bop.compressor,2),'空压机净功耗 = 分级压缩功耗 - 尾气膨胀机回收功（详见空气热力数据气泡）')
+      + ptRow('冷却液泵功耗(kW)',f(bop.pump,3),'冷却液泵功耗 = 冷却液密度 × 9.81 × 泵压头(m) × 冷却循环流量(m³/s) / 泵总效率')
+      + ptRow('散热风扇功耗(kW)',f(bop.fan,3),'散热风扇功耗 = 风扇全压(Pa) × 所需冷却空气流量(m³/s) / 风扇效率；风量取自散热器面板')
+      + ptRow('氢气循环泵功耗(kW)',f(bop.h2Pump,3),'氢气循环泵功耗 = 阳极压损(Pa) × 循环体积流量(m³/s) / 泵效率')
+      + ptRow('辅机合计(kW)',f(bop.total,2),'辅机合计 = 空压机净功耗 + 冷却液泵 + 散热风扇 + 氢气循环泵')
+      + ptGroup('系统输出')
+      + ptRow('系统输出功率(kW)',f(bop.systemNetPower,2),'系统输出功率 = 电堆功率 - 辅机合计（直流母线可对外交付的净功率）','pfd-pow-sys')
+      + ptRow('系统净效率(%)',f(netEta,1),'系统净效率 = 系统输出功率 / 氢耗功率 × 100；氢耗功率 = 理论氢耗(mol/s) × 241.92 kJ/mol（氢低热值）','pfd-pow-sys');
+    // 按内容实际高度收紧 foreignObject，去掉底部空白（offsetHeight 即 viewBox 单位）
+    const pfo = powTable.parentNode;
+    if(pfo && pfo.tagName === 'foreignObject')
+      pfo.setAttribute('height', Math.ceil(powTable.offsetHeight));
+  }
 
   document.getElementById('statusTag').textContent = '● 已同步';
   document.getElementById('statusTag').style.color = '#34d399';
@@ -2518,8 +2621,6 @@ const STRATS = [
   { key:'effmax', on:'sim_strat_effmax', label:'最高效率点+SOC滞环', short:'效率点', color:'#fbbf24' },
   { key:'hybrid', on:'sim_strat_hybrid', label:'效率优先+SOC维持',   short:'维持',   color:'#c084fc' }
 ];
-const BOP_FIXED_KW = 0.5;          // 冷却泵 + 氢气循环泵等效固定功耗
-const H2_LHV_KJ_PER_MOL = 241.92;  // 120 MJ/kg × 2.016 g/mol
 const J_MIN = 0.02, J_MAX = 3.0, J_STEPS = 40;
 const SOC_PROTECT = 0.005;         // SOC 触顶/触底保护带
 
@@ -2697,8 +2798,8 @@ function evalPoint(cfg, pol, j, T, lambda){
   const v = cellVAt(pol, j, T, lambda);
   const r = withParams({ currentDensity:j, cellVoltage:v, operatingTemp:T,
                          airRatio:cfg.anchor.airRatio }, calc);
-  const pBop = r.airThermal.netCompressorPower/1000 + BOP_FIXED_KW;
-  return { r, j, v, pStack:r.stack.power, pBop, pNet:r.stack.power - pBop };
+  const pBop = r.bop.total;
+  return { r, j, v, pStack:r.stack.power, pBop, pNet:r.bop.systemNetPower };
 }
 /* 在「温度桶 × λ 桶」上扫描电流密度，得到净功率 / 氢耗 / 产热 / 系统效率 MAP */
 function getMap(cfg, pol, T, lambda){
@@ -2714,7 +2815,7 @@ function getMap(cfg, pol, T, lambda){
     if(v < 0.30) break;                                  // 低于 0.3 V/片视为不可用
     const r = withParams({ currentDensity:jj, cellVoltage:v, operatingTemp:tb,
                            airRatio:cfg.anchor.airRatio }, calc);
-    const pn = r.stack.power - (r.airThermal.netCompressorPower/1000 + BOP_FIXED_KW);
+    const pn = r.bop.systemNetPower;
     j.push(jj); p.push(pn); h.push(r.stack.h2); q.push(r.stack.heat);
     eta.push(pn>0 ? pn/(r.stack.h2*H2_LHV_KJ_PER_MOL) : 0);
   }
