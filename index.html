@@ -1967,7 +1967,7 @@ el('text',{x:775,y:751,'text-anchor':'middle',fill:'#fcd34d','font-size':9}).tex
 /* 系统功率汇总表：内嵌在散热器右侧的空白区，内容由 updateData 填充 */
 (function(){
   const fo = document.createElementNS(SVG_NS,'foreignObject');
-  fo.setAttribute('x',1140); fo.setAttribute('y',540);
+  fo.setAttribute('x',1095); fo.setAttribute('y',540);
   fo.setAttribute('width',172); fo.setAttribute('height',330);
   fo.innerHTML = '<div xmlns="http://www.w3.org/1999/xhtml" class="pfd-pow-table" id="pfdPowTable"></div>';
   svg.appendChild(fo);
@@ -1983,9 +1983,6 @@ el('text',{x:775,y:751,'text-anchor':'middle',fill:'#fcd34d','font-size':9}).tex
                  fill:'none',stroke:'#fbbf24','stroke-width':1.8});
   el('circle',{cx:980,cy:771,r:2.5,fill:'#fde68a'});
 })();
-el('text',{x:1108,y:725,'text-anchor':'middle',fill:'#fdba74','font-size':9}).textContent='并联';
-el('text',{x:1108,y:737,'text-anchor':'middle',fill:'#fdba74','font-size':9}).textContent='支路';
-
 // 泵出口 → 电堆冷却腔入口(700,540)
 pipe('M640,760 L640,700 L700,700 L700,540','pipe-coolant','flow-coolant');
 // 电堆冷却腔出口(780,540) → 三通阀顶部入口
