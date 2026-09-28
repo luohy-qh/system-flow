@@ -295,6 +295,26 @@
 
   /* ====== 混合动力系统页面 ====== */
   .hybrid-page { padding: 16px 24px; }
+  /* 两栏布局：左侧参数栏，右上整车结构示意，右下计算结果 */
+  .hybrid-layout {
+    display: grid;
+    grid-template-columns: 360px minmax(0, 1fr);
+    grid-template-areas:
+      "side schematic"
+      "side results";
+    align-items: start;
+    gap: 16px;
+  }
+  .hybrid-layout > .hybrid-side { grid-area: side; margin-bottom: 0; }
+  .hybrid-layout > .vehicle-schematic { grid-area: schematic; margin-bottom: 0; }
+  .hybrid-layout > .hybrid-results-block { grid-area: results; margin-bottom: 0; }
+  /* 左栏参数：每个参数一行显示，标签在左、输入框在右 */
+  .hybrid-side .hybrid-input-grid { grid-template-columns: 1fr; gap: 6px; }
+  .hybrid-side .hybrid-input-group { flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; }
+  .hybrid-side .hybrid-input-group label { white-space: normal; overflow: visible; text-overflow: clip; flex: 1 1 auto; min-width: 0; }
+  .hybrid-side .hybrid-input-group input { flex: 0 0 92px; width: 92px; }
+  /* 右栏示意图：居中显示并限制最大宽度，不铺满整栏 */
+  .hybrid-layout > .vehicle-schematic svg { width: 75%; max-width: 860px; min-width: 0; margin: 0 auto; }
   .vehicle-schematic {
     background: rgba(18,32,54,0.8); border: 1px solid #2a4a6b; border-radius: 10px;
     padding: 12px; margin-bottom: 16px;
@@ -337,8 +357,17 @@
   .hybrid-reference h4 { color: #7dd3fc; margin-bottom: 8px; font-size: 0.9rem; }
   .hybrid-reference ol { padding-left: 20px; }
   .hybrid-reference li { color: #94a3b8; font-size: 0.78rem; line-height: 1.6; }
-  @media (max-width: 1200px) { .hybrid-input-grid { grid-template-columns: repeat(4, 1fr); } .hybrid-results-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 700px) { .hybrid-input-grid { grid-template-columns: repeat(2, 1fr); } .hybrid-results-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 1400px) {
+    .hybrid-layout { grid-template-columns: 320px minmax(0, 1fr); }
+    .hybrid-input-grid { grid-template-columns: repeat(4, 1fr); }
+    .hybrid-results-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 900px) {
+    .hybrid-layout { grid-template-columns: 1fr; grid-template-areas: "side" "schematic" "results"; }
+    .hybrid-side .hybrid-input-grid { grid-template-columns: repeat(2, 1fr); }
+    .hybrid-input-grid { grid-template-columns: repeat(2, 1fr); }
+    .hybrid-results-grid { grid-template-columns: 1fr; }
+  }
 
   /* ====== 整车工况仿真页面 ====== */
   .sim-page { padding: 16px 24px; }
@@ -531,6 +560,7 @@
 <!-- ============ 第二页：燃料电池混合动力系统计算 ============ -->
 <div class="page" id="page-hybrid">
 <div class="hybrid-page">
+  <div class="hybrid-layout">
 
   <!-- 整车结构示意图 -->
   <div class="vehicle-schematic">
@@ -710,8 +740,8 @@
     </svg>
   </div>
 
-  <!-- 整车参数表 -->
-  <div class="hybrid-section">
+  <!-- 整车参数表（左栏） -->
+  <div class="hybrid-section hybrid-side">
     <div class="io-head">
       <h2>整车参数表</h2>
       <div class="io-bar">
@@ -747,8 +777,8 @@
     </div>
   </div>
 
-  <!-- 计算结果 -->
-  <div class="hybrid-section">
+  <!-- 计算结果（右下） -->
+  <div class="hybrid-section hybrid-results-block">
     <h2>计算结果</h2>
     <div class="hybrid-results-grid">
       <div class="hybrid-result-section">
@@ -778,6 +808,7 @@
       </div>
     </div>
   </div>
+  </div><!-- /hybrid-layout -->
 
   <!-- 参考文献 -->
   <div class="hybrid-reference">
