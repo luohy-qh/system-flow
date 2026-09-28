@@ -41,6 +41,10 @@
     color: #e8eef5;
   }
   .input-group input:focus { outline: none; border-color: #38bdf8; }
+  /* 条件性失效的输入（如单级压缩时的「级间冷却后温度」）置灰 */
+  .input-group input:disabled {
+    color: #64748b; background: #0a1220; border-color: #24384f; cursor: not-allowed;
+  }
   .legend {
     margin-top: 14px; padding-top: 12px; border-top: 1px solid #2a4a6b;
     font-size: 0.78rem; color: #94a3b8;
@@ -456,8 +460,8 @@
             <div class="hx-input-group" style="grid-column: span 2;">
               <label>选择介质</label>
               <select id="hx_mediumType">
-                <option value="0.0899">氢气</option>
-                <option value="1.225" selected>空气</option>
+                <option value="0.0899" selected>氢气</option>
+                <option value="1.225">空气</option>
                 <option value="1.165">氮气</option>
                 <option value="1000">水</option>
                 <option value="1.172">乙烯</option>
@@ -1125,6 +1129,7 @@
         <tr><td>电池为 Rint + 库仑积分</td><td>无温度依赖、无老化、无倍率特性曲线</td></tr>
         <tr><td>附件负载为定值</td><td>不随工况变化（空调等实际会波动）</td></tr>
         <tr><td>弃电是模型产物</td><td>真实控制器会通过降低电堆输出来避免浪费，「恒功率型」的大额弃电应理解为「该策略不合理」的信号，而非真实整车油耗</td></tr>
+        <tr><td>空压机与尾气膨胀机（①页）</td><td>①页的「压缩级数」「带尾气膨胀机」会改变本页结果：仿真扣除的是<b>净功耗 = 空压机功耗 − 膨胀机回收功</b>。膨胀机按<b>纯气相</b>等熵膨胀计算，尾气含水时未计凝结潜热，也未计真实涡轮中凝结滞后造成的非平衡损失，回收功为气相估计值。阴极压损直接决定膨胀比 → <b>压损越小、回收越多</b></td></tr>
       </table>
 
       <h4>九、常见问题</h4>
@@ -1168,7 +1173,6 @@ const INPUTS = [
   { id:'anodeInletTemp', label:'阳极入温度(℃)', val:'45', step:'1' },
   { id:'gasSeparatorEfficiency', label:'气分效率(%)', val:'90', step:'1' },
   { id:'intercoolerPressureLoss', label:'中冷器压损(kPa)', val:'10', step:'1' },
-  { id:'compressorOutletTemp', label:'空压机出温度(℃)', val:'150', step:'1' },
   { id:'glycolPercentage', label:'乙二醇占比(%)', val:'50', step:'1' },
   { id:'humidifierEfficiency', label:'加湿器效率(%)', val:'0', step:'1' },
   { id:'humidifierDryLoss', label:'加湿器干侧压损(kPa)', val:'0', step:'1' },
@@ -1178,6 +1182,11 @@ const INPUTS = [
   { id:'airSpecificHeat', label:'空气定压比热 kJ/(kg·K)', val:'1.005', step:'0.001' },
   { id:'airSpecificHeatRatio', label:'空气比热比 κ', val:'1.4', step:'0.01' },
   { id:'airPumpEfficiency', label:'空气泵效率(%)', val:'76', step:'1' },
+  // ---- 空压机型式与尾气能量回收 ----
+  { id:'compressorStages', label:'压缩级数 (1或2)', val:'2', step:'1' },
+  { id:'intercoolerMidTemp', label:'级间冷却后温度(℃)〔仅两级〕', val:'50', step:'1' },
+  { id:'expanderEfficiency', label:'膨胀机等熵效率(%)', val:'75', step:'1' },
+  { id:'expanderInletLoss', label:'膨胀机入口压损(kPa)', val:'5', step:'1' },
 ];
 
 /* 渲染输入框 */
@@ -1211,6 +1220,36 @@ function satVaporP(T){
        + 0.00371504*Math.pow(T,2) + 0.01245629*T + 0.71004367;
 }
 
+/* 错流（两流体均不混合）换热器的对数平均温差修正系数 F。
+   传入 Bowman 标准定义：R = 热侧温降 / 冷侧温升，P = 冷侧温度效率。
+   该型式没有闭式解，走 ε-NTU：
+     ε = 1 - exp{ (1/Rε)·NTU^0.22·[exp(-Rε·NTU^0.78) - 1] }    （Kays & London 拟合式）
+   Rε = Cmin/Cmax ∈ (0,1]；反解出 NTU 后
+     F = (ε·ΔTmax/NTU) / ΔTlm,逆流
+   把 ΔTmax 归一化为 1，F 即只由 (R, P) 决定。越界一律返回 1（不修正）。 */
+function lmtdCorrF(R, P){
+  if(!(R > 0) || !(P > 0 && P < 1)) return 1;
+  // 统一到 ε-NTU 口径：R≤1 时冷侧即 Cmin，ε = P；R>1 时热侧为 Cmin，ε = P·R
+  const Re = R <= 1 ? R : 1/R;
+  const eps = R <= 1 ? P : P*R;
+  if(!(eps > 0 && eps < 1)) return 1;
+  // f(NTU) 关于 NTU 单调递减，二分反解 f(NTU) = Rε·ln(1-ε)
+  const target = Re*Math.log(1-eps);
+  const f = N => Math.pow(N,0.22)*(Math.exp(-Re*Math.pow(N,0.78)) - 1);
+  let lo = 1e-6, hi = 1e4;
+  if(f(lo) < target || f(hi) > target) return 1;         // 超出拟合式适用范围
+  for(let i=0;i<60;i++){
+    const mid = Math.sqrt(lo*hi);
+    if(f(mid) > target) lo = mid; else hi = mid;
+  }
+  const NTU = Math.sqrt(lo*hi);
+  // 逆流两端温差（ΔTmax = 1）：热侧进口端 1-P，热侧出口端 1-P·R
+  const d1 = 1-P, d2 = 1-P*R;
+  if(!(d1 > 0) || !(d2 > 0)) return 1;
+  const lm = Math.abs(d1-d2) < 1e-9 ? d1 : (d1-d2)/Math.log(d1/d2);
+  return lm > 1e-9 ? (eps/NTU)/lm : 1;
+}
+
 function calc(){
   const cellVoltage=num('cellVoltage'), cellCount=num('cellCount'),
         reactionArea=num('reactionArea'), currentDensity=num('currentDensity'),
@@ -1223,7 +1262,7 @@ function calc(){
         waterDistribution=num('waterDistribution'), anodeInletTemp=num('anodeInletTemp'),
         gasSeparatorEfficiency=num('gasSeparatorEfficiency'),
         intercoolerPressureLoss=num('intercoolerPressureLoss'),
-        compressorOutletTemp=num('compressorOutletTemp'), glycolPercentage=num('glycolPercentage'),
+        glycolPercentage=num('glycolPercentage'),
         humidifierEfficiency=num('humidifierEfficiency'),
         humidifierDryLoss=num('humidifierDryLoss'), humidifierWetLoss=num('humidifierWetLoss'),
         // 空气热力计算参数
@@ -1321,31 +1360,79 @@ function calc(){
   const coolantDensity = glycolPercentage*1.7657+981.43;
   const coolantSpecificHeat = -0.0002*Math.pow(glycolPercentage,2)-0.004*glycolPercentage+4.2;
   const superSaturatedWaterCondensationHeat = condensationHeat + anodeCondensationHeat;
-  const intercoolerHeatLoad = 1.005*(systemAirSupply*28.96/1000)*(compressorOutletTemp-intercoolerOutletTemp);
-  const systemTotalHeatLoad = intercoolerHeatLoad + superSaturatedWaterCondensationHeat + reactionHeat;
-  const stackCoolantFlow = systemTotalHeatLoad/tempDifference/coolantDensity/coolantSpecificHeat*1000*60;
 
   // 空气热力计算（第二页）
-  let pressureAtHeight, temperatureKAtHeight, densityAtHeight;
-  if(altitude > 11000){
-    pressureAtHeight = 22631.8 * Math.exp((11000-altitude)/6340);
-    temperatureKAtHeight = 216.65;
-    densityAtHeight = 0.3639 * Math.exp((11000-altitude)/6340);
-  } else {
-    pressureAtHeight = 101325 * Math.pow(1-altitude/44330, 5.25588);
-    temperatureKAtHeight = 288.15 - 0.0065*altitude;
-    densityAtHeight = 1.225 * Math.pow(1-altitude/44330, 4.25588);
-  }
+  // 海拔只决定大气压力；温度统一取「环境温度」输入，与散热器冷端同源。
+  // 密度按理想气体 p/(R·T) 算（与散热器风量用的 hxDensity 同一口径）。
+  const pressureAtHeight = altitude > 11000
+    ? 22631.8 * Math.exp((11000-altitude)/6340)
+    : 101325 * Math.pow(1-altitude/44330, 5.25588);
+  const temperatureKAtHeight = ambientTemp + 273.15;
+  const densityAtHeight = pressureAtHeight/(airGasConstant*temperatureKAtHeight);
   const temperatureCAtHeight = temperatureKAtHeight - 273.15;
+  // 该海拔的标准大气温度（ISA）：仅作参照显示，不参与任何计算
+  const isaTempC = (altitude > 11000 ? 216.65 : 288.15 - 0.0065*altitude) - 273.15;
   const airInletVolumeFlow = actualAirFlow * 0.022414 * (temperatureKAtHeight/273.15) * (101325/pressureAtHeight);
   const airInletMassFlow = airInletVolumeFlow * densityAtHeight * 1000;
   const outletAirPressure = (cathodeInletPressure + intercoolerPressureLoss) * 1000;
   const compressorPressureRatio = outletAirPressure / pressureAtHeight;
-  const outletAirTempK = temperatureKAtHeight * (1 + ((Math.pow(compressorPressureRatio, 0.286)-1) / (airPumpEfficiency/100)));
+  /* ===== 压缩机：一级 / 两级带级间冷却 =====
+     两级按等压比分配（ε1 = ε2 = √ε），此分配使总压缩功最小；
+     级间冷却器压损未单独建模，已并入「中冷器压损」。 */
+  const kappa = airSpecificHeatRatio, kexp = (kappa-1)/kappa;
+  // 空压机等熵效率限幅 1%~100%：填 0 会让温升发散，填 >100% 会低于等熵极限
+  const etapC = Math.min(1, Math.max(0.01, airPumpEfficiency/100));
+  const stageCount = Math.min(2, Math.max(1, Math.round(num('compressorStages')) || 1));
+  // 压比 ≤ 1（阴极入口压力低于大气压）时压缩机不工作：级压比钳到 1，温升与功耗均为 0
+  const compressing = compressorPressureRatio > 1;
+  const epsStage = compressing ? Math.pow(compressorPressureRatio, 1/stageCount) : 1;
+  const midTempK = num('intercoolerMidTemp') + 273.15;
+  const stage1TempK = temperatureKAtHeight * (1 + (Math.pow(epsStage, kexp)-1)/etapC);
+  const stage2TempK = (stageCount===2 && compressing)
+      ? midTempK * (1 + (Math.pow(epsStage, kexp)-1)/etapC) : stage1TempK;
+  const outletAirTempK = stage2TempK;
   const outletAirTempC = outletAirTempK - 273.15;
-  const airTempRise = outletAirTempK - temperatureKAtHeight;
-  const isentropicCompressionWork = (airSpecificHeatRatio/(airSpecificHeatRatio-1)) * pressureAtHeight * airInletVolumeFlow * (1 - Math.pow(compressorPressureRatio, (airSpecificHeatRatio-1)/airSpecificHeatRatio));
+  // 各级温升取非负：压比≤1 时第二级同样跳过，避免 (T1 - 级间温度) 变负而算出负功耗
+  const airTempRise = Math.max(0, stage1TempK - temperatureKAtHeight)
+    + ((stageCount===2 && compressing) ? Math.max(0, stage2TempK - midTempK) : 0);
+  const isentropicCompressionWork =
+      (kappa/(kappa-1)) * pressureAtHeight * airInletVolumeFlow * (1 - Math.pow(epsStage, kexp))
+    + (stageCount===2
+        ? (kappa/(kappa-1)) * pressureAtHeight * airInletVolumeFlow * (midTempK/temperatureKAtHeight) * (1 - Math.pow(epsStage, kexp))
+        : 0);
   const compressorPowerConsumption = airInletMassFlow * airSpecificHeat * airTempRise;
+
+  /* ===== 尾气膨胀机：回收阴极尾气压力能，与压轮同轴 =====
+     入口取电堆阴极出口（压力扣管损、温度取电堆工作温度），出口排大气。
+     通流按「干空气 + 水蒸气」计算，液态水先经分离器脱除、不进涡轮。 */
+  const expanderOn = Math.round(num('expanderEnabled'))===1;
+  const expanderInletLoss = Math.max(0, num('expanderInletLoss'));
+  const expanderInletPressure = Math.max(0.01, cathodeOutletPressure - expanderInletLoss);   // kPa
+  const expanderPressureRatio = expanderInletPressure*1000 / pressureAtHeight;                // 膨胀比
+  const expanderInletTempK = operatingTemp + 273.15;
+  const etapT = Math.min(0.99, Math.max(0.01, num('expanderEfficiency')/100));
+  // 膨胀比 ≤ 1（例如高海拔环境）时涡轮无做功能力
+  const expanderActive = expanderOn && expanderPressureRatio > 1.001;
+  const expanderOutletTempK = expanderActive
+    ? Math.max(150, expanderInletTempK * (1 - etapT*(1 - Math.pow(1/expanderPressureRatio, kexp))))
+    : expanderInletTempK;
+  const expanderOutletTempC = expanderOutletTempK - 273.15;
+  const expanderVaporWater = Math.max(0, cathodeOutletWater - outletLiquidWater);             // mol/s
+  const expanderMassFlow = outletAirFlow*28.96 + expanderVaporWater*18;                       // g/s
+  const expanderPower = expanderActive
+    ? expanderMassFlow * airSpecificHeat * (expanderInletTempK - expanderOutletTempK) : 0;    // W
+  const netCompressorPower = compressorPowerConsumption - expanderPower;
+  const expanderRecoveryRatio = compressorPowerConsumption>0 ? expanderPower/compressorPowerConsumption*100 : 0;
+  // 膨胀降温后水蒸气分压若超过饱和压 → 发生凝结，气相公式未计凝结潜热
+  const expanderCondensing = expanderActive
+    && (outletWaterVaporPressure/expanderPressureRatio) > satVaporP(expanderOutletTempC);
+
+  /* ===== 中冷器热负荷 → 系统总热负荷 → 冷却液流量 =====
+     中冷器入口温度取自上面算出的「空压机出口温度」（分级压缩出口），
+     因此散热器面积 / 冷却液流量与压缩级数、级间冷却温度联动。 */
+  const intercoolerHeatLoad = 1.005*(systemAirSupply*28.96/1000)*(outletAirTempC-intercoolerOutletTemp);
+  const systemTotalHeatLoad = intercoolerHeatLoad + superSaturatedWaterCondensationHeat + reactionHeat;
+  const stackCoolantFlow = systemTotalHeatLoad/tempDifference/coolantDensity/coolantSpecificHeat*1000*60;
 
   // ===== 换热器/中冷器计算 =====
   const hx = (id)=>parseFloat(document.getElementById(id)?.value)||0;
@@ -1368,18 +1455,7 @@ function calc(){
   else logMeanT=(dT1+dT2)/2;
   const Rv=tempDifference/b6, gMinusH=Math.max(0.1,radCoolantIn-radAmbient);
   const Ev=Math.min(0.99,Math.max(0.01,b6/gMinusH));
-  let radLmtdCorr=1.0;
-  try{
-    const sqrtR=Math.sqrt(Rv*Rv+1);
-    const num=Math.abs(Rv-1)>0.001?sqrtR/(Rv-1):1.0;
-    const la1=(1-Ev)/Math.max(0.01,1-Rv*Ev);
-    const lt1=Math.log(Math.max(0.01,Math.abs(la1)));
-    const p1=2/Math.max(0.01,Ev)-1-Rv;
-    const la2=Math.max(0.01,Math.abs((p1+sqrtR)/Math.max(0.01,Math.abs(p1-sqrtR))));
-    const lt2=Math.log(Math.max(0.01,la2));
-    radLmtdCorr=Math.abs(lt2)>0.001?num*lt1/lt2:1.0;
-    radLmtdCorr=Math.min(2.0,Math.max(0.5,radLmtdCorr));
-  }catch(e){}
+  const radLmtdCorr=Math.min(1.0,Math.max(0.5,lmtdCorrF(Rv,Ev)));
   const safeLmtd=Math.max(0.1,Math.abs(logMeanT));
   const deltaTm1=radLmtdCorr*safeLmtd;
   const radArea=radSysHeat>0?(radSysHeat*1000)/(Math.max(0.1,c6*deltaTm1))*a6:0;
@@ -1389,7 +1465,7 @@ function calc(){
   const singleFanFlow=reqAirFlow/d6;
 
   // 中冷器计算
-  const icHeat=intercoolerHeatLoad, icAirIn=compressorOutletTemp, icAirOut=intercoolerOutletTemp;
+  const icHeat=intercoolerHeatLoad, icAirIn=outletAirTempC, icAirOut=intercoolerOutletTemp;
   const icCoolantIn=operatingTemp-tempDifference;
   const a7=Math.max(0.1,coolantTempDiff), b7=Math.max(0.1,intercoolerKa);
   const icCoolantOut=radCoolantOut+a7;
@@ -1403,18 +1479,7 @@ function calc(){
   else deltaTm2=(dT11+dT22)/2;
   const R1v=(icAirIn-icAirOut)/a7, denR1=Math.max(0.1,icAirIn-radCoolantOut);
   const E1v=Math.min(0.99,Math.max(0.01,a7/denR1));
-  let icLmtdCorr=1.0;
-  try{
-    const sqrtR1=Math.sqrt(R1v*R1v+1);
-    const num1=Math.abs(R1v-1)>0.001?sqrtR1/(R1v-1):1.0;
-    const la1b=(1-E1v)/Math.max(0.01,1-R1v*E1v);
-    const lt1b=Math.log(Math.max(0.01,Math.abs(la1b)));
-    const p1b=2/Math.max(0.01,E1v)-1-R1v;
-    const la2b=Math.max(0.01,Math.abs((p1b+sqrtR1)/Math.max(0.01,Math.abs(p1b-sqrtR1))));
-    const lt2b=Math.log(Math.max(0.01,la2b));
-    icLmtdCorr=Math.abs(lt2b)>0.001?num1*lt1b/lt2b:1.0;
-    icLmtdCorr=Math.min(2.0,Math.max(0.5,icLmtdCorr));
-  }catch(e){}
+  const icLmtdCorr=Math.min(1.0,Math.max(0.5,lmtdCorrF(R1v,E1v)));
   const deltaTm22=icLmtdCorr*Math.max(0.1,Math.abs(deltaTm2));
   const icArea=icHeat>0?(icHeat*1000)/(b7*deltaTm22):0;
 
@@ -1451,15 +1516,19 @@ function calc(){
         anodeInletHydrogenTemp,inletHydrogenHumidity,inletStackWater,waterDistribution},
     air:{supply:systemAirSupply,supplyNLPM:systemAirSupplyNLPM,outlet:outletAirFlow,outletNLPM:outletAirFlowNLPM,
          cathodeOutletWater,cathodeOutletTemp,cathodeOutletPressure,airOutletHumidity,outletLiquidWater,
-         condensationHeat,outletDewPointTemp,intercoolerOutletTemp,ambientWaterIntake,compressorOutletTemp},
+         condensationHeat,outletDewPointTemp,intercoolerOutletTemp,ambientWaterIntake},
     cool:{density:coolantDensity,cp:coolantSpecificHeat,totalHeat:systemTotalHeatLoad,flow:stackCoolantFlow,
           reactionHeat,superSatHeat:superSaturatedWaterCondensationHeat,intercoolerHeat:intercoolerHeatLoad},
     hum:{dryWater:dryGasHumidificationWater,dryP:humidifierDrySidePressure,dryT:humidifierDrySideTemp,
          dryRH:humidifierDrySideHumidity,wetP:humidifierWetSidePressure,wetT:humidifierWetSideTemp,
          wetWater:humidifierWetSideWater,wetRH:humidifierWetSideHumidity,eff:humidifierEfficiency},
-    airThermal:{pressureAtHeight,densityAtHeight,temperatureKAtHeight,temperatureCAtHeight,
+    airThermal:{pressureAtHeight,densityAtHeight,temperatureKAtHeight,temperatureCAtHeight,isaTempC,
                 airInletVolumeFlow,airInletMassFlow,outletAirPressure,compressorPressureRatio,
-                outletAirTempK,outletAirTempC,airTempRise,isentropicCompressionWork,compressorPowerConsumption},
+                outletAirTempK,outletAirTempC,airTempRise,isentropicCompressionWork,compressorPowerConsumption,
+                stageCount,midTempK,stage1TempK,stage2TempK,compressing,
+                expanderOn:expanderActive,expanderInletLoss,expanderInletPressure,expanderPressureRatio,
+                expanderInletTempK,expanderOutletTempK,expanderOutletTempC,expanderMassFlow,
+                expanderPower,netCompressorPower,expanderRecoveryRatio,expanderCondensing},
     hx:{rad:{sysHeat:radSysHeat,ambient:radAmbient,outletAir:radOutletAir,density:radDensity,cp:radCp,
              coolantIn:radCoolantIn,coolantOut:radCoolantOut,coolantFlow:radCoolantFlow,
              lmtdCorr:radLmtdCorr,area:radArea,frontalArea:radFrontalArea,airFlow:reqAirFlow,singleFanFlow},
@@ -1629,10 +1698,10 @@ el('text',{x:825,y:651,class:'section-tag'}).textContent='▎ 换热子系统';
 
 /* ====== 空气进气路 (顶部) ====== */
 equip(60,90,110,56,'equip-air','环境空气','Ambient');
-// 海拔输入框（环境空气气泡下方）
+// 海拔输入框（环境空气气泡下方，留 10px 间距）
 (function(){
   const fo = document.createElementNS(SVG_NS,'foreignObject');
-  fo.setAttribute('x',60); fo.setAttribute('y',238);
+  fo.setAttribute('x',60); fo.setAttribute('y',253);
   fo.setAttribute('width',190); fo.setAttribute('height',30);
   fo.innerHTML = '<div class="fo-alt" xmlns="http://www.w3.org/1999/xhtml"><label for="altitude">所在地海拔(m)</label><input type="number" id="altitude" value="500" step="10"></div>';
   svg.appendChild(fo);
@@ -1647,6 +1716,13 @@ equip(60,90,110,56,'equip-air','环境空气','Ambient');
   stub(310,112,10,12,'#38bdf8');            // 出口短节
   tagLabel(265,120,['空气滤清器','Filter'],9);
 })();
+
+/* -- 同轴连轴示意：空压机 ←→ 尾气膨胀机（蓝虚线，画在设备下层，随膨胀机开关显隐）
+      横向走 y=146 走廊，避开中冷器及其标签；两端短竖接到机器底部 -- */
+const expanderShaft = el('path',{id:'expanderShaft',
+  d:'M418,124 L418,146 L1085,146 L1085,118', fill:'none',
+  stroke:'#38bdf8','stroke-width':1.8,'stroke-dasharray':'7 5',opacity:0.85});
+expanderShaft.style.display = 'none';      // 初始隐藏，由 updateData 按膨胀机开关切换
 
 /* -- 空压机：离心式（蜗壳+叶轮） (360-470) -- */
 el('text',{x:418,y:100,'text-anchor':'middle',fill:'#e8eef5','font-size':11,'font-weight':'bold'}).textContent='空压机 Compressor';
@@ -1690,16 +1766,37 @@ pipe('M620,118 L935,118 L935,170','pipe-air','flow-air');
 pipe('M905,300 L905,272 L760,272 L760,300','pipe-air','flow-air');
 // 阴极出口(880,380) → 湿侧底部入口(995,370)
 pipe('M880,380 L995,380 L995,370','pipe-air','flow-air');
-// 湿侧顶部出口(995,170) → 尾气排放箱(1170,318)
-pipe('M995,170 L1085,170 L1085,318 L1170,318','pipe-exhaust','flow-air');
-/* 尾气排放：卧式消声器 + 排气筒 (1170-1270) */
+// 湿侧顶部出口(995,170) → 上返 → 向右穿过膨胀机（与中冷器出口同高 y=118）→ 右端下返 → 尾气排放口(1190,278)
+pipe('M995,170 L995,118 L1190,118 L1190,278','pipe-exhaust','flow-air');
+/* 尾气膨胀机：与空压机同轴，回收尾气压力能。坐落在顶部水平段上，
+   以不透明图形叠画在管路上，未启用时整组隐藏、管路保持连通。 */
+const expanderSym = el('g',{id:'expanderSym'});
 (function(){
-  el('rect',{x:1178,y:306,width:76,height:24,rx:12,fill:'#14253c',stroke:'#38bdf8','stroke-width':2});
-  el('line',{x1:1200,y1:310,x2:1200,y2:326,stroke:'#7dd3fc','stroke-width':1,opacity:0.6});
-  el('line',{x1:1230,y1:310,x2:1230,y2:326,stroke:'#7dd3fc','stroke-width':1,opacity:0.6});
-  el('rect',{x:1246,y:288,width:8,height:18,rx:2,fill:'#14253c',stroke:'#38bdf8','stroke-width':1.6});
-  el('path',{d:'M1242,288 L1258,288',fill:'none',stroke:'#38bdf8','stroke-width':2.5,'stroke-linecap':'round'});
-  tagLabel(1212,322,['尾气排放','Exhaust'],8);
+  [ stub(1059,112,10,12,'#a78bfa'),
+    stub(1101,112,10,12,'#a78bfa'),
+    rotaryMachine(1085,118,15,'#14253c','#a78bfa',6),
+    // 铭牌挂在机器下方（不画跨图连线，以免穿越加湿器等设备）
+    tagLabel(1085,158,['尾气膨胀机','Expander','同轴 ↔ 空压机'],7.5)
+  ].forEach(n=>expanderSym.appendChild(n));
+})();
+/* 尾气膨胀机开关：放在顶部水平段上方的空带上，和它控制的设备同处一张图 */
+(function(){
+  const fo = document.createElementNS(SVG_NS,'foreignObject');
+  fo.setAttribute('x',990); fo.setAttribute('y',60);
+  fo.setAttribute('width',200); fo.setAttribute('height',30);
+  fo.innerHTML = '<div class="fo-alt" xmlns="http://www.w3.org/1999/xhtml">'
+    + '<label for="expanderEnabled" title="1 = 启用尾气膨胀机，0 = 关闭">带尾气膨胀机 (0/1)</label>'
+    + '<input type="number" id="expanderEnabled" value="0" step="1"></div>';
+  svg.appendChild(fo);
+})();
+/* 尾气排放：立式消声筒 + 排气口，串在下返竖直管上（出口位置不变，筒体收小） */
+(function(){
+  el('rect',{x:1176,y:168,width:28,height:82,rx:12,fill:'#14253c',stroke:'#38bdf8','stroke-width':2});
+  for(let i=0;i<4;i++)
+    el('line',{x1:1183,y1:185+i*19,x2:1197,y2:185+i*19,stroke:'#7dd3fc','stroke-width':1,opacity:0.6});
+  el('rect',{x:1184,y:250,width:12,height:26,rx:2,fill:'#14253c',stroke:'#38bdf8','stroke-width':1.6});
+  el('path',{d:'M1180,278 L1200,278',fill:'none',stroke:'#38bdf8','stroke-width':2.5,'stroke-linecap':'round'});
+  tagLabel(1245,200,['尾气排放','Exhaust'],8);
 })();
 
 /* ====== 氢气子系统 (左侧) ====== */
@@ -1857,7 +1954,8 @@ addData('anode_out', 470, 528);
 addData('sep', 440, 652);
 addData('recirc', 195, 640, 'middle');
 addData('cathode_out', 915, 398);
-addData('exhaust', 1216, 232, 'middle');
+addData('exhaust', 1240, 295, 'middle');
+addData('expander', 1030, 190);
 addData('cool_pump', 430, 745);
 addData('heat_sum', 980, 552, 'middle');
 
@@ -1907,40 +2005,81 @@ function updateData(r){
     });
   };
 
-  set('ambient',[`在高度h上的温度:<strong>${f(r.airThermal.temperatureCAtHeight,1)}</strong>℃`,
+  set('ambient',[`在高度h上的温度:<strong>${f(r.airThermal.isaTempC,1)}</strong>℃`,
+                 `环境温度:<strong>${f(r.airThermal.temperatureCAtHeight,1)}</strong>℃`,
                  `环境湿度:<strong>${f(num('humidity'),0)}</strong>%`,
                  `大气压:<strong>${f(r.airThermal.pressureAtHeight,0)}</strong>Pa`,
                  `大气密度:<strong>${f(r.airThermal.densityAtHeight,4)}</strong>kg/m³`],
-    ['在高度h上的温度(℃) = 在高度h上的温度(K) - 273.15；温度(K) 当海拔>11000m 时取 216.65，否则为 288.15 - 0.0065×海拔(m)',
+    ['在高度h上的标准大气温度(℃) = 288.15 - 0.0065×海拔(m)（海拔>11000m 时取 216.65K），再减 273.15。仅供参照，不参与任何计算',
+     '入口空气温度(℃) = 输入参数「环境温度」；压气机入口与散热器冷端共用同一个环境温度',
      '环境湿度(%) = 输入参数「环境湿度」',
-     '在高度h上的压力(Pa) = 当海拔>11000m 时 22631.8×exp((11000-海拔)/6340)，否则 101325×(1-海拔/44330)^5.25588',
-     '在高度h上的密度(kg/m³) = 当海拔>11000m 时 0.3639×exp((11000-海拔)/6340)，否则 1.225×(1-海拔/44330)^4.25588']);
-  set('comp',[`空压机出温(设定):<strong>${f(r.air.compressorOutletTemp,1)}</strong>℃`,
-              `计算出温:<strong>${f(r.airThermal.outletAirTempC,1)}</strong>℃`,
+     '大气压力(Pa) = 当海拔>11000m 时 22631.8×exp((11000-海拔)/6340)，否则 101325×(1-海拔/44330)^5.25588',
+     '大气密度(kg/m³) = 大气压力(Pa) / (空气气体常数 J/(kg·K) × 入口空气温度(K))']);
+  const compLines = [`空压机出温:<strong>${f(r.airThermal.outletAirTempC,1)}</strong>℃`,
               `温升:<strong>${f(r.airThermal.airTempRise,1)}</strong>K`,
               `压比 ε:<strong>${f(r.airThermal.compressorPressureRatio,2)}</strong>`,
+              `级数:<strong>${r.airThermal.stageCount}</strong>`,
               `出口压:<strong>${f(r.airThermal.outletAirPressure,0)}</strong>Pa`,
               `体积流量:<strong>${f(r.airThermal.airInletVolumeFlow,4)}</strong>m³/s`,
               `质量流量:<strong>${f(r.airThermal.airInletMassFlow,2)}</strong>g/s`,
               `定熵轴功:<strong>${f(r.airThermal.isentropicCompressionWork,1)}</strong>W`,
               `功耗:<strong>${f(r.airThermal.compressorPowerConsumption,1)}</strong>W`,
+              `净功耗:<strong>${f(r.airThermal.netCompressorPower,1)}</strong>W`,
               `流量:<strong>${f(r.air.supplyNLPM,1)}</strong>NLPM`,
-              `泵效:<strong>${f(num('airPumpEfficiency'),0)}</strong>%`],
-      ['空压机出口温度(℃) = 输入参数「空压机出口温度」',
-       '出口空气温度(℃) = 在高度h上的温度(K) × (1 + (压比^0.286 - 1)/(空压机效率/100)) - 273.15',
-       '空气温升(K) = 出口空气温度(K) - 在高度h上的温度(K)',
+              `泵效:<strong>${f(num('airPumpEfficiency'),0)}</strong>%`];
+  const compTips = ['出口空气温度(℃) = 入口温度(K) × (1 + (级压比^((k-1)/k) - 1)/(空压机效率/100)) - 273.15',
+       '空气温升(K) = 各级「出口温度 - 入口温度」之和；一级为 T2-T1，两级为 (T2-T1)+(T4-T3)',
        '空压机压比 ε = 出口空气压力 / 在高度h上的压力',
+       '压缩级数 = 输入参数「压缩级数」；两级按等压比分配 ε1 = ε2 = √ε（总功最小的分配），级间冷却到「级间冷却后温度」',
        '出口空气压力(Pa) = (阴极入口压力 + 中冷器压损) × 1000',
-       '空气入口体积流量(m³/s) = 实际入口Air流量(mol/s) × 0.022414 × (在高度h上的温度(K)/273.15) × (101325/在高度h上的压力(Pa))',
-       '空气入口质量流量(g/s) = 空气入口体积流量(m³/s) × 在高度h上的密度(kg/m³) × 1000',
-       '定熵压缩轴功(W) = k/(k-1) × p1 × V1 × [1 - (p2/p1)^((k-1)/k)]，k 为空气绝热指数',
-       '空压机功耗(W) = 空气入口质量流量(g/s) × 空气定压比热 × 空气温升(K)',
+       '空气入口体积流量(m³/s) = 实际入口Air流量(mol/s) × 0.022414 × (入口空气温度(K)/273.15) × (101325/大气压力(Pa))',
+       '空气入口质量流量(g/s) = 空气入口体积流量(m³/s) × 大气密度(kg/m³) × 1000',
+       '定熵压缩轴功(W) = k/(k-1) × p1 × V1 × [1 - ε^((k-1)/k)]；两级为各级之和，第二级按级间冷却后温度折算入口体积',
+       '空压机功耗(W) = 空气入口质量流量(g/s) × 空气定压比热 × 空气温升(K)（两级为各级温升之和，质量流量守恒）',
+       '净功耗(W) = 空压机功耗 - 膨胀机回收功',
        '实际入口Air流量(NLPM) = 实际入口Air流量(mol/s) × 22.4 × 60',
-       '空压机效率(%) = 输入参数「空压机效率」']);
+       '空压机效率(%) = 输入参数「空压机效率」，限幅 1~100'];
+  // 压比 ≤ 1：压缩机不工作，明确提示（否则「功耗 0 W」看起来像故障）
+  if(!r.airThermal.compressing){
+    compLines.push('⚠ 压比≤1，压缩机不工作');
+    compTips.push('阴极入口压力 + 中冷器压损 ≤ 当地大气压，压比 ≤ 1，不存在压缩过程：级压比钳到 1，温升与功耗均记 0');
+  }
+  set('comp', compLines, compTips);
+  const expLines = [`入口(${f(r.airThermal.expanderInletPressure,0)}kPa→大气)`,
+                    `膨胀比:<strong>${f(r.airThermal.expanderPressureRatio,2)}</strong>`,
+                    `入口 T:<strong>${f(r.airThermal.expanderInletTempK-273.15,1)}</strong>℃`,
+                    `出口 T:<strong>${f(r.airThermal.expanderOutletTempC,1)}</strong>℃`,
+                    `通流:<strong>${f(r.airThermal.expanderMassFlow,1)}</strong>g/s`,
+                    `回收功:<strong>${f(r.airThermal.expanderPower,1)}</strong>W`,
+                    `回收率:<strong>${f(r.airThermal.expanderRecoveryRatio,1)}</strong>%`,
+                    `净功耗:<strong>${f(r.airThermal.netCompressorPower,1)}</strong>W`];
+  const expTips = ['膨胀机入口压力(kPa) = 阴极出口压力 - 膨胀机入口压损；出口排至大气(在高度h上的压力)',
+                   '膨胀比 = 膨胀机入口压力(Pa) / 在高度h上的压力(Pa)；膨胀比 ≤ 1 时涡轮不工作（回收功记 0）',
+                   '膨胀机入口温度(K) = 操作温度 + 273.15（取自电堆阴极出口温度）',
+                   '膨胀机出口温度(K) = 入口温度(K) × [1 - 膨胀机效率 × (1 - (1/膨胀比)^((k-1)/k))]',
+                   '膨胀机通流(g/s) = 出口空气流量(mol/s)×28.96 + 水蒸气量(mol/s)×18；液态水经分离器脱除，不进涡轮',
+                   '膨胀机回收功(W) = 通流(g/s) × 空气定压比热 × (入口温度(K) - 出口温度(K))',
+                   '回收率(%) = 膨胀机回收功 / 空压机功耗 × 100',
+                   '净功耗(W) = 空压机功耗 - 膨胀机回收功（同轴机械耦合，回收功直接抵扣电机需求）'];
+  if(r.airThermal.expanderCondensing){
+    expLines.push('⚠ 出口已凝结', '回收功为气相值');
+    expTips.push('出口温度低于该压力下的水露点（水蒸气分压 > 饱和蒸汽压），尾气在膨胀中凝结。本式按气相计算，未计凝结潜热；真实涡轮中凝结滞后又造成非平衡损失，方向相反',
+                 '故此处回收功为气相估计值，未做凝结修正');
+  }
+  // 膨胀机未启用时：隐藏气泡与流程图符号
+  if(r.airThermal.expanderOn){
+    set('expander', expLines, expTips);
+  } else if(nodes['expander']){
+    nodes['expander'].g.innerHTML = '';
+  }
+  const expanderSymG = document.getElementById('expanderSym');
+  if(expanderSymG) expanderSymG.style.display = r.airThermal.expanderOn ? '' : 'none';
+  const expanderShaftG = document.getElementById('expanderShaft');
+  if(expanderShaftG) expanderShaftG.style.display = r.airThermal.expanderOn ? '' : 'none';
   set('intercooler',[`出温:<strong>${f(r.air.intercoolerOutletTemp,1)}</strong>℃`,
                      `热负荷:<strong>${f(r.cool.intercoolerHeat,1)}</strong>kW`],
       ['中冷器出口温度(℃) = 操作温度 - 温度差/2',
-       '中冷器热负荷(kW) = 1.005 × (系统供空气量(mol/s)×28.96/1000) × (空压机出口温度 - 中冷器出口温度)']);
+       '中冷器热负荷(kW) = 1.005 × (系统供空气量(mol/s)×28.96/1000) × (空压机出口温度 - 中冷器出口温度)；空压机出口温度由分级压缩算出（不填输入值）']);
   set('hum_dry',[`干侧 T:<strong>${f(r.hum.dryT,1)}</strong>℃`,
                  `干侧 RH:<strong>${f(r.hum.dryRH,1)}</strong>%`,
                  `加湿水:<strong>${f(r.hum.dryWater,3)}</strong>mol/s`,
@@ -2015,7 +2154,7 @@ function updateData(r){
                   `反应产热:<strong>${f(r.cool.reactionHeat,1)}</strong>kW`,
                   `总热负荷:<strong>${f(r.cool.totalHeat,1)}</strong>kW`],
       [null,
-       '中冷器热负荷(kW) = 1.005 × (系统供空气量×28.96/1000) × (空压机出口温度 - 中冷器出口温度)',
+       '中冷器热负荷(kW) = 1.005 × (系统供空气量×28.96/1000) × (空压机出口温度 - 中冷器出口温度)；空压机出口温度由分级压缩算出（不填输入值）',
        '过饱和水冷凝放热量(kW) = 阴极冷凝水放热 + 阳极冷凝水放热',
        '反应产热量(LHV-kW) = 电堆功率 × (1.254 - 单电池电压)/单电池电压',
        '系统总热负荷(kW) = 中冷器热负荷 + 过饱和水冷凝放热量 + 反应产热量']);
@@ -2039,6 +2178,19 @@ INPUTS.forEach(it=>{
   document.getElementById(it.id).addEventListener('input', run);
 });
 document.getElementById('altitude').addEventListener('input', run);
+document.getElementById('expanderEnabled').addEventListener('input', run);   // 已移到 SVG 内，不再走 INPUTS 批量绑定
+/* 「级间冷却后温度」只在两级压缩时参与计算：级数=1 时置灰，避免误以为一直在起作用 */
+function syncStageDependentInputs(){
+  const two = Math.round(num('compressorStages')) === 2;
+  const el = document.getElementById('intercoolerMidTemp');
+  if(!el) return;
+  el.disabled = !two;
+  el.title = two
+    ? '两级压缩的级间冷却后温度，作为第二级的入口温度'
+    : '当前为单级压缩，本参数不参与计算；把「压缩级数」改为 2 后生效';
+}
+document.getElementById('compressorStages').addEventListener('input', syncStageDependentInputs);
+syncStageDependentInputs();
 run();
 
 /* ========== 燃料电池混合动力系统计算 ========== */
@@ -2191,7 +2343,7 @@ function renderHxResults(){
     ['冷却水进口温度(℃)',f1(rad.coolantIn),'冷却水进口温度 = 操作温度'],
     ['冷却水出口温度(℃)',f1(rad.coolantOut),'冷却水出口温度 = 操作温度 - 温度差'],
     ['冷却循环流量(L/min)',f2(rad.coolantFlow),'系统冷却液流量 = 系统总热负荷/温度差/冷却液密度/冷却液比热 × 1000 × 60'],
-    ['错流对数温差修正系数εΔt',f2(rad.lmtdCorr),'错流修正系数 εΔt：R = 温度差/冷却空气温差，E = 冷却空气温差/(冷却水进口温度-环境温度)，按 P-NTU 关系式取对数比后限幅在 0.5~2.0'],
+    ['错流对数温差修正系数εΔt',f2(rad.lmtdCorr),'错流（两流体均不混合）修正系数 εΔt：R = 冷却液温度差/冷却空气温差，P = 冷却空气温差/(冷却水进口温度-环境温度)；按 ε-NTU 拟合式反解 NTU 后 F = (ε/NTU)/逆流对数平均温差，限幅 0.5~1.0'],
     ['所需散热面积(m²)',f2(rad.area),'所需散热面积 = 冷却液带走热量比重 ξ × 系统总热负荷×1000 / (散热器总传热系数Ka × 修正后对数平均温差)；对数平均温差按 (进口冷却液-出口空气) 与 (出口冷却液-环境温度) 两端温差计算'],
     ['散热器迎风面积(m²)',f2(rad.frontalArea),'散热器迎风面积 = π × 单风扇叶轮直径(mm)²/4 × 风扇个数 / 风扇面积比率α / 10⁶'],
     ['所需冷却空气流量(m³/h)',f0(rad.airFlow),'所需冷却空气流量 = ξ × 系统总热负荷×3600 / (冷却空气温差 × 1.005 × 高度处空气密度)'],
@@ -2199,14 +2351,14 @@ function renderHxResults(){
   ].map(([l,val,tip])=>row(l,val,false,tip)).join('');
   // 中冷器计算结果
   document.getElementById('hx-ic-results').innerHTML = [
-    ['中冷器热负荷(kW)',f2(ic.heat),'中冷器热负荷 = 1.005 × (系统供空气量(mol/s)×28.96/1000) × (空压机出口温度 - 中冷器出口温度)'],
-    ['增压空气进口温度(℃)',f1(ic.airIn),'增压空气进口温度 = 空压机出口温度'],
+    ['中冷器热负荷(kW)',f2(ic.heat),'中冷器热负荷 = 1.005 × (系统供空气量(mol/s)×28.96/1000) × (空压机出口温度 - 中冷器出口温度)；空压机出口温度由分级压缩算出（不填输入值）'],
+    ['增压空气进口温度(℃)',f1(ic.airIn),'增压空气进口温度 = 空压机出口温度（按分级压缩算出）'],
     ['增压空气出口温度(℃)',f1(ic.airOut),'中冷器出口温度 = 操作温度 - 温度差/2'],
     ['冷却液进口温度(℃)',f1(ic.coolantIn),'冷却液进口温度 = 操作温度 - 温度差'],
     ['冷却液出口温度(℃)',f1(ic.coolantOut),'冷却液出口温度 = 冷却水出口温度 + 冷却液流经中冷器温差'],
     ['增压空气流量(L/min)',f2(ic.airFlow),'增压空气流量 = 系统供空气量(NLPM)'],
     ['冷却液流量(L/min)',f2(ic.coolantFlow),'冷却液流量 = 中冷器热负荷/冷却液流经中冷器温差/冷却液密度/冷却液比热 × 1000 × 60'],
-    ['错流对数温差修正系数εΔt',f2(ic.lmtdCorr),'错流修正系数 εΔt：R = (增压空气进口温度-出口温度)/冷却液温差，E = 冷却液温差/(增压空气进口温度-冷却液出口温度)，按 P-NTU 关系式取对数比后限幅在 0.5~2.0'],
+    ['错流对数温差修正系数εΔt',f2(ic.lmtdCorr),'错流（两流体均不混合）修正系数 εΔt：R = (增压空气进口温度-出口温度)/冷却液温差，P = 冷却液温差/(增压空气进口温度-冷却液进口温度)；按 ε-NTU 拟合式反解 NTU 后 F = (ε/NTU)/逆流对数平均温差，限幅 0.5~1.0'],
     ['所需散热面积(m²)',f2(ic.area),'所需散热面积 = 中冷器热负荷×1000 / (中冷器总传热系数Ka × 修正后对数平均温差)；对数平均温差按 (增压空气进口-冷却液出口) 与 (增压空气出口-冷却水出口) 两端温差计算']
   ].map(([l,val,tip])=>row(l,val,false,tip)).join('');
 }
@@ -2545,7 +2697,7 @@ function evalPoint(cfg, pol, j, T, lambda){
   const v = cellVAt(pol, j, T, lambda);
   const r = withParams({ currentDensity:j, cellVoltage:v, operatingTemp:T,
                          airRatio:cfg.anchor.airRatio }, calc);
-  const pBop = r.airThermal.compressorPowerConsumption/1000 + BOP_FIXED_KW;
+  const pBop = r.airThermal.netCompressorPower/1000 + BOP_FIXED_KW;
   return { r, j, v, pStack:r.stack.power, pBop, pNet:r.stack.power - pBop };
 }
 /* 在「温度桶 × λ 桶」上扫描电流密度，得到净功率 / 氢耗 / 产热 / 系统效率 MAP */
@@ -2562,7 +2714,7 @@ function getMap(cfg, pol, T, lambda){
     if(v < 0.30) break;                                  // 低于 0.3 V/片视为不可用
     const r = withParams({ currentDensity:jj, cellVoltage:v, operatingTemp:tb,
                            airRatio:cfg.anchor.airRatio }, calc);
-    const pn = r.stack.power - (r.airThermal.compressorPowerConsumption/1000 + BOP_FIXED_KW);
+    const pn = r.stack.power - (r.airThermal.netCompressorPower/1000 + BOP_FIXED_KW);
     j.push(jj); p.push(pn); h.push(r.stack.h2); q.push(r.stack.heat);
     eta.push(pn>0 ? pn/(r.stack.h2*H2_LHV_KJ_PER_MOL) : 0);
   }
