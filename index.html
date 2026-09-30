@@ -212,6 +212,51 @@
   .hum-cross { animation: humCross 3.0s linear infinite; }
   .hum-cross-b { animation: humCross2 2.6s linear infinite; }
 
+  /* 第一页：气流可视化 —— 空气滤清器 / 中冷器 / 尾气排放 / 引射器
+     统一用柔化光斑沿设备内腔漂移表示气流，各设备用不同颜色与轨迹。
+     全部画在设备内部结构（滤芯褶皱、换热管、消声挡板、喷嘴）之下，
+     既不遮挡读数，又读作「气流从这些结构里穿过」。 */
+  .air-puff { filter: blur(1.7px); }
+
+  /* 空气滤清器：进气自左向右穿过滤芯 */
+  @keyframes filtFlow {
+    0%   { transform: translate(0, 0);    opacity: 0; }
+    18%  { opacity: 0.60; }
+    82%  { opacity: 0.60; }
+    100% { transform: translate(58px, 0); opacity: 0; }
+  }
+  .air-filt { fill: #bae6fd; animation: filtFlow 2.2s linear infinite; }
+
+  /* 中冷器：增压空气自左向右穿过，途中由「热」色渐变为「冷」色 */
+  @keyframes icFlow {
+    0%   { transform: translate(0, 0);    opacity: 0;    fill: #fdba74; }
+    20%  { opacity: 0.68; }
+    80%  { opacity: 0.68; }
+    100% { transform: translate(70px, 0); opacity: 0;    fill: #7dd3fc; }
+  }
+  .air-ic { fill: #7dd3fc; animation: icFlow 2.4s linear infinite; }
+
+  /* 尾气排放：尾气在消声筒内自上而下，经喷口排出后消散 */
+  @keyframes exhFlow {
+    0%   { transform: translate(0, 0);    opacity: 0; }
+    20%  { opacity: 0.62; }
+    85%  { opacity: 0.55; }
+    100% { transform: translate(0, 95px); opacity: 0; }
+  }
+  .air-exh { fill: #bae6fd; animation: exhFlow 2.6s linear infinite; }
+
+  /* 引射器：一次流高速射流引射二次流 —— 吸入室缓、喉管处加速、扩散管再减速。
+     靠关键帧的疏密表达加减速：30%→45% 走 42px，45%→100% 走 40px，
+     即前 15% 的时间走完一半路程。 */
+  @keyframes ejecFlow {
+    0%   { transform: translate(0, 0);      opacity: 0; }
+    10%  { opacity: 0.75; }
+    30%  { transform: translate(30px, 0); }
+    45%  { transform: translate(72px, 0); }
+    100% { transform: translate(112px, 0);  opacity: 0; }
+  }
+  .air-ejec { fill: #c7d2fe; animation: ejecFlow 1.6s linear infinite; }
+
   /* 混合动力页：工质/能量流动 + 车轮转动 */
   @keyframes hyFlow { to { stroke-dashoffset: -32; } }
   @keyframes hySpin { to { transform: rotate(360deg); } }
@@ -1909,6 +1954,11 @@ equip(60,90,110,56,'equip-air','环境空气','Ambient');
   for(let i=0;i<11;i++) el('line',{x1:240+i*5,y1:104,x2:240+i*5,y2:132,stroke:'#7dd3fc','stroke-width':1.1,opacity:0.7});
   stub(310,112,10,12,'#38bdf8');            // 出口短节
   tagLabel(265,120,['空气滤清器','Filter'],9);
+  /* 气流：进气自左向右穿过滤芯。名称标签(78%不透明)正好盖满内腔，
+     故光斑只能画在标签之上；颗粒取小、数量取少，只间歇扫过文字，
+     不构成持续遮挡。 */
+  [108,119,130].forEach((cy,i)=>el('circle',{cx:236,cy,r:3.0,
+    class:'air-puff air-filt',style:`animation-delay:${(-0.73*i).toFixed(2)}s`}));
 })();
 
 /* -- 同轴连轴示意：空压机 ←→ 尾气膨胀机（蓝虚线，画在设备下层，随膨胀机开关显隐）
@@ -1935,6 +1985,10 @@ el('text',{x:415,y:80,class:'section-tag','text-anchor':'middle'}).textContent='
   for(let i=0;i<5;i++) el('line',{x1:528,y1:107+i*7,x2:602,y2:107+i*7,stroke:'#7dd3fc','stroke-width':1.6,opacity:0.75});
   stub(612,112,8,12,'#38bdf8');
   tagLabel(565,121,['中冷器','Intercooler'],9);
+  /* 气流：增压空气自左向右穿过管束，颜色由热(橙)渐变为冷(蓝)表示被冷却。
+     同滤清器，名称标签盖满内腔，故画在标签之上、取小颗粒。 */
+  [108,119,130].forEach((cy,i)=>el('circle',{cx:528,cy,r:3.0,
+    class:'air-puff air-ic',style:`animation-delay:${(-0.8*i).toFixed(2)}s`}));
 })();
 pipe('M170,118 L210,118','pipe-air','flow-air');
 pipe('M320,118 L360,118','pipe-air','flow-air');
@@ -2011,6 +2065,9 @@ const expanderSym = el('g',{id:'expanderSym'});
 /* 尾气排放：立式消声筒 + 排气口，串在下返竖直管上（出口位置不变，筒体收小） */
 (function(){
   el('rect',{x:1176,y:168,width:28,height:82,rx:12,fill:'#14253c',stroke:'#38bdf8','stroke-width':2});
+  /* 气流：尾气在消声筒内自上而下（画在挡板之下），经喷口排出后消散 */
+  [1187,1193].forEach((cx,i)=>el('circle',{cx,cy:176,r:4.4,
+    class:'air-puff air-exh',style:`animation-delay:${(-1.3*i).toFixed(2)}s`}));
   for(let i=0;i<4;i++)
     el('line',{x1:1183,y1:185+i*19,x2:1197,y2:185+i*19,stroke:'#7dd3fc','stroke-width':1,opacity:0.6});
   el('rect',{x:1184,y:250,width:12,height:26,rx:2,fill:'#14253c',stroke:'#38bdf8','stroke-width':1.6});
@@ -2047,6 +2104,12 @@ const ejec = el('g',{id:'ejector'});
 // 外壳：入口管 → 收缩吸入室 → 喉管 → 扩散管
 el('path',{d:'M350,424 L392,424 L398,416 L438,416 L440,422 L460,422 L520,414 L520,442 L460,434 L440,434 L438,440 L398,440 L392,434 L350,434 Z',
    fill:'#2a1f4a',stroke:'#a78bfa','stroke-width':2},ejec);
+/* 气流：一次流高速射流引射二次流，喉管处加速、扩散管减速。
+   画在喷嘴与射流示意之下，避免遮挡那两个符号。 */
+[[0, 2.6], [-0.55, 3.0], [-1.1, 2.4]].forEach(p=>{
+  el('circle',{cx:410,cy:428,r:p[1],class:'air-puff air-ejec',
+    style:`animation-delay:${p[0]}s`},ejec);
+});
 // 内部一次流喷嘴（收缩锥体）
 el('polygon',{points:'392,424 392,434 405,429',fill:'#a78bfa',opacity:0.9},ejec);
 // 高速射流方向
