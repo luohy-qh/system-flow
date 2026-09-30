@@ -180,6 +180,14 @@
   .sep-orbit-b { animation: sepOrbitB 2.6s linear infinite, sepPuffFade 1.5s ease-in-out infinite; }
   .sep-orbit-c { animation: sepOrbitC 1.9s linear infinite, sepPuffFade 2.2s ease-in-out infinite; }
 
+  /* 第一页：气液分离器 —— 叠加在云状气流之上的「三层同心虚线椭圆环」
+     虚线沿环向流动，读作气体绕罐体轴线旋转、内旋下沉。
+     三层错开速度(1.05 / 1.25 / 0.9 s)与相位，避免同步造成的机械感。
+     dasharray 周期为 11，故偏移取 -22（周期整数倍），保证循环衔接无跳变。 */
+  @keyframes sepSwirl { to { stroke-dashoffset: -22; } }
+  .sep-swirl { fill: none; stroke: #c4b5fd; stroke-linecap: round;
+    stroke-dasharray: 5 6; animation: sepSwirl 1.05s linear infinite; }
+
   /* 第一页：COG加湿器 —— 水汽由湿侧向干侧迁移
      湿侧蓄雾（在原位小幅翻滚，浓度高）＋ 自右向左跨越中隔膜的迁移光斑
      （边移边淡入淡出、并在干侧略微下沉）＋ 干侧已吸湿的低浓度淡雾。
@@ -2148,6 +2156,14 @@ pipe('M640,500 L610,500 L610,610 L460,610','pipe-h2','flow-h2');
                    style:'animation-delay:'+p[2]}, cloud);
     });
   })();
+  /* 叠加：三层同心虚线椭圆环 —— 虚线沿环向流动，读作绕罐体轴线旋转、内旋下沉。
+     与上面的云状光斑共用同一净空区（丝网下沿 600 ~ 液位 615），
+     画在云之上以保持轮廓清晰；三层错开速度与相位。 */
+  el('ellipse',{cx:400,cy:605.5,rx:20,ry:5,class:'sep-swirl','stroke-width':1.6,opacity:0.85});
+  el('ellipse',{cx:400,cy:605.5,rx:15,ry:3.8,class:'sep-swirl','stroke-width':1.4,opacity:0.72,
+                style:'animation-duration:1.25s;animation-delay:-0.4s'});
+  el('ellipse',{cx:400,cy:605.5,rx:10,ry:2.5,class:'sep-swirl','stroke-width':1.2,opacity:0.6,
+                style:'animation-duration:0.9s;animation-delay:-0.7s'});
   // 丝网除沫器（上部网格）
   for(let i=0;i<4;i++) el('line',{x1:382+i*9,y1:592,x2:382+i*9,y2:600,stroke:'#c4b5fd','stroke-width':0.8,opacity:0.6});
   for(let i=0;i<2;i++) el('line',{x1:382,y1:594+i*4,x2:418,y2:594+i*4,stroke:'#c4b5fd','stroke-width':0.8,opacity:0.6});
