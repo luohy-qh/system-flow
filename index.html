@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>燃料电池混合动力系统 设计与仿真平台</title>
+<title>燃料电池混合动力系统&amp;PEM电解槽 设计与仿真平台</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -212,6 +212,51 @@
   .hum-cross { animation: humCross 3.0s linear infinite; }
   .hum-cross-b { animation: humCross2 2.6s linear infinite; }
 
+  /* 第一页：气流可视化 —— 空气滤清器 / 中冷器 / 尾气排放 / 引射器
+     统一用柔化光斑沿设备内腔漂移表示气流，各设备用不同颜色与轨迹。
+     全部画在设备内部结构（滤芯褶皱、换热管、消声挡板、喷嘴）之下，
+     既不遮挡读数，又读作「气流从这些结构里穿过」。 */
+  .air-puff { filter: blur(1.7px); }
+
+  /* 空气滤清器：进气自左向右穿过滤芯 */
+  @keyframes filtFlow {
+    0%   { transform: translate(0, 0);    opacity: 0; }
+    18%  { opacity: 0.60; }
+    82%  { opacity: 0.60; }
+    100% { transform: translate(58px, 0); opacity: 0; }
+  }
+  .air-filt { fill: #bae6fd; animation: filtFlow 2.2s linear infinite; }
+
+  /* 中冷器：增压空气自左向右穿过，途中由「热」色渐变为「冷」色 */
+  @keyframes icFlow {
+    0%   { transform: translate(0, 0);    opacity: 0;    fill: #fdba74; }
+    20%  { opacity: 0.68; }
+    80%  { opacity: 0.68; }
+    100% { transform: translate(70px, 0); opacity: 0;    fill: #7dd3fc; }
+  }
+  .air-ic { fill: #7dd3fc; animation: icFlow 2.4s linear infinite; }
+
+  /* 尾气排放：尾气在消声筒内自上而下，经喷口排出后消散 */
+  @keyframes exhFlow {
+    0%   { transform: translate(0, 0);    opacity: 0; }
+    20%  { opacity: 0.62; }
+    85%  { opacity: 0.55; }
+    100% { transform: translate(0, 95px); opacity: 0; }
+  }
+  .air-exh { fill: #bae6fd; animation: exhFlow 2.6s linear infinite; }
+
+  /* 引射器：一次流高速射流引射二次流 —— 吸入室缓、喉管处加速、扩散管再减速。
+     靠关键帧的疏密表达加减速：30%→45% 走 42px，45%→100% 走 40px，
+     即前 15% 的时间走完一半路程。 */
+  @keyframes ejecFlow {
+    0%   { transform: translate(0, 0);      opacity: 0; }
+    10%  { opacity: 0.75; }
+    30%  { transform: translate(30px, 0); }
+    45%  { transform: translate(72px, 0); }
+    100% { transform: translate(112px, 0);  opacity: 0; }
+  }
+  .air-ejec { fill: #c7d2fe; animation: ejecFlow 1.6s linear infinite; }
+
   /* 混合动力页：工质/能量流动 + 车轮转动 */
   @keyframes hyFlow { to { stroke-dashoffset: -32; } }
   @keyframes hySpin { to { transform: rotate(360deg); } }
@@ -284,6 +329,19 @@
   .io-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
   .io-head h2 { flex: 1; }
   .io-head .io-bar { margin-bottom: 0; }
+  /* 仅 PEM 页：标题独占一行，三个按钮另起一行（其余页签保持不变）。
+     间距 12→6 让按钮行上移 6px，同时给按钮行补 6px 下边距，
+     使 io-head 总高不变、下方输入框（单体电压等）位置保持原样。 */
+  #page-pem .io-head { flex-direction: column; align-items: stretch; gap: 6px; }
+  #page-pem .io-head h2 { flex: 0 0 auto; }
+  /* 输入面板固定 320px 宽：略收窄按钮间距与内边距，保证三枚按钮同处第二行 */
+  #page-pem .io-head .io-bar { flex-wrap: nowrap; gap: 6px; margin-bottom: 6px; }
+  #page-pem .io-head .io-bar .io-btn { padding-left: 7px; padding-right: 7px; }
+  /* 仅第一页（燃料电池系统设计）：该页 .io-bar 未包在 .io-head 中，标题本已独占一行；
+     第三枚「导出设计文档(PDF)」较长，收窄按钮间距与内边距以保证三枚按钮同处一行、不溢出面板
+     （只改左右内边距，行高不变，下方输入框位置保持原样）。 */
+  #page-pfd .input-panel .io-bar { gap: 6px; }
+  #page-pfd .input-panel .io-bar .io-btn { padding-left: 7px; padding-right: 7px; }
 
   .hx-section-header {
     background: #1a2e4a; padding: 10px 14px; cursor: pointer;
@@ -524,12 +582,305 @@
   @media (max-width: 1400px) { .sim-kpi { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
   @media (max-width: 1200px) { .sim-charts { grid-template-columns: 1fr; } .sim-kpi { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   @media (max-width: 900px) { .sim-grid { grid-template-columns: 1fr; } .sim-panel { position: static; max-height: none; } }
+
+  /* ====== 第四页：PEM 电解槽系统设计 ====== */
+  /* 新增流路配色：氧气 / 电力·信号 */
+  .pipe-o2 { stroke: #38bdf8; }
+  .flow-o2 { stroke: #bae6fd; }
+  .pipe-power { stroke: #eab308; }
+  .flow-power { stroke: #fde68a; }
+  /* 该页四个计算面板：两列自适应 */
+  #page-pem .calc-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 1180px) { #page-pem .calc-panels { grid-template-columns: 1fr; } }
+  /* PEM 电解：质子由阳极（上）向阴极（下）迁移 */
+  @keyframes pemProtonDn {
+    0%   { transform: translateY(0);     opacity: 0; }
+    25%  { transform: translateY(8px);   opacity: 1; }
+    75%  { transform: translateY(20px);  opacity: 1; }
+    100% { transform: translateY(28px);  opacity: 0; }
+  }
+  .pem-proton-dn { animation: pemProtonDn 1.6s linear infinite; }
+  /* 水箱补水/液位呼吸 */
+  @keyframes pemTankWave {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-2.5px); }
+  }
+  .pem-tank-wave { animation: pemTankWave 2.6s ease-in-out infinite; }
+  /* 冷却塔落水 */
+  @keyframes pemFall { 0% { opacity: 0; } 30% { opacity: 0.85; } 100% { opacity: 0; } }
+  .pem-fall { animation: pemFall 1.6s linear infinite; }
+  /* 控制/联锁说明卡（foreignObject） */
+  .pem-note {
+    box-sizing: border-box; background: rgba(11,22,40,0.94);
+    border: 1px solid #2a4a6b; border-radius: 6px; padding: 7px 10px;
+    font-family: "Microsoft YaHei","Segoe UI",sans-serif;
+  }
+  .pem-note .pn-head {
+    color: #7dd3fc; font-weight: bold; font-size: 11px;
+    border-bottom: 1px solid #2a4a6b; padding-bottom: 4px; margin-bottom: 4px;
+  }
+  .pem-note .pn-row {
+    display: flex; justify-content: space-between; gap: 8px;
+    font-size: 10px; line-height: 1.5; color: #ffffff;
+  }
+  .pem-note .pn-row .pn-v { color: #7dd3fc; font-weight: bold; }
+  .pem-note .pn-row .pn-v.ok { color: #34d399; }
+  .pem-note .pn-row .pn-v.warn { color: #f87171; }
+  .pem-note .pn-sec {
+    color: #7dd3fc; font-weight: bold; font-size: 10px;
+    margin-top: 5px; border-top: 1px solid #2a4a6b; padding-top: 4px;
+  }
+
+  /* ====== PEM 设计文档导出（浏览器原生打印 → PDF，零依赖） ====== */
+  /* 屏幕上始终不显示；仅在 body.printing 且进入打印媒体时才展开 */
+  #pemPrintLayout { display: none; }
+  #pemPrintLayout .pdl {
+    background: #ffffff; color: #0f172a;
+    font-family: "Microsoft YaHei","Segoe UI",sans-serif;
+    font-size: 10.5pt; line-height: 1.5;
+  }
+  #pemPrintLayout .pdl-head { page-break-inside: avoid; break-inside: avoid; }
+  #pemPrintLayout .pdl-title { border-bottom: 2px solid #0f172a; padding-bottom: 6px; }
+  #pemPrintLayout .pdl-title h1 { font-size: 17pt; margin: 0 0 4px; letter-spacing: 1px; }
+  #pemPrintLayout .pdl-title .pdl-meta {
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2px 10px;
+    font-size: 8.5pt; color: #475569;
+  }
+  #pemPrintLayout .pdl-sum {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px; margin: 8px 0 2px;
+  }
+  #pemPrintLayout .pdl-sum-item { border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px 7px; }
+  #pemPrintLayout .pdl-sum-item .k { font-size: 8pt; color: #475569; }
+  #pemPrintLayout .pdl-sum-item .v { font-size: 11.5pt; font-weight: bold; color: #b91c1c; }
+  #pemPrintLayout h3 {
+    font-size: 11pt; margin: 12px 0 5px; padding: 3px 8px;
+    background: #eef2f7; border-left: 4px solid #1d4ed8; color: #1e293b;
+    page-break-after: avoid; break-after: avoid;
+  }
+  #pemPrintLayout table.pdl-tab { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin-bottom: 2px; }
+  #pemPrintLayout table.pdl-tab th,
+  #pemPrintLayout table.pdl-tab td {
+    border: 1px solid #cbd5e1; padding: 2px 6px; text-align: left; vertical-align: top;
+  }
+  #pemPrintLayout table.pdl-tab tbody th { background: #f8fafc; font-weight: normal; width: 46%; }
+  #pemPrintLayout table.pdl-tab thead th { background: #e2e8f0; font-weight: bold; width: auto; }
+  #pemPrintLayout table.pdl-tab td.pdl-warn { color: #b91c1c; font-weight: bold; }
+  #pemPrintLayout table.pdl-tab td.pdl-ok { color: #047857; font-weight: bold; }
+  #pemPrintLayout .pdl-pre {
+    font-family: Consolas,"Courier New",monospace; font-size: 8pt; line-height: 1.45;
+    white-space: pre-wrap; background: #f8fafc; border: 1px solid #cbd5e1;
+    border-radius: 4px; padding: 6px 8px; margin: 0;
+  }
+  #pemPrintLayout .pdl-sec { page-break-inside: avoid; break-inside: avoid; margin-bottom: 4px; }
+  #pemPrintLayout table.pdl-tab tr { page-break-inside: avoid; break-inside: avoid; }
+  /* 流程图页：纵向 A4。图幅本身很宽（1560×1000）→ 将图片旋转 90°，
+     使长边竖放，从而在纵向页上尽量保留原来的放大倍数（≈原横置时的比例）。 */
+  #pemPrintLayout .pdl-pfd-fig {
+    position: relative; width: 164mm; height: 256mm;   /* 旋转后的可视尺寸 */
+    margin: 0 auto; overflow: hidden;
+  }
+  #pemPrintLayout .pdl-pfd-fig img,
+  #pemPrintLayout .pdl-pfd-fig svg {
+    position: absolute; top: 50%; left: 50%;
+    display: block; width: 255mm; height: auto; margin: 0;
+    max-width: none; max-height: none;
+    transform: translate(-50%, -50%) rotate(90deg);
+    transform-origin: center center;
+  }
+  #pemPrintLayout .pdl-foot {
+    margin-top: 10px; border-top: 1px solid #cbd5e1; padding-top: 4px;
+    font-size: 7.5pt; color: #64748b;
+  }
+
+  /* ====== 燃料电池系统设计文档导出（与 PEM 同构，独立 body 类 printing-pfd，避免与 PEM 的 printing 互相清屏） ====== */
+  #pfdPrintLayout { display: none; }
+  #pfdPrintLayout .pdl {
+    background: #ffffff; color: #0f172a;
+    font-family: "Microsoft YaHei","Segoe UI",sans-serif;
+    font-size: 10.5pt; line-height: 1.5;
+  }
+  #pfdPrintLayout .pdl-head { page-break-inside: avoid; break-inside: avoid; }
+  #pfdPrintLayout .pdl-title { border-bottom: 2px solid #0f172a; padding-bottom: 6px; }
+  #pfdPrintLayout .pdl-title h1 { font-size: 17pt; margin: 0 0 4px; letter-spacing: 1px; }
+  #pfdPrintLayout .pdl-title .pdl-meta {
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2px 10px;
+    font-size: 8.5pt; color: #475569;
+  }
+  #pfdPrintLayout .pdl-sum {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px; margin: 8px 0 2px;
+  }
+  #pfdPrintLayout .pdl-sum-item { border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px 7px; }
+  #pfdPrintLayout .pdl-sum-item .k { font-size: 8pt; color: #475569; }
+  #pfdPrintLayout .pdl-sum-item .v { font-size: 11.5pt; font-weight: bold; color: #b91c1c; }
+  #pfdPrintLayout h3 {
+    font-size: 11pt; margin: 12px 0 5px; padding: 3px 8px;
+    background: #eef2f7; border-left: 4px solid #1d4ed8; color: #1e293b;
+    page-break-after: avoid; break-after: avoid;
+  }
+  #pfdPrintLayout table.pdl-tab { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin-bottom: 2px; }
+  #pfdPrintLayout table.pdl-tab th,
+  #pfdPrintLayout table.pdl-tab td {
+    border: 1px solid #cbd5e1; padding: 2px 6px; text-align: left; vertical-align: top;
+  }
+  #pfdPrintLayout table.pdl-tab tbody th { background: #f8fafc; font-weight: normal; width: 46%; }
+  #pfdPrintLayout table.pdl-tab thead th { background: #e2e8f0; font-weight: bold; width: auto; }
+  #pfdPrintLayout table.pdl-tab td.pdl-warn { color: #b91c1c; font-weight: bold; }
+  #pfdPrintLayout table.pdl-tab td.pdl-ok { color: #047857; font-weight: bold; }
+  #pfdPrintLayout .pdl-pre {
+    font-family: Consolas,"Courier New",monospace; font-size: 8pt; line-height: 1.45;
+    white-space: pre-wrap; background: #f8fafc; border: 1px solid #cbd5e1;
+    border-radius: 4px; padding: 6px 8px; margin: 0;
+  }
+  #pfdPrintLayout .pdl-sec { page-break-inside: avoid; break-inside: avoid; margin-bottom: 4px; }
+  #pfdPrintLayout table.pdl-tab tr { page-break-inside: avoid; break-inside: avoid; }
+  /* 流程图页：纵向 A4，图幅 1500×880 旋转 90° 竖放以尽量保留放大倍数 */
+  #pfdPrintLayout .pdl-pfd-fig {
+    position: relative; width: 164mm; height: 256mm;
+    margin: 0 auto; overflow: hidden;
+  }
+  #pfdPrintLayout .pdl-pfd-fig img,
+  #pfdPrintLayout .pdl-pfd-fig svg {
+    position: absolute; top: 50%; left: 50%;
+    display: block; width: 255mm; height: auto; margin: 0;
+    max-width: none; max-height: none;
+    transform: translate(-50%, -50%) rotate(90deg);
+    transform-origin: center center;
+  }
+  #pfdPrintLayout .pdl-foot {
+    margin-top: 10px; border-top: 1px solid #cbd5e1; padding-top: 4px;
+    font-size: 7.5pt; color: #64748b;
+  }
+
+  /* ====== 第二页（混合动力系统匹配）/ 第三页（整车工况仿真）文档导出 ======
+     与 PEM、PFD 同构，共用一套 .pdl 样式；各自用独立 body 类
+     printing-hybrid / printing-sim，避免与 printing / printing-pfd 互相清屏。 */
+  #hybridPrintLayout, #simPrintLayout { display: none; }
+  #hybridPrintLayout .pdl, #simPrintLayout .pdl {
+    background: #ffffff; color: #0f172a;
+    font-family: "Microsoft YaHei","Segoe UI",sans-serif;
+    font-size: 10.5pt; line-height: 1.5;
+  }
+  #hybridPrintLayout .pdl-head, #simPrintLayout .pdl-head { page-break-inside: avoid; break-inside: avoid; }
+  #hybridPrintLayout .pdl-title, #simPrintLayout .pdl-title { border-bottom: 2px solid #0f172a; padding-bottom: 6px; }
+  #hybridPrintLayout .pdl-title h1, #simPrintLayout .pdl-title h1 { font-size: 17pt; margin: 0 0 4px; letter-spacing: 1px; }
+  #hybridPrintLayout .pdl-title .pdl-meta,
+  #simPrintLayout .pdl-title .pdl-meta {
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2px 10px;
+    font-size: 8.5pt; color: #475569;
+  }
+  /* 未运行仿真等提示行（非弹窗，仅打印文档内的一行说明） */
+  #hybridPrintLayout .pdl-note, #simPrintLayout .pdl-note {
+    margin: 8px 0 2px; padding: 5px 9px; border: 1px solid #f0c36d; border-radius: 4px;
+    background: #fffbf0; color: #92400e; font-size: 9pt; line-height: 1.5;
+  }
+  #hybridPrintLayout .pdl-sum, #simPrintLayout .pdl-sum {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px; margin: 8px 0 2px;
+  }
+  #hybridPrintLayout .pdl-sum-item, #simPrintLayout .pdl-sum-item { border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px 7px; }
+  #hybridPrintLayout .pdl-sum-item .k, #simPrintLayout .pdl-sum-item .k { font-size: 8pt; color: #475569; }
+  #hybridPrintLayout .pdl-sum-item .v, #simPrintLayout .pdl-sum-item .v { font-size: 11.5pt; font-weight: bold; color: #b91c1c; }
+  #hybridPrintLayout h3, #simPrintLayout h3 {
+    font-size: 11pt; margin: 12px 0 5px; padding: 3px 8px;
+    background: #eef2f7; border-left: 4px solid #1d4ed8; color: #1e293b;
+    page-break-after: avoid; break-after: avoid;
+  }
+  #hybridPrintLayout table.pdl-tab, #simPrintLayout table.pdl-tab { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin-bottom: 2px; }
+  #hybridPrintLayout table.pdl-tab th, #hybridPrintLayout table.pdl-tab td,
+  #simPrintLayout table.pdl-tab th, #simPrintLayout table.pdl-tab td {
+    border: 1px solid #cbd5e1; padding: 2px 6px; text-align: left; vertical-align: top;
+  }
+  #hybridPrintLayout table.pdl-tab tbody th, #simPrintLayout table.pdl-tab tbody th { background: #f8fafc; font-weight: normal; width: 46%; }
+  #hybridPrintLayout table.pdl-tab thead th, #simPrintLayout table.pdl-tab thead th { background: #e2e8f0; font-weight: bold; width: auto; }
+  #hybridPrintLayout table.pdl-tab td.pdl-warn, #simPrintLayout table.pdl-tab td.pdl-warn { color: #b91c1c; font-weight: bold; }
+  #hybridPrintLayout table.pdl-tab td.pdl-ok, #simPrintLayout table.pdl-tab td.pdl-ok { color: #047857; font-weight: bold; }
+  #hybridPrintLayout .pdl-pre, #simPrintLayout .pdl-pre {
+    font-family: Consolas,"Courier New",monospace; font-size: 8pt; line-height: 1.45;
+    white-space: pre-wrap; background: #f8fafc; border: 1px solid #cbd5e1;
+    border-radius: 4px; padding: 6px 8px; margin: 0;
+  }
+  #hybridPrintLayout .pdl-sec, #simPrintLayout .pdl-sec { page-break-inside: avoid; break-inside: avoid; margin-bottom: 4px; }
+  #hybridPrintLayout table.pdl-tab tr, #simPrintLayout table.pdl-tab tr { page-break-inside: avoid; break-inside: avoid; }
+  #hybridPrintLayout .pdl-foot, #simPrintLayout .pdl-foot {
+    margin-top: 10px; border-top: 1px solid #cbd5e1; padding-top: 4px;
+    font-size: 7.5pt; color: #64748b;
+  }
+  /* 仿真页策略对比表共 16 列：纵向 A4 用 6.3pt 小字并允许表头折行，避免横向溢出 */
+  #simPrintLayout table.pdl-tab-sim { font-size: 6.3pt; }
+  #simPrintLayout table.pdl-tab-sim th,
+  #simPrintLayout table.pdl-tab-sim td { padding: 1px 3px; }
+  /* 仿真曲线：两列排布的小图 */
+  #simPrintLayout .pdl-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  #simPrintLayout .pdl-chart { margin: 0; border: 1px solid #cbd5e1; border-radius: 4px; padding: 3px 5px; page-break-inside: avoid; break-inside: avoid; }
+  #simPrintLayout .pdl-chart img { display: block; width: 100%; height: auto; }
+  #simPrintLayout .pdl-chart figcaption { font-size: 7.5pt; color: #475569; margin-top: 2px; }
+  /* 超过一页的长章节（仿真设置表、曲线组）允许跨页，避免整段被推到下一页或被裁切 */
+  #simPrintLayout .pdl-break { break-inside: auto; page-break-inside: auto; }
+
+  /* 混合动力页：标题独占一行、三枚按钮另起一行（同 PEM 页处理）。
+     面板固定 320/360px，第三枚「导出设计文档(PDF)」较长 → 标题行与按钮行分两行，
+     并收窄按钮间距与内边距，保证三枚按钮同处一行、不溢出面板。 */
+  #page-hybrid .io-head { flex-direction: column; align-items: stretch; gap: 6px; }
+  #page-hybrid .io-head h2 { flex: 0 0 auto; }
+  #page-hybrid .io-head .io-bar { flex-wrap: nowrap; gap: 6px; margin-bottom: 6px; }
+  #page-hybrid .io-head .io-bar .io-btn { padding-left: 7px; padding-right: 7px; }
+  /* 仿真页：导出/导入按钮栏新增第 4 枚按钮，收窄间距与内边距并允许换行，避免溢出 330px 面板 */
+  #page-sim .sim-panel .io-bar { flex-wrap: wrap; gap: 6px; }
+  #page-sim .sim-panel .io-bar .io-btn { padding-left: 7px; padding-right: 7px; }
+
+  @media print {
+    @page { size: A4 portrait; margin: 12mm; }
+    body.printing { background: #ffffff !important; }
+    /* 只留打印布局：隐藏页头、页签、所有页面、弹窗 */
+    body.printing > header,
+    body.printing > .tab-bar,
+    body.printing > .page,
+    body.printing .sim-help-overlay { display: none !important; }
+    body.printing #page-pem { display: block !important; }
+    body.printing #page-pem > .layout { display: none !important; }
+    body.printing #pemPrintLayout { display: block !important; }
+    /* 流程图单独占一页（仍为纵向，图幅通过 CSS 旋转 90° 竖放以尽量放大） */
+    body.printing .pdl-pfd-sec { break-before: page; page-break-before: always; }
+
+    /* 第一页（燃料电池系统设计）导出：仅当 body 挂上 printing-pfd 时才清屏，与 PEM 的 printing 互不影响 */
+    body.printing-pfd { background: #ffffff !important; }
+    body.printing-pfd > header,
+    body.printing-pfd > .tab-bar,
+    body.printing-pfd > .page,
+    body.printing-pfd .sim-help-overlay { display: none !important; }
+    body.printing-pfd #page-pfd { display: block !important; }
+    body.printing-pfd #page-pfd > .layout { display: none !important; }
+    body.printing-pfd #pfdPrintLayout { display: block !important; }
+    body.printing-pfd .pdl-pfd-sec { break-before: page; page-break-before: always; }
+
+    /* 第二页（混合动力系统匹配）导出：仅当 body 挂上 printing-hybrid 时才清屏 */
+    body.printing-hybrid { background: #ffffff !important; }
+    body.printing-hybrid > header,
+    body.printing-hybrid > .tab-bar,
+    body.printing-hybrid > .page,
+    body.printing-hybrid .sim-help-overlay { display: none !important; }
+    body.printing-hybrid #page-hybrid { display: block !important; }
+    body.printing-hybrid #page-hybrid > .hybrid-page { display: none !important; }
+    body.printing-hybrid #hybridPrintLayout { display: block !important; }
+
+    /* 第三页（整车工况仿真）导出：仅当 body 挂上 printing-sim 时才清屏 */
+    body.printing-sim { background: #ffffff !important; }
+    body.printing-sim > header,
+    body.printing-sim > .tab-bar,
+    body.printing-sim > .page,
+    body.printing-sim .sim-help-overlay { display: none !important; }
+    body.printing-sim #page-sim { display: block !important; }
+    body.printing-sim #page-sim > .sim-page { display: none !important; }
+    body.printing-sim #simPrintLayout { display: block !important; }
+  }
 </style>
 </head>
 <body>
 <header>
   <div>
-    <h1>燃料电池混合动力系统 设计与仿真平台</h1>
+    <h1>燃料电池混合动力系统&amp;PEM电解槽 设计与仿真平台</h1>
     <div class="sub">流程设计 · 混合动力匹配 · 工况时域仿真</div>
   </div>
   <div class="sub" id="statusTag">● 计算中</div>
@@ -539,6 +890,7 @@
   <button class="tab-btn active" data-page="pfd" style="align-self: flex-end">燃料电池系统设计</button>
   <button class="tab-btn" data-page="hybrid">混合动力系统匹配</button>
   <button class="tab-btn" data-page="sim">整车工况仿真</button>
+  <button class="tab-btn" data-page="pem" style="align-self: flex-end">PEM电解槽系统设计</button>
 </div>
 
 <!-- 隐藏的电堆功率传递元素 -->
@@ -548,10 +900,11 @@
 <div class="layout">
   <!-- 输入面板 -->
   <div class="input-panel">
-    <h2>电堆基础设计参数</h2>
+    <h2>电堆基础设计参数<button type="button" class="sim-help-btn" id="pfdHelpBtn" title="查看计算逻辑说明" aria-label="查看计算逻辑说明">?</button></h2>
     <div class="io-bar">
       <button type="button" class="io-btn" id="pfdExportBtn">导出参数</button>
       <button type="button" class="io-btn io-import" id="pfdImportBtn">导入参数</button>
+      <button type="button" class="io-btn" id="pfdPdfBtn" title="生成设计文档并调用浏览器打印（另存为 PDF）">导出设计文档(PDF)</button>
       <input type="file" id="pfdImportFile" accept=".json,application/json" style="display:none">
     </div>
     <div id="inputs"></div>
@@ -632,7 +985,456 @@
     </div>
   </div>
 </div>
+<div id="pfdPrintLayout"></div>
 </div><!-- /page-pfd -->
+
+<!-- ============ 燃料电池系统设计 · 计算逻辑说明弹窗 ============ -->
+<div class="sim-help-overlay" id="pfdHelpOverlay">
+  <div class="sim-help-modal" role="dialog" aria-modal="true" aria-labelledby="pfdHelpTitle">
+    <div class="sim-help-head">
+      <h3 id="pfdHelpTitle">燃料电池系统设计 · 计算逻辑说明</h3>
+      <button type="button" class="sim-help-close" id="pfdHelpClose" title="关闭" aria-label="关闭">✕</button>
+    </div>
+    <div class="sim-help-body" id="pfdHelpBody">
+
+      <blockquote>本页是整条工具链的<strong>最上游</strong>：左侧参数栏 → 右侧 SVG 流程图 → 图下「系统功率汇总 / 散热器 / 中冷器 / 阀门流体」计算面板。改动任一参数后，图上数据气泡与图下结果即时重算；本页的<strong>氢气利用率</strong>与<strong>电堆功率</strong>会写入隐藏元素 <code>#stackPower</code> 并传给「混合动力系统匹配」页。</blockquote>
+
+      <h4>01 计算链路总览</h4>
+      <p>自<strong>电化学</strong>到<strong>热管理与辅机选型</strong>的单向推算链，所有下游量均由上游量显式推导，不存在循环依赖：</p>
+      <pre>① 电堆电化学（法拉第定律 · LHV 基准）
+      ├─ 理论耗氢 / 耗氧 / 产水 ──► ② 氢气子系统（供氢 · 循环 · 阳极水/冷凝）
+      ├─ 实际空气流量 ───────────► ③ 空气子系统（阴极水 · 露点 · 加湿器）
+      └─ 反应产热 ───────────────► ⑥ 热管理（中冷器 → 散热器 → 冷却液）
+② 氢气子系统 ─┐
+③ 空气子系统 ─┼─► ⑤ 空气热力（海拔→压比→两级压缩→尾气膨胀机）
+              └─► ④ 辅机 BOP（空压机 · 冷却液泵 · 散热风扇 · 氢循环泵）
+                       └─► 系统输出功率 → 系统净效率
+⑦ 阀门流体（Kv · DN）——独立工具面板，不参与主链</pre>
+
+      <h4>02 电堆电化学（法拉第定律 · LHV 基准）</h4>
+      <h5>2.1 电流、电压、功率</h5>
+      <pre>I_stack = A × j                       电堆电流（A）
+V_stack = V_cell × N                  电堆电压（V）
+P_stack = V_stack × I_stack / 1000    电堆功率（kW，毛功率）</pre>
+      <p>整堆所有单体<strong>电流相同、电压相加</strong>。</p>
+      <h5>2.2 法拉第定律：理论耗氢 / 耗氧 / 产水</h5>
+      <pre>n_H2,th  = (A × j × N) / (96485 × 2)              理论耗氢（mol/s）＝ I_stack × N/(2F)
+n_O2,th  = n_H2,th / 2                           理论耗氧（mol/s）
+n_H2O,pr = n_H2,th                               理论产水（mol/s）
+n_H2,actual = n_H2,th × 氢气计量比                  阳极实际供氢（mol/s）
+n_air,actual= (n_H2,th / 2) × 空气计量比 / 0.21     阴极实际供空气（mol/s）
+NLPM = n × 22.4 × 60                              由 mol/s 换算标态体积流量</pre>
+      <blockquote><b>计量比 λ 的工程含义</b>：氢气计量比默认 1.45、空气计量比默认 2.0。<code>λ &gt; 1</code> 是必需的（维持电流密度与传质、避免“饥饿”损坏电堆）；λ 越大，供气越多、空压机功耗与氢排放越高——效率与安全的权衡。</blockquote>
+      <h5>2.3 效率与反应产热（LHV 口径）</h5>
+      <pre>η_stack = V_cell / 1.254 × 100 %               电堆效率（基于低热值）
+Q_heat  = P_stack × (1.254 − V_cell) / V_cell  反应产热（kW）</pre>
+      <blockquote>与 PEM 电解槽互为逆过程：燃料电池取<strong>低热值</strong>口径 <code>1.254 V</code>（ΔH_LHV = 241.83 kJ/mol），电解槽取高热值口径 1.481 V。<code>V_cell &lt; 1.254 V</code> 时差额<strong>全部转化为热</strong>，须由冷却系统带走；工程单体电压 0.6~0.75 V，对应电堆效率约 48%~60%。系统净效率另用 241.92 kJ/mol 作为氢低热值功率口径（见 07）。</blockquote>
+
+      <h4>03 氢气子系统（供氢 · 循环 · 阳极水/冷凝）</h4>
+      <h5>3.1 系统供氢、尾气与循环</h5>
+      <pre>n_sys     = n_H2,th × 100 / 氢气利用率       系统消耗氢气（mol/s）
+供氢 NLPM  = n_sys × 22.4 × 60
+氢气尾气   = 供氢 NLPM × (1 − 氢气利用率/100)
+n_recirc  = n_H2,th × (氢气计量比 − 1)        阳极循环量（mol/s）</pre>
+      <h5>3.2 阳极水量平衡（迭代 5 次）</h5>
+      <pre>阳极出口总水 = n_H2,th × 水分布系数 + 进入电堆水量            （mol/s）
+阳极出口压力 = 阳极入口压力 − 阳极压损                        （kPa）
+饱和蒸汽压 Psat = satVaporP(操作温度)                        （kPa）
+阳极出口 RH  = 出口压力 × (出口总水/(出口总水+循环量)) / Psat × 100
+若 RH &gt; 100：液态水 = 出口总水 − 循环量 × Psat/(出口压力 − Psat)；否则液态水 = 0
+阳极冷凝放热 = 液态水 × 18 × 2258 / 1000                     （kW）
+出口气态水   = 出口总水 − 液态水
+进入堆的水量 = 液态水 × (1 − 气分效率/100) + 出口气态水
+入堆氢 RH    = 出口气态水/(出口气态水+系统供氢量+循环量) × 阳极入口压力/Psat(阳极入温) × 100</pre>
+      <blockquote>“入堆氢 RH”按<strong>阳极入口温度</strong>的饱和压计算、水量取自出口（81 ℃），低温入口下会 &gt;100%，表明该温度气体已<strong>饱和（带液）</strong>；页面<strong>不封顶</strong>，仅在超过 100% 时以红色标示。水分布系数默认 0.2（其余 0.8 随质子拖拽到阴极），气分效率默认 90%。</blockquote>
+
+      <h4>04 空气子系统（阴极水 · 露点 · 加湿器）</h4>
+      <h5>4.1 阴极流量与环境取水</h5>
+      <pre>系统供空气量 = n_air,actual
+出口空气流量 = n_air,actual − n_H2,th / 2                           （mol/s，扣去被消耗的氧）
+环境取水     = 环境湿度(%) × Psat(环境温度) × n_air,actual / 101 / 100   （mol/s）</pre>
+      <h5>4.2 阴极水量平衡（迭代 5 次）</h5>
+      <pre>阴极出口总水 = n_H2O,pr × (1 − 水分布系数) + 环境取水 + 干气加湿用水量
+阴极出口压力 = 阴极入口压力 − 阴极压损
+阴极出口 RH  = 出口压力 × (出口总水/(出口总水+出口空气流量)) / Psat(操作温度) × 100
+若 RH &gt; 100：液态水 = 出口总水 − 出口空气流量 × Psat/(出口压力 − Psat)；否则 = 0
+冷凝放热     = 液态水 × 18 × 2258 / 1000                （kW）
+出口水蒸气分压 = 出口压力 × (出口总水/(出口总水+出口空气流量))
+出口露点温度 = 1657.46 / (7.07406 − log10(出口水蒸气分压)) − 227.02   （℃）
+干气加湿用水量 = (出口总水 − 液态水) × 加湿器效率/100
+中冷器出口温度 = 操作温度 − 操作温差/2
+干侧出口温度   = (中冷器出口温度 + 操作温度 − 操作温差)/2
+干侧 RH        = 干气加湿用水量/实际空气流量 × 干侧压力/干侧饱和压 × 100
+湿侧压力       = 阴极出口压力 − 湿侧压损
+湿侧水量       = 出口总水 − 液态水 − 干气加湿用水量
+湿侧 RH        = 湿侧水量/出口空气流量 × 湿侧压力/湿侧饱和压 × 100</pre>
+      <blockquote>露点用反 Magnus 型经验式 <code>T_dp = 1657.46/(7.07406 − log₁₀ e) − 227.02</code>（e 为水蒸气分压，kPa），RH &gt; 100% 时取该温度饱和压。膜加湿器用阴极湿废气润湿干进气，默认效率 0（不启用），此时干侧 RH = 0、湿侧水量等于出口气态水量；效率调到 60~80% 后干/湿侧水量此消彼长。</blockquote>
+
+      <h4>05 空气热力 · 空压机 · 尾气膨胀机</h4>
+      <h5>5.1 海拔 → 大气压、大气密度</h5>
+      <pre>大气压力 P_atm = 101325 × (1 − h/44330)^5.25588          （h ≤ 11000 m）
+               = 22631.8 × exp((11000 − h)/6340)          （h &gt; 11000 m）
+空气入口温度 T(K) = 环境温度(℃) + 273.15
+大气密度 ρ = P_atm / (R_air × T)      R_air = 287.1 J/(kg·K)
+入口体积流量 = n_air,actual × 0.022414 × (T/273.15) × (101325/P_atm)   （m³/s）
+入口质量流量 = 入口体积流量 × ρ × 1000                                  （g/s）</pre>
+      <h5>5.2 压缩机：压比与两级压缩</h5>
+      <pre>出口空气压力 = (阴极入口压力 + 中冷器压损) × 1000          （Pa）
+压比 ε = 出口空气压力 / P_atm
+两级等压比分配：ε1 = ε2 = √ε          （使总压缩功最小）
+一级出口温度 T2 = T1 × (1 + (ε1^((κ−1)/κ) − 1)/η_c)
+二级出口温度 T4 = T_mid × (1 + (ε2^((κ−1)/κ) − 1)/η_c)     T_mid = 级间冷却后温度(K)
+空气温升 ΔT = (T2 − T1) + (T4 − T_mid)
+空压机功耗 = 入口质量流量 × c_p,air × ΔT                   （W）</pre>
+      <blockquote>等压比分配 <code>ε1 = ε2 = √ε</code> + 级间冷却（默认 50 ℃）使总压缩功最小；默认压缩级数 = 2。功耗按<strong>温升法</strong> <code>质量流量 × c_p × 温升</code> 计算（g/s × J/(g·K) × K = W）。</blockquote>
+      <h5>5.3 尾气膨胀机（默认关闭）</h5>
+      <pre>膨胀机入口压力 = 阴极出口压力 − 膨胀机入口压损        （kPa）
+膨胀比 = 入口压力(Pa) / P_atm
+出口温度 T_out = T_in × [1 − η_t × (1 − (1/膨胀比)^((κ−1)/κ))]
+通流质量流量 = 出口空气流量 × 28.96 + 水蒸气量 × 18    （g/s）
+回收功 = 通流质量流量 × c_p,air × (T_in − T_out)       （W）
+净功耗 = 空压机功耗 − 回收功</pre>
+      <blockquote>默认 <code>expanderEnabled = 0</code>，回收功记 0；膨胀比 ≤ 1 时涡轮无做功能力。若膨胀降温后水蒸气分压仍高于该温度饱和压 → 尾气<strong>凝结</strong>，本式按气相计算、未计凝结潜热，页面提示“出口已凝结”。</blockquote>
+
+      <h4>06 热管理（中冷器 · 散热器 · 冷却液）</h4>
+      <h5>6.1 热负荷汇总</h5>
+      <pre>中冷器热负荷 = 1.005 × (系统供空气量 × 28.96/1000) × (空压机出口温度 − 中冷器出口温度)   （kW）
+冷凝放热     = 阴极冷凝水放热 + 阳极冷凝水放热        （kW）
+系统总热负荷 = 中冷器热负荷 + 冷凝放热 + 反应产热     （kW）</pre>
+      <h5>6.2 冷却液物性与流量</h5>
+      <pre>冷却液密度 ρ = 乙二醇占比(%) × 1.7657 + 981.43                    （kg/m³）
+冷却液比热 c_p = −0.0002 × 乙二醇占比² − 0.004 × 乙二醇占比 + 4.2   （kJ/(kg·K)）
+冷却液流量 = 总热负荷 / 操作温差 / ρ / c_p × 1000 × 60            （L/min）</pre>
+      <h5>6.3 散热器（气流侧）</h5>
+      <pre>冷却空气出散热器温度 = 环境温度 + 冷却空气流经散热器温差
+冷却水进口温度 = 操作温度；冷却水出口温度 = 操作温度 − 操作温差
+Δt₁ = 冷却水进口 − 冷却空气出口；Δt₂ = 冷却水出口 − 环境温度
+LMTD：比值 Δt₁/Δt₂ &gt; 1.7 且 |Δt₁−Δt₂| &gt; 0.001 取 (Δt₁−Δt₂)/ln(Δt₁/Δt₂)；否则算术均值
+修正系数 εΔt = lmtdCorrF(R, P)（ε-NTU 拟合，限幅 0.5~1.0）；ΔTm = εΔt × LMTD
+所需散热面积 = ξ × 总热负荷 × 1000 / (散热器 Ka × ΔTm)                     （m²）
+所需冷却空气流量 = ξ × 总热负荷 × 3600 / (空气温差 × 1.005 × 大气密度)      （m³/h）
+散热器迎风面积 = π × 单风扇叶轮直径² / 4 × 风扇个数 / 风扇面积比率 / 10⁶   （m²）
+单风扇风量需求 = 冷却空气流量 / 风扇个数</pre>
+      <h5>6.4 中冷器</h5>
+      <pre>中冷器出口温度 = 操作温度 − 操作温差/2
+冷却液进口温度 = 操作温度 − 操作温差；冷却液出口温度 = 冷却水出口温度 + 中冷器液侧温差
+冷却液流量 = 中冷器热负荷 / 中冷器液侧温差 / ρ / c_p × 1000 × 60     （L/min）
+Δt₁' = 增压空气进口 − 冷却液出口；Δt₂' = 增压空气出口 − 冷却水出口
+所需散热面积 = 中冷器热负荷 × 1000 / (中冷器 Ka × ΔTm')             （m²）</pre>
+      <blockquote>中冷器、冷凝放热与反应产热都由同一套冷却液回路带走。错流换热器用 Kays &amp; London 的 ε-NTU 拟合反解 NTU（默认散热器修正系数 ≈ 0.93、中冷器 ≈ 0.94）。中冷器入口温度取自“空压机出口温度”（由分级压缩算出，不是输入值）。</blockquote>
+
+      <h4>07 辅机功耗（BOP）与系统净功率</h4>
+      <h5>7.1 四项辅机功耗</h5>
+      <pre>空压机   = 净功耗 / 1000                                          （kW）
+冷却液泵 = ρ × 9.81 × 泵压头(m) × 泵流量(m³/s) / 泵总效率        Q = 冷却液流量(L/min)/60000
+散热风扇 = 风扇全压(Pa) × 冷却空气流量(m³/s) / 风扇效率         Q = 所需冷却空气流量(m³/h)/3600
+氢循环泵 = 阳极压损(Pa) × 循环体积流量(m³/s) / 泵效率
+           循环体积流量 = 循环量(Nm³/s) × (101.325/阳极出口绝对压力) × (T_操作/273.15)
+辅机合计 = 空压机净功耗 + 冷却液泵 + 散热风扇 + 氢气循环泵</pre>
+      <h5>7.2 系统输出与净效率</h5>
+      <pre>系统输出功率 = 电堆功率 − 辅机合计                    （kW，直流母线可对外交付的净功率）
+氢耗功率     = n_H2,th × 241.92                      （kW，氢低热值口径）
+系统净效率   = 系统输出功率 / 氢耗功率 × 100 %</pre>
+      <blockquote><b>务必区分两组效率</b>：<code>η_stack = V_cell/1.254</code> 是电堆本体电化学效率；<strong>系统净效率</strong>扣除全部辅机功耗、分母取氢低热值功率。辅机中<strong>空压机</strong>通常占最大份额（可达电堆功率 10%~20%），是系统净效率的主要损失项。</blockquote>
+
+      <h4>08 阀门流体计算（Kv / DN）</h4>
+      <pre>ΔP = 入口压力 − 出口压力（下限取 0.001）                  （bar）
+流量 Q = 输入流量(NLPM) × 60 / 1000                       （m³/h）
+液体（密度 ≥ 1000）：Kv = Q × √(ρ/(1000×ΔP))
+气体（出口压力 &gt; 入口压力/2）：Kv = Q/514 × √(T_K×ρ/(出口压力×ΔP))
+气体（否则）：Kv = Q/(257×入口压力) × √(T_K×ρ)
+DN = −77.861·Kv⁶ + 256.11·Kv⁵ − 331.17·Kv⁴ + 215.74·Kv³ − 77.502·Kv² + 20.183·Kv + 0.476   （mm）</pre>
+      <p>独立工具面板，默认介质<strong>氢气</strong>（密度 0.0899 kg/m³）。Kv 为阀门流通能力，DN 由 Kv 的高次拟合多项式估算管径；当 <code>Kv &gt; 1</code> 或 <code>Kv &lt; 0.012</code> 时该行标红（超出常用阀门量程）。</p>
+
+      <h4>09 默认工况逐值验算</h4>
+      <p>按页面<strong>默认参数</strong>逐步代入（V_cell 0.619 V、N 400 节、A 300 cm²、j 2.02 A/cm²、操作 81 ℃、海拔 500 m、压缩级数 2、膨胀机关闭 …）：</p>
+      <pre>I_stack  = 300 × 2.02                     = 606.0 A
+V_stack  = 0.619 × 400                    = 247.6 V
+P_stack  = 606 × 247.6 / 1000             = 150.05 kW
+η_stack  = 0.619 / 1.254                  = 49.36 %
+Q_heat   = 150.05 × (1.254−0.619)/0.619   = 153.92 kW
+n_H2,th  = (300×2.02×400)/(96485×2)       = 1.2562 mol/s → n_air = 5.9817 mol/s（8039 NLPM）
+
+阳极：出口压力 246 kPa；Psat(81℃) = 49.49 kPa；出口 RH = 212.3% → 液态水 0.2791 mol/s
+      冷凝放热 11.345 kW；入堆氢 RH = 195.9%（红色：该温度已饱和、带液）
+阴极：出口 RH = 66.90%（不析水）；露点 71.40 ℃；湿侧 RH = 112.87%
+空气：P_atm(500m) = 95461 Pa → ρ = 1.0451 kg/m³；质量流量 173.23 g/s；压比 ε = 2.724
+      温升 129.85 K → 空压机功耗 22607 W = 22.61 kW（膨胀机关闭，净功耗同）
+热管理：中冷器热负荷 6.95 kW；总热负荷 172.22 kW；冷却液流量 250.9 L/min
+      散热面积 68.6 m²；迎风面积 1.203 m²；冷却空气流量 38565 m³/h；中冷器 3.36 m²
+BOP  ：空压机 22.61 + 泵 1.097 + 风扇 3.571 + 氢循环泵 0.210 = 27.49 kW
+系统输出功率 = 150.05 − 27.49 = 122.56 kW；氢耗功率 303.89 kW → 系统净效率 40.33 %
+阀门 ：Q = 84 m³/h、ΔP = 7 bar → Kv = 0.2097 → DN = 2.75 mm</pre>
+      <blockquote>系统净效率 40.33%，辅机合计占电堆功率 18.3%，其中<strong>空压机独占 15.1%</strong>——印证“空压机是最大辅机损失项”的判断。</blockquote>
+
+      <h4>10 参数敏感性分析</h4>
+      <p>单电池电压是系统净效率最敏感的单一变量（氢耗与单电池电压无关，恒为 n_H2,th = 1.2562 mol/s → 氢耗功率 303.89 kW）：</p>
+      <table>
+        <tr><th>V_cell (V)</th><th>η_stack (%)</th><th>P_stack (kW)</th><th>Q_heat (kW)</th><th>总热负荷 (kW)</th><th>散热面积 (m²)</th><th>系统输出 (kW)</th><th>系统净效率 (%)</th></tr>
+        <tr><td>0.60</td><td>47.85</td><td>145.44</td><td>158.53</td><td>176.83</td><td>70.44</td><td>117.83</td><td>38.78</td></tr>
+        <tr><td>0.619 <em>（默认）</em></td><td>49.36</td><td>150.05</td><td>153.92</td><td>172.22</td><td>68.61</td><td>122.56</td><td>40.33</td></tr>
+        <tr><td>0.65</td><td>51.83</td><td>157.56</td><td>146.41</td><td>164.71</td><td>65.61</td><td>130.28</td><td>42.87</td></tr>
+        <tr><td>0.70</td><td>55.82</td><td>169.68</td><td>134.29</td><td>152.59</td><td>60.79</td><td>142.73</td><td>46.97</td></tr>
+        <tr><td>0.75</td><td>59.81</td><td>181.80</td><td>122.17</td><td>140.47</td><td>55.96</td><td>155.18</td><td>51.06</td></tr>
+      </table>
+      <blockquote><b>结论</b>：V_cell 由 0.60 提到 0.75 V，系统净效率 38.8% → 51.1%，散热面积 70.4 → 56.0 m²——效率与散热的<strong>双重收益</strong>（与 PEM 电解槽“降压即降耗”方向正好相反）。提升手段：提高膜电导、优化催化剂与传质、提高工作温度、降低电流密度。</blockquote>
+
+      <h4>11 安全 · 校核与边界</h4>
+      <table>
+        <tr><th>类型</th><th>项目</th><th>页面处理 / 判据</th></tr>
+        <tr><td>源码限幅</td><td>空压机等熵效率</td><td>限幅 1%~100%（填 0 使温升发散，填 &gt;100% 低于等熵极限）</td></tr>
+        <tr><td>源码保护</td><td>压缩机压比 ≤ 1</td><td>压比钳到 1，温升与功耗记 0，气泡提示“压缩机不工作”</td></tr>
+        <tr><td>源码保护</td><td>膨胀机膨胀比 ≤ 1</td><td>涡轮无做功能力 → 回收功记 0</td></tr>
+        <tr><td>源码警示</td><td>膨胀机出口凝结 / 阀门 Kv</td><td>出口低于露点提示“出口已凝结”；<code>Kv &gt; 1</code> 或 <code>Kv &lt; 0.012</code> 时该行标红</td></tr>
+        <tr><td>物理判据</td><td>阳极/阴极 RH &gt; 100%</td><td>判定析出液态水 → 计算冷凝放热并计入冷却回路热负荷</td></tr>
+        <tr><td>工程范围</td><td>单电池电压 / 计量比 / 利用率</td><td>0.6~0.75 V（效率约 48%~60%）；空气/氢气计量比须 &gt; 1；氢气利用率默认 98.5%</td></tr>
+      </table>
+      <blockquote>两点需特别留意：① <b>入堆氢 RH 可超过 100%</b>（水量取自 81 ℃ 出口、RH 按 45 ℃ 入口饱和压计算），页面不封顶、超过 100% 时以红色标示；② <b>“定熵压缩轴功”为参考值</b>（源码符号约定使其在正常工作压比下为负），实际空压机功耗按温升法计算，二者勿混用。</blockquote>
+
+      <h4>12 符号与常数</h4>
+      <table>
+        <tr><th>符号</th><th>含义</th><th>取值 / 单位</th></tr>
+        <tr><td>F</td><td>法拉第常数</td><td>96485 C/mol</td></tr>
+        <tr><td>1.254 V</td><td>LHV 热中性电压</td><td>ΔH_LHV = 241.83 kJ/mol</td></tr>
+        <tr><td>241.92</td><td>氢低热值功率口径</td><td>kJ/mol（用于系统净效率）</td></tr>
+        <tr><td>22.4 / 0.022414</td><td>标态摩尔体积</td><td>L/mol（NLPM） / m³/mol（空压机入口）</td></tr>
+        <tr><td>18 / 2.016 / 28.96 / 0.21</td><td>水 / 氢 / 空气摩尔质量 · 氧摩尔分数</td><td>g/mol · —</td></tr>
+        <tr><td>2258 / 40.644</td><td>水的汽化潜热</td><td>J/g（×18 → 40.644 kJ/mol）</td></tr>
+        <tr><td>R_air / c_p,air / κ</td><td>空气气体常数 / 定压比热 / 比热比</td><td>287.1 J/(kg·K) / 1.005 kJ/(kg·K) / 1.4</td></tr>
+        <tr><td>★ satVaporP(T)</td><td>饱和蒸汽压拟合式</td><td>9.7×10⁻⁷T⁴ − 3.455×10⁻⁵T³ + 3.71504×10⁻³T² + 0.01245629T + 0.71004367（kPa，T 为 ℃）</td></tr>
+        <tr><td>101325 / 44330 / 5.25588</td><td>大气压高度模型常数</td><td>Pa / m（对流层国际标准大气）</td></tr>
+        <tr><td>1657.46 / 7.07406 / 227.02</td><td>露点拟合常数</td><td>反 Magnus 型（℃ / kPa）</td></tr>
+      </table>
+
+      <hr>
+      <p>本说明的完整版——含默认工况<strong>逐步代入验算</strong>与逐行<strong>参数敏感性分析</strong>——另见同目录下的 <code>fuelcell-calc-logic.html</code>，可直接在浏览器打开并打印为 PDF。</p>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============ 第四页：PEM 电解槽系统设计 ============ -->
+<div class="page" id="page-pem">
+<div class="layout">
+  <!-- 输入面板 -->
+  <div class="input-panel">
+    <div class="io-head">
+      <h2>PEM电解槽系统设计参数<button type="button" class="sim-help-btn" id="pemHelpBtn" title="查看计算逻辑说明" aria-label="查看计算逻辑说明">?</button></h2>
+      <div class="io-bar">
+        <button type="button" class="io-btn" id="pemExportBtn">导出参数</button>
+        <button type="button" class="io-btn io-import" id="pemImportBtn">导入参数</button>
+        <button type="button" class="io-btn" id="pemPdfBtn" title="生成设计文档并调用浏览器打印（另存为 PDF）">导出设计文档(PDF)</button>
+        <input type="file" id="pemImportFile" accept=".json,application/json" style="display:none">
+      </div>
+    </div>
+    <div id="pemInputs"></div>
+  </div>
+
+  <!-- 流程图 + 计算面板 -->
+  <div class="diagram-wrap">
+    <svg id="pemPfd" viewBox="-60 0 1560 1000" preserveAspectRatio="xMidYMid meet"></svg>
+
+    <div class="calc-panels">
+      <!-- 水系统 -->
+      <div class="hx-section">
+        <div class="hx-section-header" data-toggle="pem-water"><span>▾ 水系统计算（纯水制备 · 循环 · 水平衡）</span></div>
+        <div class="hx-section-body" id="pem-water"><div class="hx-results" id="pem-water-results"></div></div>
+      </div>
+      <!-- 气系统 -->
+      <div class="hx-section">
+        <div class="hx-section-header" data-toggle="pem-gas"><span>▾ 气系统计算（产氢纯化 · 产氧 · 分离 · 压差）</span></div>
+        <div class="hx-section-body" id="pem-gas"><div class="hx-results" id="pem-gas-results"></div></div>
+      </div>
+      <!-- 换热器 -->
+      <div class="hx-section">
+        <div class="hx-section-header" data-toggle="pem-hx"><span>▾ 换热器选型计算（板式换热器）</span></div>
+        <div class="hx-section-body" id="pem-hx"><div class="hx-results" id="pem-hx-results"></div></div>
+      </div>
+      <!-- 电源 / 能效 / 控制 -->
+      <div class="hx-section">
+        <div class="hx-section-header" data-toggle="pem-pow"><span>▾ 电源 · 能效 · 控制计算</span></div>
+        <div class="hx-section-body" id="pem-pow"><div class="hx-results" id="pem-power-results"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 设计文档打印布局：屏幕上隐藏，点「导出设计文档(PDF)」时填充，仅打印时显示 -->
+<div id="pemPrintLayout"></div>
+</div><!-- /page-pem -->
+
+<!-- ============ PEM 电解槽系统设计 · 计算逻辑说明弹窗 ============ -->
+<div class="sim-help-overlay" id="pemHelpOverlay">
+  <div class="sim-help-modal" role="dialog" aria-modal="true" aria-labelledby="pemHelpTitle">
+    <div class="sim-help-head">
+      <h3 id="pemHelpTitle">PEM电解槽系统设计 · 计算逻辑说明</h3>
+      <button type="button" class="sim-help-close" id="pemHelpClose" title="关闭" aria-label="关闭">✕</button>
+    </div>
+    <div class="sim-help-body" id="pemHelpBody">
+
+      <blockquote>本页与第一页「燃料电池系统设计」同构：左侧参数栏 → 右侧 SVG 流程图 → 图下计算面板。改动任一参数后，图上的数据气泡与图下四个面板即时重算。所有结果行都可<strong>鼠标悬停</strong>查看该行的公式说明。</blockquote>
+
+      <h4>一、计算链路总览</h4>
+      <p>整页是一条自<strong>电化学</strong>到<strong>设备选型</strong>的单向链，下游量全部由上游量推导，不存在循环依赖：</p>
+      <pre>① 电解槽电化学（法拉第定律）
+      ├─ 产氢量 / 产氧量 ───────────► ② 气系统（纯化 · 分离 · 氢氧压差校核）
+      ├─ 直流功率 / 反应废热 ───────► ③ 水系统（纯水制备 · 循环水量）
+      │                                    └──► ④ 换热器选型（LMTD → 面积 → 板片 → 流速 → 压降）
+      └─ 直流电流 / 直流电压 ───────► ⑤ 电源容量 → 辅机功耗 → 系统能效与电耗
+                                              └──► ⑥ 安全联锁与设计校核</pre>
+      <p>四个图下计算面板与链路一一对应：<code>水系统计算</code>、<code>气系统计算</code>、<code>换热器选型计算</code>、<code>电源 · 能效 · 控制计算</code>。</p>
+
+      <h4>二、电解槽电化学（法拉第定律）</h4>
+
+      <h5>2.1 电流、电压、功率</h5>
+      <pre>I        = A × j                      直流电流（整堆串联，各节电流相同）
+V_cell   = V_rev(T,P) + η_act(j,T) + η_ohm(j,T)    单体电压（极化曲线）
+V_stack  = V_cell × N                 直流电压
+P_stack  = V_stack × I / 1000         直流功率（kW）</pre>
+      <p><b>单体电压默认由极化曲线解算</b>：输入栏「单体电压」填 <code>0</code> 即走曲线（推荐）；填非 0 值则原样采用，作为<strong>手动覆盖</strong>（可强制实测电压）。</p>
+      <pre>V_rev = 1.23 − 0.9e-3×(T−25) + (R·T_k/(2F))·ln(P_H2·P_O2^0.5/P_H2O)   可逆电压
+η_act = a×log10(j/j0)     a = 0.05 V/decade，j0 = 2e-5 A/cm²（常量，非输入）
+η_ohm = j×ASR(T)          ASR(T) = ASR70×exp(Er×(1/(T+273.15) − 1/343.15))
+                          ASR70 = 输入参数「面积比电阻@70℃」，Er = 1600 K</pre>
+      <p>默认工作点 j = 2.0 A/cm²、T = 70 ℃、P_H2 = 30 bar、P_O2 = 29.8 bar 下：V_rev ≈ 1.2817 V、η_act = 0.250 V、η_ohm ≈ 0.320 V，<b>V_cell ≈ 1.85 V</b>。温度每升高 10 K 单体电压约下降 51 mV（70→85 ℃ 实测平均约 −5.1 mV/K）。这比 PEM 常见的约 −20~−25 mV/10 K 更强，因为此处可逆电压与欧姆电阻都随温度下降。</p>
+
+      <h5>2.2 法拉第定律：产氢 / 产氧</h5>
+      <pre>n_H2,th = I × N / (2F)                理论产氢（mol/s）
+n_H2    = n_H2,th × η_F               实际产氢（mol/s）
+n_O2    = n_H2,th / 2                 理论产氧（mol/s）
+
+m_H2  = n_H2 × 2.016                  产氢质量流量（g/s）；×3.6 得 kg/h
+V_H2  = n_H2 × 22.414 × 3.6           产氢体积流量（Nm³/h）
+V_O2  = n_O2 × 22.414 × 3.6           产氧体积流量（Nm³/h）</pre>
+      <p>反应为 <code>阳极 2H₂O → O₂ + 4H⁺ + 4e⁻</code>、<code>阴极 2H⁺ + 2e⁻ → H₂</code>。每生成 1 mol H₂ 需 2 mol 电子、消耗 1 mol 水，并生成 0.5 mol O₂。<code>F = 96485 C/mol</code>。法拉第效率 <code>η_F</code> 反映电流中真正用于产氢的比例（气体交叉、寄生电流等损失）。</p>
+
+      <h5>2.3 效率与热中性电压</h5>
+      <pre>η_HHV = 1.481 / V_cell × 100 %         基于高热值（HHV 热中性电压 1.481 V）
+η_LHV = 1.254 / V_cell × 100 %         基于低热值（LHV 热中性电压 1.254 V）
+
+Q_heat   = P_stack × (V_cell − 1.481) / V_cell      反应废热（kW）
+P_H2_HHV = P_stack × (1.481 / V_cell) × η_F         产品氢 HHV 功率（kW）
+P_H2_LHV = P_stack × (1.254 / V_cell) × η_F         产品氢 LHV 功率（kW）</pre>
+      <blockquote><b>关键判据</b>：1.481 V 是 HHV 口径的热中性电压，对应 <code>ΔH_HHV = 285.83 kJ/mol</code>。单体电压<strong>高于</strong> 1.481 V 时电解槽净放热，必须由冷却水带走；低于该值则净吸热。工程上单体电压通常在 1.7~2.0 V，因此 PEM 电解槽<strong>始终处于放热状态</strong>——这与燃料电池的产热逻辑同源，但热源集中在高电位区。</blockquote>
+
+      <h4>三、水系统</h4>
+
+      <h5>3.1 耗水与补水</h5>
+      <pre>m_water,net = n_H2 × 18.015            反应净耗水（g/s）；×3.6 得 kg/h
+m_water,loss= m_water,net + 氢侧气相带水 + 氧侧气相带水      系统净水损失（kg/h）
+原水耗量     = m_water,loss(kg/h) / RO回收率
+纯水制备能力 ≥ m_water,net(kg/h)        反应消耗的水由制备系统持续补充</pre>
+      <p>RO 回收率决定浓水排放量与预处理规模；回收率越低，原水耗量越大。气相带水是随产品氢与氧气排空离开的饱和水蒸气，<strong>与气液分离效率无关</strong>，始终计入补水损失。</p>
+
+      <h5>3.2 循环水量：反应与冷却合一</h5>
+      <pre>m_heat  = Q_heat × 1000 / (c_w × ΔT_w)         为带走废热所需水量（kg/s）
+m_react = m_water,net / 1000 × 纯水循环倍率      为反应供水所需水量（kg/s）
+m_circ  = max(m_heat, m_react)                  实际循环水量（kg/s）
+V_circ  = m_circ / ρ_w × 3600                   体积循环量（m³/h）
+循环倍率 = m_circ / (m_water,net / 1000)         相对反应耗水的倍数</pre>
+      <blockquote>PEM 的纯水侧<strong>同时承担反应物与冷却介质</strong>两个角色。除极低电流密度外，循环量几乎总是由<strong>换热需求主导</strong>，循环倍率可达 200 倍量级——这是与燃料电池水管理最直观的差异：燃料电池要“保水防淹”，电解槽则要“大流量冲带走热与氧气”。</blockquote>
+
+      <h4>四、气系统</h4>
+
+      <h5>4.1 氢气侧 / 氧气侧流量</h5>
+      <pre>产品氢流量   = V_H2 × 纯化回收率
+纯化损失     = V_H2 − 产品氢流量
+氢侧气相带水 = n_H2 × r_vap × 18.015 × 3.6        （kg/h）
+氧侧气相带水 = n_O2 × r_vap × 18.015 × 3.6        （kg/h）</pre>
+
+      <h5>4.2 饱和水蒸气摩尔比</h5>
+      <pre>r_vap    = p_sat(T) / (P_abs − p_sat(T))
+p_sat(T) = 9.7×10⁻⁷·T⁴ − 3.455×10⁻⁵·T³ + 3.71504×10⁻³·T²
+           + 0.01245629·T + 0.71004367                （kPa）</pre>
+      <p>气体离开气液分离器时按工作温度<strong>饱和</strong>计算带水量。<span class="hl">两舱压力必须平衡</span>：若氢气侧 30 bar 而氧气侧接近常压，氧侧带水量会放大数十倍（相同温度下 r_vap 与绝对压力近似成反比），同时氢氧压差远超质子交换膜的承受能力。</p>
+
+      <h5>4.3 分离与压差校核</h5>
+      <pre>分离器回收液态水 = (循环水量 − 反应耗水 − 氢侧带水 − 氧侧带水) × 分离效率
+氢氧压差 ΔP = |P_H2 − P_O2|            判据：ΔP ≤ 氢氧压差限值（默认 0.3 bar）</pre>
+      <blockquote>氢氧压差是电解槽<strong>最关键的安全参数</strong>：压差过大将导致质子交换膜机械击穿、氢氧互窜甚至爆炸。高压 PEM 的正确做法是<strong>双侧等压</strong>运行（例如氢 30 bar / 氧 29.8 bar），把压差压在限值以内，并设置软件联锁、硬件联锁、机械爆破片三重保护。</blockquote>
+
+      <h4>五、换热器选型（板式换热器）</h4>
+
+      <h5>5.1 对数平均温差 LMTD（逆流布置）</h5>
+      <pre>Δt₁  = T_hot,in − T_cold,out          纯水进口 − 冷却水出口
+Δt₂  = T_hot,out − T_cold,in          纯水出口 − 冷却水进口
+LMTD = (Δt₁ − Δt₂) / ln(Δt₁ / Δt₂)         （℃）</pre>
+      <p>逆流布置可获得最大传热温差与更大最小端差。任一端差 ≤ 0 即发生<strong>温度交叉</strong>，LMTD 计算失效，需增大换热面积或调整冷却水量。</p>
+
+      <h5>5.2 传热面积与板片数</h5>
+      <pre>A_calc  = Q_heat × 1000 / (K × LMTD)             （m²）
+A_need  = A_calc × (1 + 面积裕度)                 裕度常规 15%~25%
+N_plate = ceil(A_need / a_plate) + 1              板片数向上取整
+N_plate → 取偶数                                   使两侧流道数相等
+A_real  = (N_plate − 1) × a_plate                 实际换热面积</pre>
+      <p>水-水板式换热器总传热系数 <code>K</code> 经验值 3000~6000 W/(m²·K)；流速越高 K 越大，但压降也越大。</p>
+
+      <h5>5.3 流道数与流速</h5>
+      <pre>n_hot  = ceil((N_plate − 1) / 2)
+n_cold = floor((N_plate − 1) / 2)
+u      = (V / 3600) / (n_ch × A_ch)               推荐 0.3~1.0 m/s</pre>
+
+      <h5>5.4 雷诺数与压降</h5>
+      <pre>Re = ρ × u × D_eq / μ                 D_eq ≈ 2×板间距 ≈ 0.006 m
+Δp = (L / D_eq) × f × ρu²/2 + 1.5 × ρu²/2          （Pa）</pre>
+      <p>压降由<strong>摩擦项</strong>（与流道长度、摩擦系数 f 有关）与<strong>进出口局部项</strong>组成，用于反推循环水泵所需扬程。推荐换热器压降 ≤ 100 kPa。</p>
+
+      <h4>六、电源 · 辅机 · 能效</h4>
+
+      <h5>6.1 制氢电源</h5>
+      <pre>电源输入功率 = P_stack / η_rect        含整流器与变压器损耗（默认 96%）</pre>
+
+      <h5>6.2 辅机功耗</h5>
+      <pre>纯水循环泵 P = ρ g H_pump Q / η_pump
+冷却水泵   P = ρ g H_pump Q / η_pump
+冷却塔风机 P = Δp_fan × Q_air / η_fan
+     其中   Q_air = Q_heat × 3600 / (c_air × ΔT_air × ρ_air)
+纯化加热   P = P_stack × 纯化加热占比   （脱氧器与 TSA 干燥再生耗热）
+辅机合计   = 上述四项之和</pre>
+
+      <h5>6.3 系统能效与电耗</h5>
+      <pre>系统输入功率 = 电源输入功率 + 辅机合计
+η_sys(HHV)  = P_H2_HHV / 系统输入功率 × 100 %
+η_sys(LHV)  = P_H2_LHV / 系统输入功率 × 100 %
+电能单耗     = 系统输入功率 / 产氢质量流量(kg/h)     → kWh/kgH₂
+电能单耗     = 系统输入功率 / 产氢体积流量(Nm³/h)    → kWh/Nm³
+
+理论最低电耗：LHV 33.33 kWh/kg、HHV 39.41 kWh/kg</pre>
+      <blockquote>注意区分三组效率：<code>η_HHV / η_LHV</code> 是<strong>电化学效率</strong>（只看电堆本体），<code>η_sys</code> 是<strong>系统效率</strong>（含电源与辅机损耗）。工程报价与可研一般看系统效率与电能单耗；行业典型 PEM 系统电耗为 4.5~5.5 kWh/Nm³。</blockquote>
+
+      <h4>七、安全联锁与设计校核</h4>
+      <table>
+        <tr><th>校核项</th><th>判据</th><th>超限后果 / 措施</th></tr>
+        <tr><td>氢氧压差</td><td>|P_H2 − P_O2| ≤ 限值（默认 0.3 bar）</td><td>膜击穿、氢氧互窜 → 双侧等压运行 + 三重保护</td></tr>
+        <tr><td>氢中氧</td><td>≥2 vol% 报警；≥4 vol% 联锁</td><td>4 vol% 为爆炸下限，须立即切断电源并吹扫置换</td></tr>
+        <tr><td>氧中氢</td><td>≤2 vol%</td><td>判断质子交换膜是否泄漏，超限停车</td></tr>
+        <tr><td>电解槽温度</td><td>≤85 ℃（推荐 60~80 ℃）</td><td>加速膜降解与催化剂（Ir）溶解</td></tr>
+        <tr><td>纯水电阻率</td><td>≥18.2 MΩ·cm（25 ℃）</td><td>金属离子毒化膜与催化剂，电压升高</td></tr>
+        <tr><td>换热器流速</td><td>0.3~1.0 m/s</td><td>过低易结垢，过高压降与冲刷腐蚀大</td></tr>
+        <tr><td>换热器压降</td><td>≤100 kPa</td><td>超出则水泵扬程不足</td></tr>
+        <tr><td>安全等级</td><td>SIL2，独立于主控系统</td><td>软件 + 硬件 + 机械（爆破片）三重保护</td></tr>
+      </table>
+
+      <h4>八、符号与常数</h4>
+      <table>
+        <tr><th>符号</th><th>含义</th><th>取值 / 单位</th></tr>
+        <tr><td>F</td><td>法拉第常数</td><td>96485 C/mol</td></tr>
+        <tr><td>1.481 V</td><td>HHV 热中性电压</td><td>对应 ΔH_HHV = 285.83 kJ/mol</td></tr>
+        <tr><td>1.254 V</td><td>LHV 热中性电压</td><td>对应 ΔH_LHV = 241.83 kJ/mol</td></tr>
+        <tr><td>22.414</td><td>标准状态摩尔体积</td><td>L/mol</td></tr>
+        <tr><td>c_w / ρ_w</td><td>纯水比热 / 密度</td><td>随操作温度变化：c_w = 4178~4216 J/(kg·K)（0~100 ℃）；ρ_w 用 Kell 式（70 ℃ 时 977.8 kg/m³）</td></tr>
+        <tr><td>c_cw / ρ_cw</td><td>冷却水比热 / 密度</td><td>随冷却水进出口均温取值（默认 34 ℃ 时约 4178 J/(kg·K) / 994 kg/m³）</td></tr>
+        <tr><td>c_air / ρ_air</td><td>空气比热 / 密度</td><td>1005 J/(kg·K) / 1.2 kg/m³</td></tr>
+        <tr><td>33.33 / 39.41</td><td>氢 LHV / HHV 质量能量密度</td><td>kWh/kg</td></tr>
+      </table>
+
+      <hr>
+      <p>本页参数与全部计算结果可一键导出为<strong>设计文档</strong>：点击输入栏中的「<code>导出设计文档(PDF)</code>」按钮，页面会按当前工况生成一份含摘要、输入参数、各系统计算、校核结论、极化曲线分解、公式常数与流程图的文档，并调起浏览器打印对话框——选择「另存为 PDF」即可保存（纯本地运行，无需联网）。</p>
+      <p>本说明的完整版——含<strong>默认工况逐值验算</strong>（1 MW 电解槽，每一步代入具体数字）与<strong>参数敏感性分析</strong>——另见同目录下的 <code>pem-calc-logic.html</code>，可直接打开与打印。</p>
+
+    </div>
+  </div>
+</div>
 
 <!-- ============ 第二页：燃料电池混合动力系统计算 ============ -->
 <div class="page" id="page-hybrid">
@@ -824,10 +1626,11 @@
   <!-- 整车参数表（左栏） -->
   <div class="hybrid-section hybrid-side">
     <div class="io-head">
-      <h2>整车参数表</h2>
+      <h2>整车参数表<button type="button" class="sim-help-btn" id="hybridHelpBtn" title="查看计算逻辑说明" aria-label="查看计算逻辑说明">?</button></h2>
       <div class="io-bar">
         <button type="button" class="io-btn" id="hyExportBtn">导出参数</button>
         <button type="button" class="io-btn io-import" id="hyImportBtn">导入参数</button>
+        <button type="button" class="io-btn" id="hybridPdfBtn" title="生成设计文档并调用浏览器打印（另存为 PDF）">导出设计文档(PDF)</button>
         <input type="file" id="hyImportFile" accept=".json,application/json" style="display:none">
       </div>
     </div>
@@ -853,7 +1656,7 @@
       <div class="hybrid-input-group"><label for="batteryEfficiency">动力电池效率η:</label><input type="number" id="batteryEfficiency" value="0.85" step="0.01"></div>
       <div class="hybrid-input-group"><label for="hydrogenBottlePressure">氢气瓶压力(MPa):</label><input type="number" id="hydrogenBottlePressure" value="35" step="1"></div>
       <div class="hybrid-input-group"><label for="hydrogenBottleVolume">氢气瓶容积(L):</label><input type="number" id="hydrogenBottleVolume" value="40" step="1"></div>
-      <div class="hybrid-input-group"><label for="pemCellVoltage">额定工况PEM节电压(V):</label><input type="number" id="pemCellVoltage" value="0.62" step="0.001"></div>
+      <div class="hybrid-input-group"><label for="fuelCellVoltage">燃料电池单体电压(V):</label><input type="number" id="fuelCellVoltage" value="0.62" step="0.001"></div>
       <div class="hybrid-input-group"><label for="hydrogenPrice">氢气价格(元/kg):</label><input type="number" id="hydrogenPrice" value="30" step="0.1"></div>
     </div>
   </div>
@@ -864,7 +1667,7 @@
     <div class="hybrid-results-grid">
       <div class="hybrid-result-section">
         <div class="hybrid-result-item" title="最大爬坡角(θ) = arctan(最大爬坡度/100) × 180/π"><span>最大爬坡角(θ)：</span><span id="maxClimbingAngle"></span></div>
-        <div class="hybrid-result-item" title="加速阶段加速度(m/s²) = 加速末车速/加速时间/3.6×1000"><span>加速阶段加速度(m/s²)：</span><span id="acceleration"></span></div>
+        <div class="hybrid-result-item" title="加速阶段加速度(m/s²) = 加速末车速/加速时间/3.6"><span>加速阶段加速度(m/s²)：</span><span id="acceleration"></span></div>
         <div class="hybrid-result-item" title="Pmax1_最高车速功率(kW) = 最高车速/3600/整车动力传动系统效率 × (整车质量×9.8×滚动阻力系数 + 空气阻力系数×迎风面积×最高车速²/21.15)"><span>Pmax1_最高车速功率(kW)：</span><span id="maxSpeedPower"></span></div>
         <div class="hybrid-result-item" title="Pmax2_最大爬坡功率(kW) = 爬坡车速/3600/整车动力传动系统效率 × (整车质量×9.8×滚动阻力系数×cos(爬坡角) + 整车质量×9.8×sin(爬坡角) + 空气阻力系数×迎风面积×爬坡车速²/21.15)"><span>Pmax2_最大爬坡功率(kW)：</span><span id="maxGradeabilityPower"></span></div>
         <div class="hybrid-result-item" title="Pmax3_最大加速功率(kW) = 加速末车速/3600/整车动力传动系统效率 × (整车质量×9.8×滚动阻力系数 + 空气阻力系数×迎风面积×加速末车速²/21.15 + 旋转质量系数×整车质量×(加速末车速/加速时间/3.6))"><span>Pmax3_最大加速功率(kW)：</span><span id="maxAccelerationPower"></span></div>
@@ -872,12 +1675,12 @@
       <div class="hybrid-result-section">
         <div class="hybrid-result-item" title="电机峰值功率(kW) = max(Pmax1, Pmax2, Pmax3)"><span>电机峰值功率(kW)：</span><span id="motorPeakPower"></span></div>
         <div class="hybrid-result-item" title="电机额定功率(kW) = Pmax1_最高车速功率"><span>电机额定功率(kW)：</span><span id="motorRatedPower"></span></div>
-        <div class="hybrid-result-item" title="电机峰值转速(r/min) = 最高车速×主减速比×变速器高档传动比/0.3768/驱动轮胎半径（与「电机额定转速」的显示位置互换）"><span>电机峰值转速(r/min)：</span><span id="motorPeakRPM"></span></div>
-        <div class="hybrid-result-item" title="电机额定转速(r/min) = 最高车速×主减速比×变速器低档传动比/0.3768/驱动轮胎半径（与「电机峰值转速」的显示位置互换）"><span>电机额定转速(r/min)：</span><span id="motorRatedRPM"></span></div>
+        <div class="hybrid-result-item" title="电机峰值转速(r/min) = 最高车速×主减速比×变速器低档传动比/0.3768/驱动轮胎半径"><span>电机峰值转速(r/min)：</span><span id="motorPeakRPM"></span></div>
+        <div class="hybrid-result-item" title="电机额定转速(r/min) = 最高车速×主减速比×变速器高档传动比/0.3768/驱动轮胎半径"><span>电机额定转速(r/min)：</span><span id="motorRatedRPM"></span></div>
       </div>
       <div class="hybrid-result-section">
         <div class="hybrid-result-item" title="燃料电池额定功率(kW) = 电机额定功率 + 整车附件功率"><span>燃料电池额定功率(kW)：</span><span id="fuelCellRequiredPower"></span></div>
-        <div class="hybrid-result-item" title="额定工况PEM氢耗(g/s) = 燃料电池所需功率×1000/额定工况PEM节电压/96485/(氢气利用率/100)"><span>额定工况PEM氢耗(g/s)：</span><span id="ratedConditionHydrogenConsumption"></span></div>
+        <div class="hybrid-result-item" title="额定工况PEM氢耗(g/s) = 燃料电池所需功率×1000/燃料电池单体电压/96485/(氢气利用率/100)"><span>额定工况PEM氢耗(g/s)：</span><span id="ratedConditionHydrogenConsumption"></span></div>
         <div class="hybrid-result-item" title="PEM所需氢气质量(Kg) = 续驶里程/最高车速×3600×额定工况氢耗/1000"><span>PEM所需氢气质量(Kg)：</span><span id="requiredHydrogenMass"></span></div>
         <div class="hybrid-result-item" title="单瓶存储氢气质量(Kg) = 氢气瓶压力×1000×氢气瓶容积/8.314/298×2.016/1000"><span>单瓶存储氢气质量(Kg)：</span><span id="singleBottleHydrogenMass"></span></div>
         <div class="hybrid-result-item" title="所需氢瓶数量(n) = PEM所需氢气质量/单瓶存储氢气质量"><span>所需氢瓶数量(n)：</span><span id="requiredBottleCount"></span></div>
@@ -904,7 +1707,139 @@
   </div>
 
 </div>
+<!-- 设计文档打印布局：屏幕上隐藏，点「导出设计文档(PDF)」时填充，仅打印时显示 -->
+<div id="hybridPrintLayout"></div>
 </div><!-- /page-hybrid -->
+
+<!-- ============ 混合动力系统匹配 · 计算逻辑说明弹窗 ============ -->
+<div class="sim-help-overlay" id="hybridHelpOverlay">
+  <div class="sim-help-modal" role="dialog" aria-modal="true" aria-labelledby="hybridHelpTitle">
+    <div class="sim-help-head">
+      <h3 id="hybridHelpTitle">混合动力系统匹配 · 计算逻辑说明</h3>
+      <button type="button" class="sim-help-close" id="hybridHelpClose" title="关闭" aria-label="关闭">✕</button>
+    </div>
+    <div class="sim-help-body" id="hybridHelpBody">
+
+      <blockquote>本页是工具链的中间环节：把「燃料电池系统设计」页的设计点放进<strong>整车纵向动力学</strong>，做动力性（最高车速 / 爬坡 / 加速）、燃料电池与动力电池匹配、储氢与氢经济性。参数改动后四组结果即时重算，本页结果又被第三页「整车工况仿真」复用。</blockquote>
+
+      <h4>01 计算链路总览</h4>
+      <p>以<strong>整车纵向动力学</strong>为起点，单向推导、无循环依赖：</p>
+      <pre>① 整车纵向动力学（驱动力 F = 滚动 + 坡道 + 空气 + 加速；功率 P = v·F / 效率）
+      ├─ 工况 A 最高车速 ──► Pmax1
+      ├─ 工况 B 最大爬坡 ──► Pmax2
+      └─ 工况 C 最大加速 ──► Pmax3
+② 电机功率/转速 = max(Pmax1, Pmax2, Pmax3) 与 最高车速档位转速
+      └─► ③ 燃料电池额定功率 = 电机额定功率 + 附件功率
+              ├─► ④ 动力电池功率 = (电机峰值功率/电机效率 − 燃料电池功率)/电池效率
+              └─► ⑤ 额定氢耗 → 续驶里程所需氢量 → 单瓶储氢 → 瓶数
+                      └─► ⑥ 百公里氢耗 → 百公里氢气成本</pre>
+      <blockquote>本页通过 <code>get('hydrogenUtilization')</code> 读取<strong>「燃料电池系统设计」页的氢气利用率</strong>（默认 98.5%）参与额定氢耗；源码虽读隐藏元素 <code>#stackPower</code>，但<strong>该值未参与任何计算</strong>——燃料电池额定功率仅由“电机额定功率 + 附件功率”给出。</blockquote>
+
+      <h4>02 整车纵向动力学（驱动力与需求功率）</h4>
+      <pre>坡度角        gr = atan(坡度%/100)                       （rad）
+行驶阻力 F    = m·g·f·cos(gr)            滚动阻力
+              + m·g·sin(gr)              坡道阻力
+              + Cd·A·v²/21.15            空气阻力
+              + δ·m·a                    加速阻力
+整车需求功率 P = (v / 3600 / max(0.1, η_t)) × F          （kW）</pre>
+      <blockquote>空气阻力 <code>F_a = ½·ρ·Cd·A·v²</code>，把 km/h 口径常数并入后工程上写成 <code>Cd·A·v²/21.15</code>。需求功率把传动效率 <code>η_t</code> 放在<strong>分母</strong>（P 为电池/电机端需提供的功率，F 为车轮处的力），默认 η_t = 0.93。</blockquote>
+
+      <h4>03 三大动力性工况（车速 / 爬坡 / 加速）</h4>
+      <pre>Pmax1_最高车速功率 = roadLoad(v = 最高车速,   a = 0,               grade = 0)
+Pmax2_最大爬坡功率 = roadLoad(v = 爬坡车速,   a = 0,               grade = 最大爬坡度)
+Pmax3_最大加速功率 = roadLoad(v = 加速末车速, a = 加速末车速/加速时间/3.6, grade = 0)
+最大爬坡角 θ = atan(最大爬坡度/100) × 180/π              （°）
+加速阶段加速度 = 加速末车速 / 加速时间 / 3.6              （m/s²）</pre>
+      <p>三工况共用同一阻力函数 <code>vehicleRoadLoad(cfg, v, a, grade)</code>，只代入不同 (v, a, grade)。默认 <code>50/15/3.6 = 0.926 m/s²</code>，既用于加速阻力项也用于 Pmax3，口径一致。</p>
+
+      <h4>04 电机功率与转速</h4>
+      <pre>电机峰值功率 = max(Pmax1, Pmax2, Pmax3)                  （kW）
+电机额定功率 = Pmax1_最高车速功率                        （kW）
+电机峰值转速 = 最高车速 × 主减速比 × 变速器低档传动比 / (0.3768 × 驱动轮胎半径)   （r/min）
+电机额定转速 = 最高车速 × 主减速比 × 变速器高档传动比 / (0.3768 × 驱动轮胎半径)   （r/min）</pre>
+      <p><code>0.3768 ≈ 60/(2π)</code> 是 km/h → r/min 的换算常数。峰值转速取低档传动比（默认 1.4）、额定转速取高档（0.783）；默认参数下 5790 / 3238 r/min，峰值 &gt; 额定。</p>
+
+      <h4>05 燃料电池与动力电池匹配</h4>
+      <pre>燃料电池额定功率 = 电机额定功率 + 整车附件功率                     （kW）
+动力电池所需功率 = (电机峰值功率 / 电机及控制器效率 − 燃料电池额定功率) / 动力电池效率   （kW）</pre>
+      <blockquote><b>混合度</b> = <code>电池功率 / (电池功率 + 燃料电池功率)</code>。默认燃料电池 72.06 kW、电池 50.75 kW → 混合度约 <strong>41%</strong>（中度混合）。燃料电池按额定工况配置、电池承担峰值差额；电池功率可为负（燃料电池已够峰值需求时），本页不做下限截断。</blockquote>
+
+      <h4>06 氢耗 · 储氢 · 续驶里程</h4>
+      <pre>额定工况氢耗 n_H2 = 燃料电池额定功率 × 1000 / 燃料电池单体电压 / 96485 / (氢气利用率/100)   （g/s）
+所需氢气质量 = 续驶里程 / 最高车速 × 3600 × 额定工况氢耗 / 1000                              （kg）
+单瓶储氢质量 = 氢气瓶压力(MPa) × 1000 × 氢气瓶容积(L) / 8.314 / 298 × 2.016 / 1000          （kg）
+所需氢瓶数量 = 所需氢气质量 / max(0.1, 单瓶储氢质量)</pre>
+      <h5>6.1 额定氢耗</h5>
+      <p>由 <code>P = V_cell·I</code> 与法拉第定律 <code>n = I/(2F)</code> 反推：<code>n = P/(V_cell·2F)/η_H2</code>，其中 V_cell 为<strong>燃料电池单体电压</strong>（额定工况，默认 0.62 V）。</p>
+      <h5>6.2 续驶里程所需氢量</h5>
+      <p>按“最高车速等速巡航”简化：<code>续驶里程/最高车速×3600</code> 得时间(s)（默认 400/100×3600 = 14400 s = 4 h），再乘额定氢耗得总氢量。</p>
+      <h5>6.3 单瓶储氢与瓶数</h5>
+      <p>按理想气体 <code>n = pV/(R·T)</code>：p = 瓶压(MPa)×1000 kPa、V = 容积(L)、R = 8.314 J/(mol·K)、T = 298 K（25 ℃）；默认 35 MPa / 40 L 下单瓶约 1.139 kg。</p>
+      <blockquote>单瓶储氢按<strong>理想气体</strong>估算，<strong>未引入高压压缩因子修正</strong>（35 MPa、25 ℃ 下氢气已明显偏离理想气体），工程选瓶应按制造商标定的真实储氢密度复核。</blockquote>
+
+      <h4>07 氢经济性（百公里氢耗与成本）</h4>
+      <pre>额定百公里氢耗 = 额定工况氢耗 × 100 / 最高车速 × 3600 / 1000        （kg/100km）
+额定百公里氢气价格 = 额定百公里氢耗 × 氢气价格                      （元/100km）</pre>
+      <p>按最高车速等速行驶折算，默认约 4.40 kg/100km（重型客车水平），氢气价格默认 30 元/kg。</p>
+
+      <h4>08 默认工况逐值验算</h4>
+      <p>按默认参数（6350 kg、400 km、Cd 0.56、100 km/h、爬坡 30%@15 km/h、加速 50 km/h@15 s、传动/电机/电池效率 0.93/0.93/0.85、氢瓶 35 MPa/40 L、V_cell 0.62 V、氢价 30 元/kg、η_H2 98.5%）代入：</p>
+      <pre>最大爬坡角 θ = atan(30/100)×180/π = 16.70°；加速阶段加速度 = 50/15/3.6 = 0.926 m/s²
+A 最高车速：F_A = 808.99 + 1469.50                 = 2278.49 N → Pmax1 = 68.06 kW
+B 最大爬坡：F_B = 774.88 + 17879.55 + 33.06       = 18687.49 N → Pmax2 = 83.73 kW
+C 最大加速：F_C = 808.99 + 367.38 + 5997.23       = 7173.60 N → Pmax3 = 107.13 kW
+电机峰值功率 = max(68.06, 83.73, 107.13) = 107.13 kW；电机额定功率 = Pmax1 = 68.06 kW
+电机转速：峰值 5790 / 额定 3238 r/min
+燃料电池额定功率 = 68.06 + 4 = 72.06 kW
+动力电池所需功率 = (107.13/0.93 − 72.06)/0.85 = 50.75 kW；混合度 = 41.3 %
+额定工况氢耗 = 72.06×1000/0.62/96485/(98.5/100) = 1.2229 g/s
+续驶时间 = 400/100×3600 = 14400 s → 所需氢气质量 = 17.609 kg
+单瓶储氢 = 35×1000×40/8.314/298×2.016/1000 = 1.139 kg → 所需氢瓶 = 15.46 瓶（向上取 16 瓶）
+百公里氢耗 = 4.4023 kg/100km → 百公里氢价 = 132.07 元/100km</pre>
+
+      <h4>09 参数敏感性分析</h4>
+      <p>满载质量是整车动力性匹配最敏感的单一变量（滚动、坡道、加速三项阻力均与质量成正比）：</p>
+      <table>
+        <tr><th>满载质量 (kg)</th><th>Pmax1 (kW)</th><th>Pmax2 (kW)</th><th>Pmax3 (kW)</th><th>电机峰值 (kW)</th><th>燃料电池 (kW)</th><th>电池 (kW)</th><th>额定氢耗 (g/s)</th><th>百公里氢耗 (kg/100km)</th><th>百公里氢价 (元)</th></tr>
+        <tr><td>5000</td><td>62.92</td><td>65.96</td><td>85.52</td><td>85.52</td><td>66.92</td><td>29.46</td><td>1.1357</td><td>4.088</td><td>122.65</td></tr>
+        <tr><td>6350 <em>（默认）</em></td><td>68.06</td><td>83.73</td><td>107.13</td><td>107.13</td><td>72.06</td><td>50.75</td><td>1.2229</td><td>4.402</td><td>132.07</td></tr>
+        <tr><td>7000</td><td>70.53</td><td>92.29</td><td>117.54</td><td>117.54</td><td>74.53</td><td>61.01</td><td>1.2648</td><td>4.553</td><td>136.60</td></tr>
+        <tr><td>8000</td><td>74.33</td><td>105.45</td><td>133.54</td><td>133.54</td><td>78.33</td><td>76.78</td><td>1.3294</td><td>4.786</td><td>143.57</td></tr>
+      </table>
+      <blockquote><b>读表要点</b>：加速工况恒为主导（<code>Pmax3 &gt; Pmax2 &gt; Pmax1</code>），电机峰值由加速决定；电池功率增幅最大（50.75 → 76.78 kW，峰值差额全部由电池承担）；质量 5000 → 8000 kg 使百公里氢耗 4.09 → 4.79 kg/100km（约 +17%）、百公里氢价 122.7 → 143.6 元。</blockquote>
+
+      <h4>10 安全 · 校核与边界（含计算口径说明）</h4>
+      <table>
+        <tr><th>类型</th><th>项目</th><th>页面处理 / 说明</th></tr>
+        <tr><td>源码限幅</td><td>传动 / 电机 / 电池效率</td><td>均取 <code>max(0.1, 输入值)</code>，防止效率为 0 时功率发散</td></tr>
+        <tr><td>源码限幅</td><td>驱动轮胎半径 / 单瓶储氢质量</td><td><code>max(0.1, …)</code>，防止转速与瓶数除零</td></tr>
+        <tr><td>计算口径</td><td>加速阶段加速度</td><td>由 <code>加速末车速/加速时间/3.6</code> 直接换算（默认 0.926 m/s²），与用于 Pmax3 的加速度同值</td></tr>
+        <tr><td>计算口径</td><td>电机峰值/额定转速</td><td>峰值取低档 1.4（5790 r/min）、额定取高档 0.783（3238 r/min），峰值 &gt; 额定</td></tr>
+        <tr><td>未使用</td><td>#stackPower</td><td>源码读取电堆功率但未参与计算；本页仅用第一页的氢气利用率</td></tr>
+        <tr><td>无下限</td><td>动力电池功率</td><td>可为负（燃料电池已够峰值需求时），页面不做截断</td></tr>
+        <tr><td>工程建议</td><td>Cd / 迎风面积 / 储氢</td><td>默认 0.56 / 5.55 m² 决定高速巡航功率；储氢 35 MPa / 40 L，瓶数需按真实密度复核</td></tr>
+      </table>
+      <blockquote>续驶氢量按“最高车速等速巡航”简化，实际起停 / 爬坡 / 空调附件会显著高于该值，选瓶应留裕量；单瓶储氢按理想气体估算，需按厂商标定复核。</blockquote>
+
+      <h4>11 符号与常数</h4>
+      <table>
+        <tr><th>符号</th><th>含义</th><th>取值 / 单位</th></tr>
+        <tr><td>g</td><td>重力加速度（源码取 9.8）</td><td>9.8 m/s²</td></tr>
+        <tr><td>21.15</td><td>空气阻力工程换算常数</td><td>km/h 口径下的 v² 系数</td></tr>
+        <tr><td>3600</td><td>车速换算常数</td><td>s/h（km/h → 每秒行驶距离）</td></tr>
+        <tr><td>0.3768</td><td>转速换算常数</td><td>≈ 60/(2π)，用于 km/h → r/min</td></tr>
+        <tr><td>R / T / M_H2</td><td>气体常数 / 储氢折算计温 / 氢摩尔质量</td><td>8.314 J/(mol·K) / 298 K / 2.016 g/mol</td></tr>
+        <tr><td>96485</td><td>法拉第常数（额定氢耗式）</td><td>C/mol</td></tr>
+        <tr><td>0.93 / 0.93 / 0.85</td><td>默认传动 / 电机 / 电池效率</td><td>—</td></tr>
+        <tr><td>η_H2</td><td>氢气利用率（取自第一页）</td><td>98.5%</td></tr>
+      </table>
+
+      <hr>
+      <p>本说明的完整版——含默认工况<strong>逐步代入验算</strong>与逐行<strong>参数敏感性分析</strong>——另见同目录下的 <code>hybrid-calc-logic.html</code>，可直接在浏览器打开并打印为 PDF。</p>
+
+    </div>
+  </div>
+</div>
 
 <div class="page" id="page-sim">
 <div class="sim-page">
@@ -923,6 +1858,7 @@
       <button type="button" class="io-btn" id="simExportBtn">导出参数</button>
       <button type="button" class="io-btn io-import" id="simImportBtn">导入参数</button>
       <button type="button" class="io-btn" id="simExportCsvBtn">导出结果(CSV)</button>
+      <button type="button" class="io-btn" id="simPdfBtn" title="生成设计文档并调用浏览器打印（另存为 PDF）">导出设计文档(PDF)</button>
       <input type="file" id="simImportFile" accept=".json,application/json" style="display:none">
     </div>
 
@@ -1058,6 +1994,8 @@
 
   </div>
 </div>
+<!-- 设计文档打印布局：屏幕上隐藏，点「导出设计文档(PDF)」时填充，仅打印时显示 -->
+<div id="simPrintLayout"></div>
 </div><!-- /page-sim -->
 
 <!-- ====== 整车工况仿真 · 使用说明弹窗 ====== -->
@@ -1909,6 +2847,11 @@ equip(60,90,110,56,'equip-air','环境空气','Ambient');
   for(let i=0;i<11;i++) el('line',{x1:240+i*5,y1:104,x2:240+i*5,y2:132,stroke:'#7dd3fc','stroke-width':1.1,opacity:0.7});
   stub(310,112,10,12,'#38bdf8');            // 出口短节
   tagLabel(265,120,['空气滤清器','Filter'],9);
+  /* 气流：进气自左向右穿过滤芯。名称标签(78%不透明)正好盖满内腔，
+     故光斑只能画在标签之上；颗粒取小、数量取少，只间歇扫过文字，
+     不构成持续遮挡。 */
+  [108,119,130].forEach((cy,i)=>el('circle',{cx:236,cy,r:3.0,
+    class:'air-puff air-filt',style:`animation-delay:${(-0.73*i).toFixed(2)}s`}));
 })();
 
 /* -- 同轴连轴示意：空压机 ←→ 尾气膨胀机（蓝虚线，画在设备下层，随膨胀机开关显隐）
@@ -1935,6 +2878,10 @@ el('text',{x:415,y:80,class:'section-tag','text-anchor':'middle'}).textContent='
   for(let i=0;i<5;i++) el('line',{x1:528,y1:107+i*7,x2:602,y2:107+i*7,stroke:'#7dd3fc','stroke-width':1.6,opacity:0.75});
   stub(612,112,8,12,'#38bdf8');
   tagLabel(565,121,['中冷器','Intercooler'],9);
+  /* 气流：增压空气自左向右穿过管束，颜色由热(橙)渐变为冷(蓝)表示被冷却。
+     同滤清器，名称标签盖满内腔，故画在标签之上、取小颗粒。 */
+  [108,119,130].forEach((cy,i)=>el('circle',{cx:528,cy,r:3.0,
+    class:'air-puff air-ic',style:`animation-delay:${(-0.8*i).toFixed(2)}s`}));
 })();
 pipe('M170,118 L210,118','pipe-air','flow-air');
 pipe('M320,118 L360,118','pipe-air','flow-air');
@@ -2011,6 +2958,9 @@ const expanderSym = el('g',{id:'expanderSym'});
 /* 尾气排放：立式消声筒 + 排气口，串在下返竖直管上（出口位置不变，筒体收小） */
 (function(){
   el('rect',{x:1176,y:168,width:28,height:82,rx:12,fill:'#14253c',stroke:'#38bdf8','stroke-width':2});
+  /* 气流：尾气在消声筒内自上而下（画在挡板之下），经喷口排出后消散 */
+  [1187,1193].forEach((cx,i)=>el('circle',{cx,cy:176,r:4.4,
+    class:'air-puff air-exh',style:`animation-delay:${(-1.3*i).toFixed(2)}s`}));
   for(let i=0;i<4;i++)
     el('line',{x1:1183,y1:185+i*19,x2:1197,y2:185+i*19,stroke:'#7dd3fc','stroke-width':1,opacity:0.6});
   el('rect',{x:1184,y:250,width:12,height:26,rx:2,fill:'#14253c',stroke:'#38bdf8','stroke-width':1.6});
@@ -2027,7 +2977,7 @@ const expanderSym = el('g',{id:'expanderSym'});
   el('rect',{x:157,y:414,width:14,height:7,rx:2,fill:'#a78bfa'});                                  // 瓶阀
   tagLabel(112,428,['氢气源','H₂ Cylinder'],9);
 })();
-/* -- 氢气喷射阀：截止阀剖面（双密封锥+阀杆+手轮） (210-320) -- */
+/* -- 氢气比例阀：截止阀剖面（双密封锥+阀杆+手轮） (210-320) -- */
 (function(){
   stub(210,423,33,10,'#a78bfa','#1f1638');
   stub(287,423,33,10,'#a78bfa','#1f1638');
@@ -2037,7 +2987,7 @@ const expanderSym = el('g',{id:'expanderSym'});
   // 阀杆 + 手轮
   el('line',{x1:265,y1:416,x2:265,y2:398,stroke:'#c4b5fd','stroke-width':2.5});
   el('line',{x1:253,y1:398,x2:277,y2:398,stroke:'#c4b5fd','stroke-width':3,'stroke-linecap':'round'});
-  el('text',{x:265,y:453,'text-anchor':'middle',fill:'#e8eef5','font-size':9,'font-weight':'bold'}).textContent='氢气喷射阀';
+  el('text',{x:265,y:453,'text-anchor':'middle',fill:'#e8eef5','font-size':9,'font-weight':'bold'}).textContent='氢气比例阀';
 })();
 pipe('M170,428 L210,428','pipe-h2','flow-h2');
 pipe('M320,428 L350,428','pipe-h2','flow-h2');
@@ -2047,6 +2997,12 @@ const ejec = el('g',{id:'ejector'});
 // 外壳：入口管 → 收缩吸入室 → 喉管 → 扩散管
 el('path',{d:'M350,424 L392,424 L398,416 L438,416 L440,422 L460,422 L520,414 L520,442 L460,434 L440,434 L438,440 L398,440 L392,434 L350,434 Z',
    fill:'#2a1f4a',stroke:'#a78bfa','stroke-width':2},ejec);
+/* 气流：一次流高速射流引射二次流，喉管处加速、扩散管减速。
+   画在喷嘴与射流示意之下，避免遮挡那两个符号。 */
+[[0, 2.6], [-0.55, 3.0], [-1.1, 2.4]].forEach(p=>{
+  el('circle',{cx:410,cy:428,r:p[1],class:'air-puff air-ejec',
+    style:`animation-delay:${p[0]}s`},ejec);
+});
 // 内部一次流喷嘴（收缩锥体）
 el('polygon',{points:'392,424 392,434 405,429',fill:'#a78bfa',opacity:0.9},ejec);
 // 高速射流方向
@@ -2261,15 +3217,16 @@ function updateData(r){
       t.setAttribute('x',bx+pad); t.setAttribute('y',n.y+pad+lh*(i+1)-3);
       t.setAttribute('class','data-text');
       if(tips && tips[i]) t.appendChild(svgTitle(tips[i]));
-      // SVG <text> 不支持 HTML <strong>，改用 <tspan> 着色
-      const segs = l.match(/<strong>[\s\S]*?<\/strong>|[\s\S]+?(?=<strong>|$)/g) || [l];
+      // SVG <text> 不支持 HTML <strong>，改用 <tspan> 着色；<warn> 用于越限值（红色）
+      const segs = l.match(/<(?:strong|warn)>[\s\S]*?<\/(?:strong|warn)>|[\s\S]+?(?=<(?:strong|warn)>|$)/g) || [l];
       segs.forEach(s=>{
         const isVal = /^<strong>/.test(s);
-        const content = s.replace(/<\/?strong>/g,'');
+        const isWarn = /^<warn>/.test(s);
+        const content = s.replace(/<\/?(?:strong|warn)>/g,'');
         if(content.length===0) return;
         const ts = document.createElementNS(SVG_NS,'tspan');
-        ts.setAttribute('fill', isVal ? '#7dd3fc' : '#e2e8f0');
-        ts.setAttribute('font-weight', isVal ? 'bold' : 'normal');
+        ts.setAttribute('fill', isWarn ? '#ef4444' : (isVal ? '#7dd3fc' : '#e2e8f0'));
+        ts.setAttribute('font-weight', (isVal||isWarn) ? 'bold' : 'normal');
         ts.textContent = content;
         t.appendChild(ts);
       });
@@ -2382,9 +3339,11 @@ function updateData(r){
                    `入堆 P:<strong>${f(num('anodeInletPressure'),0)}</strong>kPa`],
       ['系统供氢量(NLPM) = 系统消耗氢气量(mol/s) × 22.4 × 60；系统消耗氢气量 = 理论反应消耗氢气量 × 100/氢气利用率',
        '阳极入口压力(kPa) = 输入参数「阳极入口压力」']);
-  set('h2_mix',[`入堆 RH:<strong>${f(r.h2.inletHydrogenHumidity,1)}</strong>%`,
+  set('h2_mix',[`入堆 RH:${r.h2.inletHydrogenHumidity>100
+                   ? `<warn>${f(r.h2.inletHydrogenHumidity,1)}</warn>`
+                   : `<strong>${f(r.h2.inletHydrogenHumidity,1)}</strong>`}%`,
                 `入堆 T:<strong>${f(r.h2.anodeInletHydrogenTemp,1)}</strong>℃`],
-      ['入堆氢气相对湿度(%) = 出口气态水量/(出口气态水量+系统供氢量+氢气循环量) × 阳极入口压力/饱和蒸汽压 × 100',
+      ['入堆氢气相对湿度(%) = 出口气态水量/(出口气态水量+系统供氢量+氢气循环量) × 阳极入口压力/饱和蒸汽压 × 100；超过 100% 时以红色标示已饱和（此时多余水分以液态存在，已计入进堆液态水）',
        '阳极入口氢气温度(℃) = 输入参数「阳极入口温度」']);
   set('anode_out',[`阳极出 T:<strong>${f(r.h2.anodeOutletTemp,1)}</strong>℃`,
                    `阳极出 P:<strong>${f(r.h2.anodeOutletPressure,0)}</strong>kPa`,
@@ -2635,7 +3594,7 @@ function calculateHybridSystem(){
   const safeTireRadius = Math.max(0.1, tireRadius);
 
   const maxClimbingAngle = Math.atan(maxGradeability / 100) * 180 / Math.PI;
-  const acceleration = accelerationEndSpeed / accelerationTime / 3.6 * 1000;
+  const acceleration = accelerationEndSpeed / accelerationTime / 3.6;
 
   const roadCfg = { vehicleMass, rollingResistance, dragCoefficient, frontalArea,
                     powertrainEfficiency: safePowertrainEfficiency, rotatingMassCoefficient };
@@ -2647,16 +3606,17 @@ function calculateHybridSystem(){
   const motorPeakPower = Math.max(maxSpeedPower, maxGradeabilityPower, maxAccelerationPower);
   const motorRatedPower = maxSpeedPower;
 
-  const motorPeakRPM = (maxSpeed * finalDriveRatio * highGearRatio) / (0.3768 * safeTireRadius);
-  const motorRatedRPM = (maxSpeed * finalDriveRatio * lowGearRatio) / (0.3768 * safeTireRadius);
+  /* 峰值转速取低档（传动比 1.4，电机转得最快）；额定巡航转速取高档（传动比 0.783） */
+  const motorPeakRPM = (maxSpeed * finalDriveRatio * lowGearRatio) / (0.3768 * safeTireRadius);
+  const motorRatedRPM = (maxSpeed * finalDriveRatio * highGearRatio) / (0.3768 * safeTireRadius);
 
   // 燃料电池所需功率 = 电机额定功率 + 附件功率（同时取电堆计算功率的较大值作为约束参考）
   const fuelCellRequiredPower = motorRatedPower + accessoryPower;
 
   const batteryRequiredPower = (motorPeakPower / safeMotorEfficiency - fuelCellRequiredPower) / safeBatteryEfficiency;
 
-  const pemCellVoltage = get('pemCellVoltage') || 0.62;
-  const ratedConditionHydrogenConsumption = fuelCellRequiredPower * 1000 / pemCellVoltage / 96485 / (hydrogenUtilization / 100);
+  const fuelCellVoltage = get('fuelCellVoltage') || 0.62;
+  const ratedConditionHydrogenConsumption = fuelCellRequiredPower * 1000 / fuelCellVoltage / 96485 / (hydrogenUtilization / 100);
 
   const requiredHydrogenMass = range / maxSpeed * 3600 * ratedConditionHydrogenConsumption / 1000;
   const singleBottleHydrogenMass = hydrogenBottlePressure * 1000 * hydrogenBottleVolume / 8.314 / 298 * 2.016 / 1000;
@@ -2675,8 +3635,8 @@ function calculateHybridSystem(){
   set('maxAccelerationPower', maxAccelerationPower.toFixed(2));
   set('motorPeakPower', motorPeakPower.toFixed(2));
   set('motorRatedPower', motorRatedPower.toFixed(2));
-  set('motorPeakRPM', motorRatedRPM.toFixed(0));
-  set('motorRatedRPM', motorPeakRPM.toFixed(0));
+  set('motorPeakRPM', motorPeakRPM.toFixed(0));
+  set('motorRatedRPM', motorRatedRPM.toFixed(0));
   set('fuelCellRequiredPower', fuelCellRequiredPower.toFixed(2));
   set('ratedConditionHydrogenConsumption', ratedConditionHydrogenConsumption.toFixed(4));
   set('requiredHydrogenMass', requiredHydrogenMass.toFixed(3));
@@ -2771,7 +3731,7 @@ const hybridInputIds = ['vehicleMass','range','rollingResistance','dragCoefficie
   'maxGradeability','gradeabilitySpeed','accelerationEndSpeed','accelerationTime','frontalArea',
   'powertrainEfficiency','rotatingMassCoefficient','finalDriveRatio','lowGearRatio','highGearRatio',
   'tireRadius','accessoryPower','motorEfficiency','batteryEfficiency','hydrogenBottlePressure',
-  'hydrogenBottleVolume','pemCellVoltage','hydrogenPrice'];
+  'hydrogenBottleVolume','fuelCellVoltage','hydrogenPrice'];
 hybridInputIds.forEach(id=>{
   const el = document.getElementById(id);
   if(el) el.addEventListener('input', calculateHybridSystem);
@@ -3578,7 +4538,9 @@ function renderKpi(){
   const host = document.getElementById('simKpi');
   if(!host) return;
   if(!SIM.started || !SIM.keys.length){ host.innerHTML=''; return; }
-  const parts = [`<div class="sim-kpi-item">
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const ta = tip => ' title="'+esc(tip)+'"';
+  const parts = [`<div class="sim-kpi-item"${ta('里程 = Σ(工况车速 × dt/3600)（km）；时长 = 工况序列总时长；环境 = 环境温度设定值。准静态 1 s 定步长仿真')}>
       <div class="k-label">仿真工况 / 里程</div>
       <div class="k-value">${SIM.cycle.dist.toFixed(2)} <span style="font-size:.7rem">km</span></div>
       <div class="k-label">时长 ${SIM.cycle.duration.toFixed(0)} s · 环境 ${SIM.anchorEnv.toFixed(0)}℃</div>
@@ -3586,7 +4548,7 @@ function renderKpi(){
   for(const k of SIM.keys){
     const s = SIM.runs[k].summary;
     if(!s) continue;
-    parts.push(`<div class="sim-kpi-item">
+    parts.push(`<div class="sim-kpi-item"${ta('百公里氢耗 = 累计耗氢 / 行驶里程 × 100，用于跨工况对比；系统效率 = (需求电功 − 缺功率)/(氢 LHV 化学能 + 电池净输出到母线的电功) × 100，恒 ≤ 100%；SOC 终值 = 库仑积分末值，应 ≥ SOC 下限；峰值温度 = 全程电堆冷却液温度最大值，应 ≤ 电堆允许上限，超限说明散热不足；缺功率 > 0 表示电堆与电池均无法满足需求')}>
       <div class="k-label" style="color:${SIM.runs[k].color};font-weight:bold">${SIM.runs[k].label}</div>
       <div class="k-value">${s.per100.toFixed(2)} <span style="font-size:.7rem">kg/100km</span></div>
       <div class="k-label">效率 ${s.eta.toFixed(1)}% · SOC ${s.socEnd.toFixed(1)}%</div>
@@ -3606,9 +4568,26 @@ function renderSummary(){
   const pool = valid.length ? valid : rows;
   let best = pool[0];
   for(const r of pool) if(r.s.per100 < best.s.per100) best = r;
-  const head = ['策略','里程(km)','总氢耗(kg)','百公里氢耗(kg/100km)','系统效率(%)','SOC终值(%)','SOC最低(%)',
-                '电池吞吐(kWh)','温度峰值(℃)','温度终值(℃)','PTC补热(kWh)','功率受限(s)',
-                'λ越限(s)','估算续航(km)','缺功率(kWh)','弃电(kWh)'];
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const ta = tip => ' title="'+esc(tip)+'"';
+  const head = [
+    ['策略', '策略 = 仿真采用的功率分配/控制策略；每个策略对应一行'],
+    ['里程(km)', '里程 = Σ(工况车速 × dt/3600)（km）；准静态 1 s 定步长仿真'],
+    ['总氢耗(kg)', '总氢耗 = Σ 氢质量流量 × dt（kg）；氢质量流量 = 电堆产氢摩尔流量 × 2.016×10⁻³'],
+    ['百公里氢耗(kg/100km)', '百公里氢耗 = 累计耗氢 / 行驶里程 × 100，用于跨工况对比'],
+    ['系统效率(%)', '系统效率 = (需求电功 − 缺功率)/(氢 LHV 化学能 + 电池净输出到母线的电功) × 100，恒 ≤ 100%'],
+    ['SOC终值(%)', 'SOC 终值 = 库仑积分末值；应 ≥ SOC 下限，低于下限说明仿真结束时电量不足'],
+    ['SOC最低(%)', 'SOC 最低 = 全程 SOC 最小值；应 ≥ SOC 下限，越限说明电量管理不足'],
+    ['电池吞吐(kWh)', '电池吞吐 = Σ 电池内耗电功 × dt（kWh），表征电池循环能量'],
+    ['温度峰值(℃)', '温度峰值 = 全程电堆冷却液温度最大值；应 ≤ 电堆允许上限，超限说明散热不足'],
+    ['温度终值(℃)', '温度终值 = 仿真结束时刻电堆冷却液温度'],
+    ['PTC补热(kWh)', 'PTC 补热 = Σ PTC 加热功率 × dt（kWh）；温度低于目标值时补热，越低补热越多'],
+    ['功率受限(s)', '功率受限 = 冷态功率上限被限值封顶的行驶秒数；应 ≤ 25% 行驶时长'],
+    ['λ越限(s)', 'λ 越限 = 膜含水量 λ 超出干燥/水淹阈值的秒数之和；应 ≤ 60 s，越高说明水热管理欠佳'],
+    ['估算续航(km)', '估算续航 = 车载储氢质量 / 百公里氢耗 × 100（km），按整车页储氢量折算，为量级参考'],
+    ['缺功率(kWh)', '缺功率 = Σ max(0, 需求功率 − 电池放电上限) × dt（kWh）；> 0 表示电堆与电池均无法满足需求'],
+    ['弃电(kWh)', '弃电 = Σ max(0, 电堆富余功率 − 电池充电上限) × dt（kWh）；电池已满而电堆富余无处可去']
+  ];
   const body = rows.map(r=>{
     const s = r.s, over = s.dryPct + s.floodPct;
     const driveSec = Math.max(1, (SIM.cycle && SIM.cycle.duration) || 1);
@@ -3618,23 +4597,23 @@ function renderSummary(){
       `<td class="num">${s.h2kg.toFixed(3)}</td>`,
       `<td class="num">${s.per100.toFixed(2)}</td>`,
       `<td class="num">${s.eta.toFixed(1)}</td>`,
-      `<td class="num${s.socEnd < SIM.cfg.sim.socMin*100 ? ' warn':''}">${s.socEnd.toFixed(1)}</td>`,
-      `<td class="num${s.socMin < SIM.cfg.sim.socMin*100 ? ' warn':''}">${s.socMin.toFixed(1)}</td>`,
+      `<td class="num${s.socEnd < SIM.cfg.sim.socMin*100 ? ' warn':''}"${ta('判据 SOC 终值 ≥ SOC 下限；低于下限标红，说明仿真结束时电量不足')}>${s.socEnd.toFixed(1)}</td>`,
+      `<td class="num${s.socMin < SIM.cfg.sim.socMin*100 ? ' warn':''}"${ta('判据 SOC 最低值 ≥ SOC 下限；低于下限标红，说明电量跌穿下限')}>${s.socMin.toFixed(1)}</td>`,
       `<td class="num">${s.eBat.toFixed(2)}</td>`,
       `<td class="num">${s.tMax.toFixed(1)}</td>`,
       `<td class="num">${s.tEnd.toFixed(1)}</td>`,
       `<td class="num">${s.ptcKWh.toFixed(2)}</td>`,
-      `<td class="num${s.tLimited > 0.25*driveSec ? ' warn':''}">${s.tLimited.toFixed(0)}</td>`,
-      `<td class="num${over > 60 ? ' warn':''}">${over.toFixed(0)}</td>`,
+      `<td class="num${s.tLimited > 0.25*driveSec ? ' warn':''}"${ta('判据 功率受限秒数 ≤ 25% 行驶时长；超过标红，说明低温下功率被明显限值')}>${s.tLimited.toFixed(0)}</td>`,
+      `<td class="num${over > 60 ? ' warn':''}"${ta('判据 λ 越限秒数 ≤ 60 s；超过标红，说明膜水管理偏离合适区间')}>${over.toFixed(0)}</td>`,
       `<td class="num">${s.range>0 ? s.range.toFixed(0) : '—'}</td>`,
-      `<td class="num${s.shortfall > 0.01 ? ' warn':''}">${s.shortfall.toFixed(2)}</td>`,
-      `<td class="num${s.dump > 0.01 ? ' warn':''}">${s.dump.toFixed(2)}</td>`
+      `<td class="num${s.shortfall > 0.01 ? ' warn':''}"${ta('判据 缺功率 ≤ 0.01 kWh；出现标红，说明电堆与电池合力不足，该策略氢耗不具可比性')}>${s.shortfall.toFixed(2)}</td>`,
+      `<td class="num${s.dump > 0.01 ? ' warn':''}"${ta('判据 弃电 ≤ 0.01 kWh；出现标红，说明电池充电受限、能量被浪费')}>${s.dump.toFixed(2)}</td>`
     ].join('');
     return `<tr class="${r.k===best.k ? 'best':''}">${cells}</tr>`;
   }).join('');
   host.innerHTML =
     `<div style="overflow-x:auto"><table class="sim-table">
-       <thead><tr>${head.map(x=>`<th>${x}</th>`).join('')}</tr></thead>
+       <thead><tr>${head.map(h=>`<th${ta(h[1])}>${h[0]}</th>`).join('')}</tr></thead>
        <tbody>${body}</tbody></table></div>
      <div class="sim-note" style="margin-top:8px">
        氢耗最优：<b style="color:${SIM.runs[best.k].color}">${SIM.runs[best.k].label}</b>${valid.length ? '' : '（本次所有策略均存在缺功率，氢耗不具可比性）'}
@@ -3790,6 +4769,32 @@ document.getElementById('simHelpClose').addEventListener('click', closeSimHelp);
 simHelpOverlay.addEventListener('click', (e)=>{ if(e.target === simHelpOverlay) closeSimHelp(); });
 document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeSimHelp(); });
 
+/* 燃料电池系统设计页 · 计算逻辑说明弹窗（问号打开；✕ / 遮罩 / Esc 关闭） */
+(function(){
+  const ov = document.getElementById('pfdHelpOverlay');
+  const body = document.getElementById('pfdHelpBody');
+  if(!ov) return;
+  const open = ()=>{ ov.classList.add('open'); if(body) body.scrollTop = 0; };
+  const close = ()=>{ ov.classList.remove('open'); };
+  document.getElementById('pfdHelpBtn').addEventListener('click', open);
+  document.getElementById('pfdHelpClose').addEventListener('click', close);
+  ov.addEventListener('click', e=>{ if(e.target === ov) close(); });
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape') close(); });
+})();
+
+/* 混合动力系统匹配页 · 计算逻辑说明弹窗（问号打开；✕ / 遮罩 / Esc 关闭） */
+(function(){
+  const ov = document.getElementById('hybridHelpOverlay');
+  const body = document.getElementById('hybridHelpBody');
+  if(!ov) return;
+  const open = ()=>{ ov.classList.add('open'); if(body) body.scrollTop = 0; };
+  const close = ()=>{ ov.classList.remove('open'); };
+  document.getElementById('hybridHelpBtn').addEventListener('click', open);
+  document.getElementById('hybridHelpClose').addEventListener('click', close);
+  ov.addEventListener('click', e=>{ if(e.target === ov) close(); });
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape') close(); });
+})();
+
 let simResizeTimer = 0;
 window.addEventListener('resize', ()=>{
   if(simResizeTimer) clearTimeout(simResizeTimer);
@@ -3805,6 +4810,1586 @@ setupParamIO({
   importFileId: 'simImportFile',
   onImported: ()=>{ resetSim(); }
 });
+
+/* ---------------- 第一页：设计文档导出（浏览器原生打印 → PDF，零依赖） ---------------- */
+(function(){
+  const esc  = s => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const f0 = v => (Number(v)||0).toFixed(0);
+  const f1 = v => (Number(v)||0).toFixed(1);
+  const f2 = v => (Number(v)||0).toFixed(2);
+  const row2 = (l,v,cls)=>'<tr><th>'+esc(l)+'</th><td'+(cls?' class="'+cls+'"':'')+'>'+esc(v)+'</td></tr>';
+  const row3 = (a,b,c)=>'<tr><th>'+esc(a)+'</th><td>'+esc(b)+'</td><td>'+esc(c)+'</td></tr>';
+  const tab  = (rows,head)=>'<table class="pdl-tab">'
+      + (head?'<thead><tr>'+head.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead>':'')
+      + '<tbody>'+rows.join('')+'</tbody></table>';
+  const sec  = (t,inner)=>'<section class="pdl-sec"><h3>'+esc(t)+'</h3>'+inner+'</section>';
+
+  const PFD_PANELS = [
+    ['散热器计算', 'hx-rad-results'],
+    ['中冷器计算', 'hx-ic-results'],
+    ['阀门流体计算', 'hx-valve-results']
+  ];
+  /* 读取数据气泡的文本行：只取 <text.data-text> 内的 <tspan>，
+     刻意排除气泡自带的 <title>（悬停公式），避免把公式混进数值。 */
+  function pfdBubbleLines(id){
+    const g = document.getElementById('d_'+id);
+    if(!g) return [];
+    const out = [];
+    g.querySelectorAll('text.data-text').forEach(t=>{
+      const s = Array.from(t.querySelectorAll('tspan')).map(x=>x.textContent).join('').replace(/\s+/g,' ').trim();
+      if(s) out.push(s);
+    });
+    return out;
+  }
+  /* 气泡文本行 → 表格行：按第一个冒号拆成「项目 / 数值」；无冒号或数值为空的行整行合并。 */
+  function pfdBubbleRows(id, fallback){
+    let lines = pfdBubbleLines(id);
+    if(!lines.length) lines = fallback || [];
+    return lines.map(l=>{
+      const i = l.indexOf(':');
+      if(i < 0) return '<tr><td colspan="2">'+esc(l)+'</td></tr>';
+      const lab = l.slice(0,i).trim(), val = l.slice(i+1).trim();
+      if(!val) return '<tr><td colspan="2">'+esc(lab)+'</td></tr>';
+      return row2(lab, val);
+    });
+  }
+  function pfdReadPanel(id){
+    const host = document.getElementById(id);
+    if(!host) return [];
+    if(!host.querySelector('.hx-result-row')) renderHxResults();
+    const out = [];
+    host.querySelectorAll('.hx-result-row').forEach(rw=>{
+      const l = rw.querySelector('.hx-r-label'), v = rw.querySelector('.hx-r-value');
+      if(!l || !v) return;
+      const val = (v.textContent || '').replace(/\s+/g,' ').trim();
+      if(!val) return;
+      out.push({ label:l.textContent.trim(), value:val, warn:v.classList.contains('warn') });
+    });
+    return out;
+  }
+
+  /* 流程图：克隆 #pfd → 内联页面样式（SVG 作为 <img> 时不会套用页面 CSS）→ data-URI <img> */
+  function pfdFigure(){
+    const src = document.getElementById('pfd');
+    if(!src) return null;
+    const SVGS = 'http://www.w3.org/2000/svg';
+    const clone = src.cloneNode(true);
+    clone.setAttribute('xmlns', SVGS);
+    clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+    clone.setAttribute('width', '1500');
+    clone.setAttribute('height', '880');
+    let css = '';
+    Array.from(document.styleSheets).forEach(sh=>{
+      try{ Array.from(sh.cssRules).forEach(rr=>{ css += rr.cssText + '\n'; }); }catch(err){}
+    });
+    const styleEl = document.createElementNS(SVGS, 'style');
+    styleEl.textContent = css;
+    clone.insertBefore(styleEl, clone.firstChild);
+    const img = document.createElement('img');
+    img.className = 'pdl-pfd-img';
+    img.alt = '燃料电池系统流程图';
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(clone));
+    return img;
+  }
+
+  function buildPfdPrintLayout(){
+    const box = document.getElementById('pfdPrintLayout');
+    if(!box) return;
+    const r = calc();
+    const d = new Date(), p2 = n => (n<10?'0':'')+n;
+    const ts = d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+' '+p2(d.getHours())+':'+p2(d.getMinutes());
+    const h2Lhv = r.stack.h2 * H2_LHV_KJ_PER_MOL;
+    const netEta = h2Lhv>0 ? r.bop.systemNetPower/h2Lhv*100 : 0;
+    const bop = r.bop;
+    const f3 = v => (Number(v)||0).toFixed(3);
+    const skipped = [];
+    /* 组标题行（跨两列），用于在同一张表内分隔子系统 / 热交换器面板 */
+    const grp = t => '<tr><th colspan="2">'+esc(t)+'</th></tr>';
+
+    /* ① 题头 + 设计点摘要 */
+    const sum = [
+      ['电堆直流功率',            f1(r.stack.power)+' kW'],
+      ['反应产热（LHV）',          f1(r.stack.heat)+' kW'],
+      ['系统输出功率',            f1(bop.systemNetPower)+' kW'],
+      ['系统净效率（LHV）',         f1(netEta)+' %'],
+      ['电堆电压',                f1(r.stack.voltage)+' V'],
+      ['电堆效率（单片电压/1.254）', f1(r.stack.efficiency)+' %']
+    ];
+    const headHtml = '<div class="pdl-head">'
+      + '<div class="pdl-title"><h1>燃料电池系统设计 · 设计文档</h1>'
+      + '<div class="pdl-meta"><span>生成时间：'+esc(ts)+'</span>'
+      + '<span>工作点：单片电压 U_cell = '+f1(num('cellVoltage'))+' V · 单片数 N = '+f0(num('cellCount'))+' 节 · 电流密度 j = '+f2(num('currentDensity'))+' A/cm² · 操作温度 T = '+f0(num('operatingTemp'))+' ℃</span></div></div>'
+      + '<div class="pdl-sum">'+sum.map(s=>'<div class="pdl-sum-item"><div class="k">'+esc(s[0])+'</div><div class="v">'+esc(s[1])+'</div></div>').join('')+'</div>'
+      + '</div>';
+
+    /* ② 输入参数表（读 INPUTS，当前值与步长取自页面输入框） */
+    const inpRows = INPUTS.map(it=>{
+      const el = document.getElementById(it.id);
+      return row3(it.label, el ? el.value : '', it.step);
+    });
+    const inpHtml = sec('一、输入参数（共 '+INPUTS.length+' 项）', tab(inpRows, ['参数','当前值','步长']));
+
+    /* 气泡构成的表格行：优先读屏幕上已渲染的气泡；为空则回退到 calc() 的值 */
+    const secBubbles = (title, items, extra)=>{
+      let rows = [];
+      items.forEach(it=>{ rows = rows.concat(pfdBubbleRows(it.id, it.fb)); });
+      if(extra) rows = rows.concat(extra);
+      if(!rows.length){ skipped.push(title); return ''; }
+      return sec(title, tab(rows, ['项目','数值']));
+    };
+
+    /* ③ 电堆电化学（stack_top 气泡；节数取自输入参数） */
+    const secStack = secBubbles('二、电堆电化学', [
+      { id:'stack_top', fb:[
+        '功率:'+f1(r.stack.power)+'kW',
+        '效率:'+f1(r.stack.efficiency)+'%',
+        '电压:'+f1(r.stack.voltage)+'V',
+        '电流:'+f1(r.stack.current)+'A',
+        '反应热:'+f1(r.stack.heat)+'kW',
+        '产水:'+f3(r.stack.water)+'mol/s'
+      ]}
+    ], [ row2('电堆节数', f0(num('cellCount'))+' 节') ]);
+
+    /* ④ 氢气子系统（h2_supply / h2_mix / anode_out / sep / recirc 气泡 + 输入参数） */
+    const secH2 = secBubbles('三、氢气子系统', [
+      { id:'h2_supply', fb:['供氢:'+f1(r.h2.sysSupplyNLPM)+'NLPM','入堆 P:'+f0(num('anodeInletPressure'))+'kPa'] },
+      { id:'h2_mix',    fb:['入堆 RH:'+f1(r.h2.inletHydrogenHumidity)+'%','入堆 T:'+f1(r.h2.anodeInletHydrogenTemp)+'℃'] },
+      { id:'anode_out', fb:['阳极出 T:'+f1(r.h2.anodeOutletTemp)+'℃','阳极出 P:'+f0(r.h2.anodeOutletPressure)+'kPa',
+                            'RH:'+f1(r.h2.anodeOutletHumidity)+'%','总水:'+f3(r.h2.anodeOutletWater)+'mol/s'] },
+      { id:'sep',       fb:['液态水:'+f3(r.h2.anodeLiquidWater)+'mol/s','冷凝放热:'+f2(r.h2.anodeCondensationHeat)+'kW'] },
+      { id:'recirc',    fb:['循环量:'+f1(r.h2.recircNLPM)+'NLPM','尾气:'+f1(r.h2.exhaust)+'NLPM'] }
+    ], [ row2('氢气利用率', f1(num('hydrogenUtilization'))+' %') ]);
+
+    /* ⑤ 空气子系统（ambient / comp / cathode_out / exhaust / expander / hum_dry 气泡） */
+    const secAir = secBubbles('四、空气子系统', [
+      { id:'ambient', fb:['环境温度:'+f1(r.airThermal.temperatureCAtHeight)+'℃','环境湿度:'+f0(num('humidity'))+'%',
+                          '大气压:'+f0(r.airThermal.pressureAtHeight)+'Pa','大气密度:'+(Number(r.airThermal.densityAtHeight)||0).toFixed(4)+'kg/m³'] },
+      { id:'comp', fb:['空压机出温:'+f1(r.airThermal.outletAirTempC)+'℃','温升:'+f1(r.airThermal.airTempRise)+'K',
+                       '压比 ε:'+f2(r.airThermal.compressorPressureRatio),'级数:'+r.airThermal.stageCount,
+                       '功耗:'+f1(r.airThermal.compressorPowerConsumption)+'W','净功耗:'+f1(r.airThermal.netCompressorPower)+'W',
+                       '流量:'+f1(r.air.supplyNLPM)+'NLPM'] },
+      { id:'cathode_out', fb:['阴极出 T:'+f1(r.air.cathodeOutletTemp)+'℃','阴极出 P:'+f0(r.air.cathodeOutletPressure)+'kPa',
+                              'RH:'+f1(r.air.airOutletHumidity)+'%'] },
+      { id:'exhaust', fb:['排气量:'+f1(r.air.outletNLPM)+'NLPM','液态水:'+f3(r.air.outletLiquidWater)+'mol/s',
+                          '露点:'+f1(r.air.outletDewPointTemp)+'℃'] },
+      { id:'expander', fb:(r.airThermal.expanderOn?[
+                          '膨胀比:'+f2(r.airThermal.expanderPressureRatio),'入口 T:'+f1(r.airThermal.expanderInletTempK-273.15)+'℃',
+                          '出口 T:'+f1(r.airThermal.expanderOutletTempC)+'℃','通流:'+f1(r.airThermal.expanderMassFlow)+'g/s',
+                          '回收功:'+f1(r.airThermal.expanderPower)+'W','回收率:'+f1(r.airThermal.expanderRecoveryRatio)+'%',
+                          '净功耗:'+f1(r.airThermal.netCompressorPower)+'W']:[]) },
+      { id:'hum_dry', fb:['干侧 T:'+f1(r.hum.dryT)+'℃','干侧 RH:'+f1(r.hum.dryRH)+'%',
+                          '加湿水:'+f3(r.hum.dryWater)+'mol/s','效率:'+f0(r.hum.eff)+'%'] }
+    ]);
+
+    /* ⑥ 热管理与冷却：气泡（中冷器 / 湿侧加湿 / 冷却水泵 / 热负荷汇总）+ 三个换热器结果面板 */
+    let thermRows = [];
+    const gadd = (t, id, fb)=>{
+      const rows = pfdBubbleRows(id, fb);
+      if(rows.length){ thermRows.push(grp(t)); thermRows = thermRows.concat(rows); }
+    };
+    gadd('中冷器', 'intercooler', ['出温:'+f1(r.air.intercoolerOutletTemp)+'℃','热负荷:'+f1(r.cool.intercoolerHeat)+'kW']);
+    gadd('湿侧加湿', 'hum_wet', ['湿侧 T:'+f1(r.hum.wetT)+'℃','湿侧 RH:'+f1(r.hum.wetRH)+'%','湿侧水量:'+f3(r.hum.wetWater)+'mol/s']);
+    gadd('冷却水泵', 'cool_pump', ['冷却液流量:'+f1(r.cool.flow)+'L/min','密度:'+f0(r.cool.density)+'kg/m³','比热:'+f2(r.cool.cp)+'kJ/(kg·K)']);
+    gadd('总热负荷', 'heat_sum', ['热负荷汇总:','中冷器:'+f1(r.cool.intercoolerHeat)+'kW','冷凝放热:'+f1(r.cool.superSatHeat)+'kW',
+                                  '反应产热:'+f1(r.cool.reactionHeat)+'kW','总热负荷:'+f1(r.cool.totalHeat)+'kW']);
+    PFD_PANELS.forEach(([t,id])=>{
+      const rows = pfdReadPanel(id);
+      if(rows.length){ thermRows.push(grp(t)); thermRows = thermRows.concat(rows.map(x=>row2(x.label, x.value, x.warn?'pdl-warn':''))); }
+      else skipped.push(t);
+    });
+    const secTherm = thermRows.length ? sec('五、热管理与冷却', tab(thermRows, ['项目','数值'])) : '';
+
+    /* ⑦ 系统功率汇总：读取 foreignObject 内 pfdPowTable 已渲染的行；为空则回退 calc() */
+    let powRows = [];
+    const powT = document.getElementById('pfdPowTable');
+    if(powT){
+      powT.querySelectorAll('.pfd-pow-row').forEach(rw=>{
+        const sp = rw.querySelectorAll('span');
+        const l = sp[0] ? sp[0].textContent.trim() : '';
+        const v = sp[1] ? sp[1].textContent.trim() : '';
+        if(!l) return;
+        powRows.push((rw.classList.contains('pfd-pow-group') || !v) ? grp(l) : row2(l, v));
+      });
+    }
+    if(!powRows.length){
+      powRows = [
+        row2('电堆电流', f1(r.stack.current)+' A'),
+        row2('电堆电压', f1(r.stack.voltage)+' V'),
+        row2('电堆功率', f1(r.stack.power)+' kW'),
+        row2('电堆效率', f1(r.stack.efficiency)+' %'),
+        row2('反应产热', f1(r.stack.heat)+' kW'),
+        grp('辅机功耗（BOP）'),
+        row2('空压机净功耗', f2(bop.compressor)+' kW'),
+        row2('冷却液泵功耗', f3(bop.pump)+' kW'),
+        row2('散热风扇功耗', f3(bop.fan)+' kW'),
+        row2('氢气循环泵功耗', f3(bop.h2Pump)+' kW'),
+        row2('辅机合计', f2(bop.total)+' kW'),
+        grp('系统输出'),
+        row2('系统输出功率', f2(bop.systemNetPower)+' kW'),
+        row2('系统净效率', f1(netEta)+' %')
+      ];
+    }
+    const secPow = sec('六、系统功率汇总', tab(powRows, ['项目','数值']));
+
+    /* ⑧ 关键公式与常数（浓缩版，≤15 行） */
+    const formulas = [
+      '电堆：I = A × j；V_stack = U_cell × N；P_stack = I × V_stack / 1000；η_stack = U_cell / 1.254 × 100',
+      '反应产热：Q = P_stack ×（1.254 − U_cell）/ U_cell   （氢低热值口径，1.254 V 为热中性电压）',
+      '理论氢耗：n_H₂ = A × j × N /（2F），F = 96485 C/mol；理论氧耗 = n_H₂ / 2；理论产水 = n_H₂',
+      '阳极：系统氢耗 = 理论氢耗 × 100 / 氢气利用率；循环量 = 理论氢耗 ×（氢气计量比 − 1）',
+      '阴极空气：系统供气 = 理论氢耗 / 2 × 空气计量比 / 0.21',
+      '饱和蒸汽压：p_sat(T) = 9.7e-7·T⁴ − 3.455e-5·T³ + 3.71504e-3·T² + 0.01245629·T + 0.71004367  （kPa，T 为 ℃）',
+      '阴阳极水热平衡：按「入堆水量 = 冷凝回用水 + 出口气态水」迭代 5 次；冷凝放热 = 液态水量 × 18 × 2258 / 1000（kW）',
+      '系统总热负荷 = 中冷器热负荷 + 过饱和水冷凝放热 + 反应产热',
+      '空压机：压比 ε = 阴极出口压力 / 大气压；级压比 = ε^(1/级数)；出口温度 T₂ = T₁ ×（1 +（ε^((κ−1)/κ) − 1）/ η_等熵）',
+      '压缩功 = 质量流量 × cp × ΔT；膨胀机回收功 = 质量流量 × cp ×（T_in − T_out）；净功耗 = 压缩功 − 回收功',
+      '辅机功耗 = 体积流量 × 压升 / 效率（冷却液泵 / 散热风扇 / 氢气循环泵）',
+      '系统净功率 = 电堆功率 − 辅机合计；系统净效率 = 系统净功率 /（理论氢耗 × 241.92 kJ/mol）× 100',
+      '常数：F = 96485 C/mol；V_热中性(LHV) = 1.254 V；H₂ LHV = 120 MJ/kg = 241.92 kJ/mol；空气 R = 287.1 J/(kg·K)、cp = 1.005 kJ/(kg·K)、κ = 1.4'
+    ].join('\n');
+    const fmHtml = sec('七、关键公式与常数', '<pre class="pdl-pre">'+esc(formulas)+'</pre>');
+
+    /* ⑨ 流程图（纵向 A4，图幅旋转 90° 竖放） */
+    const pfdHtml = '<section class="pdl-sec pdl-pfd-sec"><h3>八、流程图 · 燃料电池系统（PFD）</h3><div class="pdl-pfd-fig"></div></section>';
+
+    box.innerHTML = '<div class="pdl">'+headHtml+inpHtml+secStack+secH2+secAir+secTherm+secPow+fmHtml
+      + '<div class="pdl-foot">本文件由 system-flow.html 的「导出设计文档(PDF)」按钮在浏览器本地生成（零依赖），数值与该页当前工况的实时计算结果一致。</div>'
+      + pfdHtml
+      + '</div>';
+    if(skipped.length) console.warn('[PFD 导出] 以下数据源为空已跳过：', skipped.join('、'));
+    const figWrap = box.querySelector('.pdl-pfd-fig');
+    const fig = pfdFigure();
+    if(figWrap && fig) figWrap.appendChild(fig);
+  }
+  /* 点按钮：填布局 → 等流程图像素解码完成 → 加打印类 → 调起打印；afterprint 复原 */
+  const pfdPdfBtn = document.getElementById('pfdPdfBtn');
+  if(pfdPdfBtn) pfdPdfBtn.addEventListener('click', ()=>{
+    buildPfdPrintLayout();
+    let fired = false;
+    const go = ()=>{
+      if(fired) return; fired = true;
+      document.body.classList.add('printing-pfd');
+      window.print();
+    };
+    const fig = document.querySelector('#pfdPrintLayout img.pdl-pfd-img');
+    if(fig && !fig.complete){
+      fig.addEventListener('load', go, {once:true});
+      fig.addEventListener('error', go, {once:true});
+      setTimeout(go, 2000);
+    } else go();
+  });
+  window.addEventListener('afterprint', ()=>{ document.body.classList.remove('printing-pfd'); });
+})();
+
+/* ---------------- 第二页：混合动力系统匹配 设计文档导出（浏览器原生打印 → PDF，零依赖） ---------------- */
+(function(){
+  const esc  = s => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const row2 = (l,v,cls)=>'<tr><th>'+esc(l)+'</th><td'+(cls?' class="'+cls+'"':'')+'>'+esc(v)+'</td></tr>';
+  const row3 = (a,b,c)=>'<tr><th>'+esc(a)+'</th><td>'+esc(b)+'</td><td>'+esc(c)+'</td></tr>';
+  const tab  = (rows,head)=>'<table class="pdl-tab">'
+      + (head?'<thead><tr>'+head.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead>':'')
+      + '<tbody>'+rows.join('')+'</tbody></table>';
+  const sec  = (t,inner)=>'<section class="pdl-sec"><h3>'+esc(t)+'</h3>'+inner+'</section>';
+  const txt  = el => el ? (el.textContent||'').replace(/\s+/g,' ').trim() : '';
+  const trimLabel = s => s.replace(/[：:]\s*$/,'').replace(/\s+/g,' ').trim();
+  /* 计算结果分组标题：与页面上四个 .hybrid-result-section（动力性 / 电机 / 燃料电池与储氢 / 电池与经济性）一一对应 */
+  const GROUP_TITLES = ['一、动力性计算','二、电机参数','三、燃料电池与储氢','四、动力电池与氢耗经济性'];
+
+  function buildHybridPrintLayout(){
+    const box = document.getElementById('hybridPrintLayout');
+    if(!box) return;
+    if(typeof calculateHybridSystem === 'function') calculateHybridSystem();   // 保证读到与屏幕一致的当前值
+    const d = new Date(), p2 = n => (n<10?'0':'')+n;
+    const ts = d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+' '+p2(d.getHours())+':'+p2(d.getMinutes());
+    const skipped = [];
+    const val = id => { const el = document.getElementById(id); return el ? (el.textContent||'').trim() : ''; };
+    const ival = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+
+    /* ① 题头 + 设计点摘要 */
+    const sum = [
+      ['电机峰值功率',         val('motorPeakPower')+' kW'],
+      ['电机额定功率',         val('motorRatedPower')+' kW'],
+      ['燃料电池额定功率',      val('fuelCellRequiredPower')+' kW'],
+      ['动力电池需求功率',      val('batteryRequiredPower')+' kW'],
+      ['所需氢瓶数',           val('requiredBottleCount')+' 瓶'],
+      ['额定百公里氢耗 / 成本', val('rated100kmHydrogenConsumption')+' kg/100km · '+val('rated100kmHydrogenPrice')+' 元/100km']
+    ];
+    const headHtml = '<div class="pdl-head">'
+      + '<div class="pdl-title"><h1>混合动力系统匹配 · 设计文档</h1>'
+      + '<div class="pdl-meta"><span>生成时间：'+esc(ts)+'</span>'
+      + '<span>整车工作点：满载质量 '+esc(ival('vehicleMass'))+' kg · 续驶里程 '+esc(ival('range'))+' km · 最高车速 '+esc(ival('maxSpeed'))+' km/h · 氢气瓶 '+esc(ival('hydrogenBottlePressure'))+' MPa / '+esc(ival('hydrogenBottleVolume'))+' L · 氢气价格 '+esc(ival('hydrogenPrice'))+' 元/kg</span></div></div>'
+      + '<div class="pdl-sum">'+sum.map(s=>'<div class="pdl-sum-item"><div class="k">'+esc(s[0])+'</div><div class="v">'+esc(s[1])+'</div></div>').join('')+'</div>'
+      + '</div>';
+
+    /* ② 输入参数表（读 hybridInputIds 与各输入框当前值 / 步长） */
+    const inpRows = hybridInputIds.map(id=>{
+      const el = document.getElementById(id);
+      if(!el) return '';
+      const lb = document.querySelector('#page-hybrid label[for="'+id+'"]');
+      return row3(trimLabel(txt(lb)) || id, el.value, el.step || '');
+    }).filter(Boolean);
+    const inpHtml = sec('一、输入参数（共 '+inpRows.length+' 项）', tab(inpRows, ['参数','当前值','步长']));
+
+    /* ③ 计算结果：按页面四个结果分组读取（跳过空值项并记入 console.warn） */
+    let resHtml = '';
+    const grid = document.querySelector('#page-hybrid .hybrid-results-grid');
+    if(grid){
+      Array.from(grid.querySelectorAll('.hybrid-result-section')).forEach((secEl, i)=>{
+        const rows = [];
+        secEl.querySelectorAll('.hybrid-result-item').forEach(it=>{
+          const spans = it.querySelectorAll('span');
+          const label = spans.length ? trimLabel(txt(spans[0])) : '';
+          const vEl = spans.length > 1 ? spans[spans.length-1] : null;
+          const value = vEl ? txt(vEl) : '';
+          if(!label || !value){ skipped.push((GROUP_TITLES[i]||('分组 '+(i+1)))+' · '+(label||'（空项）')); return; }
+          rows.push(row2(label, value));
+        });
+        if(rows.length) resHtml += sec(GROUP_TITLES[i]||('分组 '+(i+1)), tab(rows, ['项目','数值']));
+        else skipped.push(GROUP_TITLES[i]||('分组 '+(i+1)));
+      });
+    }
+
+    /* ④ 关键公式与常数：直接取结果条目的 title（页面上悬停显示的公式即真实公式） */
+    const fLines = [];
+    document.querySelectorAll('#page-hybrid .hybrid-result-item').forEach(it=>{
+      const t = it.getAttribute('title');
+      if(t) fLines.push(t.replace(/\s+/g,' ').trim());
+    });
+    fLines.push('常数：g = 9.8 m/s²；F = 96485 C/mol；H₂ 摩尔质量 2.016 g/mol；理想气体常数 R = 8.314 J/(mol·K)、储氢按 298 K 计；空气阻力项系数 21.15（Cd·A·v²/21.15）；电机转速换算系数 0.3768；驱动轮胎半径取自输入参数');
+    const fmHtml = sec('五、关键公式与常数', '<pre class="pdl-pre">'+esc(fLines.join('\n'))+'</pre>');
+
+    /* ⑤ 页脚（本页无流程图，故不附流程示意图） */
+    const foot = '<div class="pdl-foot">本文件由 system-flow.html 的「导出设计文档(PDF)」按钮在浏览器本地生成（零依赖），数值与该页当前整车参数实时计算结果一致。本页为整车动力性匹配，无流程图，故不附流程示意图。</div>';
+
+    box.innerHTML = '<div class="pdl">'+headHtml+inpHtml+resHtml+fmHtml+foot+'</div>';
+    if(skipped.length) console.warn('[混合动力导出] 以下数据源为空已跳过：', skipped.join('、'));
+  }
+
+  const btn = document.getElementById('hybridPdfBtn');
+  if(btn) btn.addEventListener('click', ()=>{
+    buildHybridPrintLayout();
+    document.body.classList.add('printing-hybrid');
+    window.print();
+  });
+  window.addEventListener('afterprint', ()=>{ document.body.classList.remove('printing-hybrid'); });
+})();
+
+/* ---------------- 第三页：整车工况仿真 设计文档导出（浏览器原生打印 → PDF，零依赖） ---------------- */
+(function(){
+  const esc  = s => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const row2 = (l,v,cls)=>'<tr><th>'+esc(l)+'</th><td'+(cls?' class="'+cls+'"':'')+'>'+esc(v)+'</td></tr>';
+  const tab  = (rows,head)=>'<table class="pdl-tab">'
+      + (head?'<thead><tr>'+head.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead>':'')
+      + '<tbody>'+rows.join('')+'</tbody></table>';
+  const sec  = (t,inner,cls)=>'<section class="pdl-sec'+(cls?' '+cls:'')+'"><h3>'+esc(t)+'</h3>'+inner+'</section>';
+  const txt  = el => el ? (el.textContent||'').replace(/\s+/g,' ').trim() : '';
+  const trimLabel = s => s.replace(/^▎\s*/,'').replace(/\s+/g,' ').trim();
+
+  function buildSimPrintLayout(){
+    const box = document.getElementById('simPrintLayout');
+    if(!box) return;
+    const d = new Date(), p2 = n => (n<10?'0':'')+n;
+    const ts = d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+' '+p2(d.getHours())+':'+p2(d.getMinutes());
+    const skipped = [];
+    const started = !!(typeof SIM !== 'undefined' && SIM.started && SIM.keys && SIM.keys.length);
+
+    /* ① 题头 + 仿真摘要（未运行时给出一行说明） */
+    const cycSel = document.getElementById('sim_cycle');
+    const cycleText = cycSel ? ((cycSel.options[cycSel.selectedIndex]||{}).text || cycSel.value) : '';
+    const checkedStrats = typeof STRATS !== 'undefined'
+      ? STRATS.filter(s=>{ const el=document.getElementById(s.on); return el && el.checked; }).length : 0;
+    const bestB = document.querySelector('#simSummary .sim-note b');
+    const bestLabel = bestB ? bestB.textContent.trim() : '';
+    const sum = started ? [
+      ['工况类型',       cycleText],
+      ['行驶里程',       (SIM.cycle? SIM.cycle.dist.toFixed(2):'0')+' km'],
+      ['仿真时长',       (SIM.cycle? SIM.cycle.duration.toFixed(0):'0')+' s'],
+      ['对比策略数',      SIM.keys.length+' 种'],
+      ['氢耗最优策略',    bestLabel || '—'],
+      ['仿真环境温度',    (SIM.anchorEnv!=null ? SIM.anchorEnv.toFixed(0):'')+' ℃']
+    ] : [
+      ['工况类型',       cycleText],
+      ['对比策略数（已勾选）', checkedStrats+' 种'],
+      ['仿真时长 / 巡航车速', ival('sim_duration')+' s / '+ival('sim_cruiseSpeed')+' km/h'],
+      ['仿真倍速 / 抽样间隔',  selText('sim_speed')+' / '+ival('sim_plotStride')+' s'],
+      ['SOC 上下限',     ival('sim_socMin')+' — '+ival('sim_socMax')],
+      ['电池容量',       ival('sim_batCap')+' kWh']
+    ];
+    const headHtml = '<div class="pdl-head">'
+      + '<div class="pdl-title"><h1>整车工况仿真 · 设计文档</h1>'
+      + '<div class="pdl-meta"><span>生成时间：'+esc(ts)+'</span>'
+      + '<span>仿真状态：'+(started?(SIM.done?'已完成':'已运行')+' · 步长 1 s · 停车观察段 60 s':'尚未运行')+'</span></div></div>'
+      + '<div class="pdl-sum">'+sum.map(s=>'<div class="pdl-sum-item"><div class="k">'+esc(s[0])+'</div><div class="v">'+esc(s[1])+'</div></div>').join('')+'</div>'
+      + '</div>';
+    const noteHtml = started ? '' : '<div class="pdl-note">尚未运行仿真：本文件暂无仿真结果，仅列出仿真设置参数。请回到「整车工况仿真」页点击「开始仿真」，待运行完成后重新导出。</div>';
+
+    /* ② 仿真设置参数表：逐组读取左侧 .sim-panel 的输入 / 下拉 / 勾选状态 */
+    let setRows = [];
+    document.querySelectorAll('#page-sim .sim-panel .sim-group').forEach(g=>{
+      const rows = [];
+      g.querySelectorAll('.hx-input-group').forEach(grp=>{
+        const lb = grp.querySelector('label');
+        const field = grp.querySelector('input, select, textarea');
+        if(!lb || !field) return;
+        let v;
+        if(field.tagName === 'SELECT'){ v = (field.options[field.selectedIndex]||{}).text || field.value; }
+        else if(field.tagName === 'TEXTAREA'){ v = (field.value||'').trim(); if(!v) v='（空）'; else if(v.length>60) v=v.slice(0,60)+'…'; }
+        else { v = field.value === '' ? '（空）' : field.value; }
+        rows.push(row2(txt(lb), v));
+      });
+      g.querySelectorAll('.sim-strat-item').forEach(si=>{
+        const cb = si.querySelector('input[type="checkbox"]');
+        rows.push(row2(txt(si), cb && cb.checked ? '已勾选' : '未勾选'));
+      });
+      if(rows.length){
+        setRows.push('<tr><th colspan="2">'+esc(trimLabel(txt(g.querySelector('.sim-group-title'))))+'</th></tr>');
+        setRows = setRows.concat(rows);
+      }
+    });
+    const setHtml = setRows.length ? sec('一、仿真设置参数', tab(setRows, ['参数','当前值']), 'pdl-break') : '';
+    if(!setRows.length) skipped.push('仿真设置参数');
+
+    /* ③ KPI 指标（读 #simKpi 已渲染卡片） */
+    let kpiHtml = '';
+    const kpiRoot = document.getElementById('simKpi');
+    if(started && kpiRoot && kpiRoot.querySelector('.sim-kpi-item')){
+      /* 每条 KPI 卡片：首行标签作「策略 / 指标」，首个数值作「数值」，其余标签合并为「备注」 */
+      const rows = [];
+      kpiRoot.querySelectorAll('.sim-kpi-item').forEach(it=>{
+        const labels = Array.from(it.querySelectorAll('.k-label')).map(x=>txt(x));
+        const vals = Array.from(it.querySelectorAll('.k-value')).map(x=>txt(x));
+        if(!labels.length || !vals.length) return;
+        rows.push('<tr><th>'+esc(labels[0])+'</th><td>'+esc(vals.join(' / '))+'</td><td>'+esc(labels.slice(1).join(' · '))+'</td></tr>');
+      });
+      if(rows.length) kpiHtml = sec('二、KPI 指标', tab(rows, ['策略 / 指标','数值','备注']));
+      else skipped.push('KPI 指标');
+    } else skipped.push('KPI 指标（未运行仿真）');
+
+    /* ④ 策略对比汇总表（读 #simSummary 的 table.sim-table，保留 warn 判据颜色） */
+    let sumHtml = '';
+    const st = document.querySelector('#simSummary table.sim-table');
+    if(started && st){
+      const ths = Array.from(st.querySelectorAll('thead th')).map(th=>txt(th));
+      const bodyRows = Array.from(st.querySelectorAll('tbody tr')).map(tr=>{
+        const tds = Array.from(tr.querySelectorAll('td'));
+        if(!tds.length) return '';
+        return '<tr>'+tds.map(td=>{
+          const cls = td.classList.contains('warn') ? ' class="pdl-warn"' : '';
+          return '<td'+cls+'>'+esc(txt(td))+'</td>';
+        }).join('')+'</tr>';
+      }).filter(Boolean).join('');
+      if(ths.length && bodyRows){
+        let inner = '<table class="pdl-tab pdl-tab-sim"><thead><tr>'+ths.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+bodyRows+'</tbody></table>';
+        const note = document.querySelector('#simSummary .sim-note');
+        if(note) inner += '<p style="font-size:8pt;color:#475569;margin:3px 0 0;">'+esc(txt(note))+'</p>';
+        sumHtml = sec('三、策略对比汇总表（16 列）', inner, 'pdl-break');
+      } else skipped.push('策略对比汇总表');
+    } else skipped.push('策略对比汇总表（未运行仿真）');
+
+    /* ⑤ 仿真曲线：8 张 canvas 直接 toDataURL('image/png') 贴入文档 */
+    let chartHtml = '';
+    if(started){
+      const host = document.getElementById('simCharts');
+      const cvs = host ? Array.from(host.querySelectorAll('canvas')) : [];
+      const figs = [];
+      cvs.forEach(cv=>{
+        if(!cv.width || !cv.height) return;
+        const def = (typeof CHART_DEFS !== 'undefined' ? CHART_DEFS.find(x=>x.id===cv.id) : null);
+        const title = def ? (def.title + (def.unit ? ' ('+def.unit+')' : '')) : cv.id;
+        try{
+          const url = cv.toDataURL('image/png');
+          if(url && url.length > 100){
+            figs.push('<figure class="pdl-chart"><img class="pdl-chart-img" src="'+url+'" alt="'+esc(title)+'"><figcaption>'+esc(title)+'</figcaption></figure>');
+          } else skipped.push('图表 '+cv.id);
+        }catch(e){ skipped.push('图表 '+cv.id); }
+      });
+      if(figs.length) chartHtml = sec('四、仿真曲线（车速 / 电堆功率 / 电池功率 / SOC / 温度 / λ / 氢耗 / 效率）', '<div class="pdl-charts">'+figs.join('')+'</div>', 'pdl-break');
+      else skipped.push('仿真曲线（图表尚未绘制）');
+    }
+
+    /* ⑥ 关键公式与常数（取自本页「使用说明」弹窗中的模型公式） */
+    const formulas = [
+      '整车纵向动力学：F = m·δ·a + m·g·f + m·g·sin(θ) + ½·ρ·Cd·A·v²；需求功率 = F·v / η_传动（纵向动力学取整车页公式）',
+      '电堆极化曲线（本页在①②页稳态结果上自校准）：V(j,T,λ) = OCV − b·ln((j + j₀)/j₀) − R_cal·j + dVdT·(T − T_ref) + k_λ·(λ − λ_ref)',
+      '  R_cal 不用手填：由①②页稳态节电压在锚点 (j_ref, T_ref) 反解，使仿真起点与稳态结果零漂移；电堆 MAP 由①页公式在「电流密度 × 温度」上扫描得到',
+      '电池 Rint 等效电路 + DC/DC：欧姆损耗 P_loss = R·(P_bus / V)²；母线↔电池按 η_dcdc 变换；SOC 由库仑积分推进；充放电可用功率随 SOC 向两端线性收窄（缺功率 / 弃电的来源）',
+      '控制策略：恒功率规则型 = 电堆恒定输出额定净功率；功率跟随 = 尽量等于整车需求功率；最高效率点+SOC滞环 = 锁最高效率点 + SOC 双点滞环；效率优先+SOC维持 = 前馈跟随 + 2.5·容量·(目标SOC − 实际SOC) 反馈修正',
+      '两条硬约束：暖机优先（冷却液 < 目标温度 − 5℃ 时命令功率 ≥ 当前可用功率×70%）；SOC 保护（触顶压低电堆功率、触底强制电堆出力）',
+      '热管理：单节点集总热容 C_stack·dT/dt = Q_产热 − Q_散热；三通阀由 PI 闭环（Kp / Ki）；低温段由 PTC 补热（PTC 功率 = 增益 × 温差，受最大功率限制）',
+      '膜含水量 λ（经验代理指标）：λ = clip( 1 + 10·max(RH干侧, RH湿侧, RH阴极出口)/100 + 8·阴极出口液态水量 , 1, 30)',
+      '系统效率 = (需求电功 − 缺功率) / (氢 LHV 化学能 + 电池净输出到母线的电功) × 100（恒 ≤ 100%）；百公里氢耗 = 累计耗氢(kg) / 行驶里程(km) × 100',
+      '氢耗功率(kW_LHV) = 氢质量流量 × LHV；氢质量流量 = 电堆产氢摩尔流量 × 2.016×10⁻³ (kg/s)',
+      '能量守恒自检：∫电堆净功 + ∫电池母线功 ≡ 需求 − 缺功率 + 弃电（误差恒为 0，用于校验模型可信度）',
+      '判据：SOC 终值 / SOC 最低 ≥ SOC 下限；功率受限(s) ≤ 25% 行驶时长；λ 越限(s) ≤ 60 s；缺功率、弃电 ≤ 0.01 kWh',
+      '常数与设置：准静态步长 1 s；停车观察段 60 s；λ 阈值 4 / 14；SOC 滞环 0.45 / 0.75；H₂ LHV = 33.33 kWh/kg；内置 NEDC / WLTC / CLTC 为轮廓近似（非逐秒权威数据）'
+    ].join('\n');
+    const fmHtml = sec('五、关键公式与常数', '<pre class="pdl-pre">'+esc(formulas)+'</pre>');
+
+    /* ⑦ 页脚 */
+    const foot = '<div class="pdl-foot">本文件由 system-flow.html 的「导出设计文档(PDF)」按钮在浏览器本地生成（零依赖），数值与该页当前「策略对比汇总」表及 KPI 卡片一致。仿真为 L1 准静态模型（步长 1 s），用于设计点趋势与策略对比。</div>';
+
+    box.innerHTML = '<div class="pdl">'+headHtml+noteHtml+setHtml+kpiHtml+sumHtml+chartHtml+fmHtml+foot+'</div>';
+    if(skipped.length) console.warn('[整车仿真导出] 以下数据源为空已跳过：', skipped.join('、'));
+  }
+  /* 小工具：读数字输入 / 下拉显示文本 */
+  function ival(id){ const el = document.getElementById(id); return el ? el.value : ''; }
+  function selText(id){ const el = document.getElementById(id); return el && el.tagName === 'SELECT' ? ((el.options[el.selectedIndex]||{}).text || el.value) : (el ? el.value : ''); }
+
+  const btn = document.getElementById('simPdfBtn');
+  if(btn) btn.addEventListener('click', ()=>{
+    buildSimPrintLayout();
+    let fired = false;
+    const go = ()=>{ if(fired) return; fired = true; document.body.classList.add('printing-sim'); window.print(); };
+    const imgs = Array.from(document.querySelectorAll('#simPrintLayout img.pdl-chart-img'));
+    const pending = imgs.filter(im=>!im.complete);
+    if(pending.length){
+      let n = pending.length;
+      const done = ()=>{ if(--n <= 0) go(); };
+      pending.forEach(im=>{ im.addEventListener('load', done, {once:true}); im.addEventListener('error', done, {once:true}); });
+      setTimeout(go, 1500);
+    } else go();
+  });
+  window.addEventListener('afterprint', ()=>{ document.body.classList.remove('printing-sim'); });
+})();
+</script>
+
+<script>
+/* ================== 第四页：PEM 电解槽系统设计页 ==================
+   与第一页（燃料电池系统设计）同构：左侧参数栏 + 右侧 SVG 流程图 + 图下计算面板。
+   计算链路：电解槽电化学 → 水系统 → 气系统 → 换热器选型 → 电源/能效/控制。 */
+(function(){
+'use strict';
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('pemPfd');
+if(!svg) return;
+
+/* ---------------- 1. 输入参数 ---------------- */
+const PEM_INPUTS = [
+  { id:'pemCellVoltage',   label:'单体电压(V，0=按极化曲线自动)', val:'0',    step:'0.01'  },
+  { id:'pemASR70',         label:'面积比电阻@70℃(Ω·cm²)',     val:'0.16',  step:'0.01'  },
+  { id:'pemCellCount',     label:'电解槽节数',                val:'200',   step:'1'     },
+  { id:'pemArea',          label:'反应面积(cm²)',             val:'1000',  step:'10'    },
+  { id:'pemCurrentDensity',label:'电流密度(A/cm²)',           val:'2.0',   step:'0.1'   },
+  { id:'pemOpTemp',        label:'工作温度(℃)',              val:'70',    step:'1'     },
+  { id:'pemCoolantTemp',   label:'冷却水进口温度(℃)',        val:'30',    step:'1'     },
+  { id:'pemCoolantOutlet', label:'冷却水出口温度(℃)',        val:'38',    step:'1'     },
+  { id:'pemWaterDeltaT',   label:'纯水侧温差(℃)',             val:'5',     step:'0.5'   },
+  { id:'pemWaterExcess',   label:'纯水循环倍率',              val:'3',     step:'0.5'   },
+  { id:'pemFaradayEff',    label:'法拉第效率(%)',             val:'98',    step:'0.5'   },
+  { id:'pemRORecovery',    label:'纯水制备回收率(%)',          val:'75',    step:'1'     },
+  { id:'pemH2Pressure',    label:'氢气侧压力(bar)',           val:'30',    step:'1'     },
+  { id:'pemO2Pressure',    label:'氧气侧压力(bar)',           val:'29.8',  step:'0.5'   },
+  { id:'pemDpLimit',       label:'氢氧压差限值(bar)',          val:'0.3',   step:'0.05'  },
+  { id:'pemH2Crossover',   label:'膜氢氧互窜电流密度(mA/cm²)',  val:'2',     step:'0.5'   },
+  { id:'pemSepEff',        label:'气液分离效率(%)',            val:'99',    step:'0.5'   },
+  { id:'pemPurifRecovery', label:'氢气纯化回收率(%)',          val:'98',    step:'0.5'   },
+  { id:'pemH2Purity',      label:'产品氢纯度(%)',             val:'99.999',step:'0.001' },
+  { id:'pemRectEff',       label:'制氢电源效率(%)',            val:'96',    step:'1'     },
+  { id:'pemUseFactor',     label:'平均负荷率(%)',             val:'100',   step:'1'     },
+  { id:'pemPumpHead',      label:'纯水循环泵扬程(m)',          val:'25',    step:'1'     },
+  { id:'pemPumpEff',       label:'纯水循环泵总效率(%)',        val:'60',    step:'1'     },
+  { id:'pemCoolPumpHead',  label:'冷却水泵扬程(m)',            val:'18',    step:'1'     },
+  { id:'pemCoolPumpEff',   label:'冷却水泵总效率(%)',          val:'65',    step:'1'     },
+  { id:'pemAirTempRise',   label:'冷却塔空气温升(℃)',         val:'10',    step:'1'     },
+  { id:'pemFanPressure',   label:'冷却塔风机全压(Pa)',         val:'250',   step:'10'    },
+  { id:'pemFanEff',        label:'冷却塔风机效率(%)',          val:'55',    step:'1'     },
+  { id:'pemPurifHeat',     label:'纯化加热占电堆功率(%)',      val:'2',     step:'0.5'   },
+  { id:'pemHxK',           label:'换热器传热系数K W/(m²·K)',   val:'4000',  step:'100'   },
+  { id:'pemHxMargin',      label:'换热面积裕度(%)',            val:'20',    step:'1'     },
+  { id:'pemHxPlateArea',   label:'换热器单板有效面积(m²)',     val:'0.08',  step:'0.01'  },
+  { id:'pemHxChannelArea', label:'换热器单板流道面积(m²)',     val:'0.0013',step:'0.0001'},
+  { id:'pemHxFlowLength',  label:'换热器板片流道长度(m)',       val:'0.65',  step:'0.01'  }
+];
+const host = document.getElementById('pemInputs');
+PEM_INPUTS.forEach(it=>{
+  const g = document.createElement('div');
+  g.className = 'input-group';
+  g.innerHTML = `<label for="${it.id}">${it.label}</label><input type="number" id="${it.id}" value="${it.val}" step="${it.step}">`;
+  host.appendChild(g);
+});
+const gi = id => { const e = document.getElementById(id); return e ? (parseFloat(e.value) || 0) : 0; };
+
+/* ---------------- 2. 计算引擎 ---------------- */
+const F = 96485, R_GAS = 8.314, VTHN = 1.481, VLHV = 1.254, VMOL = 22.414;
+const CP_AIR = 1005, RHO_AIR = 1.2;
+/* 水物性随温度变化（0~100℃ 拟合，与水表数据吻合：ρ(70℃)=977.8 kg/m³、μ(70℃)=4.04e-4 Pa·s） */
+const rhoW = T => { const t=Math.min(100,Math.max(0,T));
+  return 1000*(1 - (t+288.9414)/(508929.2*(t+68.12963))*Math.pow(t-3.9863,2)); };        // kg/m³
+const muW  = T => { const t=Math.min(100,Math.max(0,T));
+  return 2.414e-5*Math.pow(10, 247.8/(t+273.15-140)); };                                  // Pa·s
+const cpW  = T => { const t=Math.min(100,Math.max(0,T)); const tb=[[0,4217.4],[10,4191.9],[20,4181.8],[30,4178.3],[40,4178.4],[50,4180.6],[60,4184.3],[70,4189.1],[80,4195.0],[90,4201.5],[100,4216.0]];
+  let i=0; while(i<tb.length-2 && t>tb[i+1][0]) i++;
+  const t1=tb[i][0], c1=tb[i][1], t2=tb[i+1][0], c2=tb[i+1][1];
+  return c1+(c2-c1)*(t-t1)/(t2-t1); };                                                      // J/(kg·K)
+const HHV_KWH_KG = 39.41, LHV_KWH_KG = 33.33;
+
+/* 饱和蒸汽压 kPa（与第一页同式） */
+function satVaporP(T){
+  return 0.00000097*Math.pow(T,4) - 0.00003455*Math.pow(T,3)
+       + 0.00371504*Math.pow(T,2) + 0.01245629*T + 0.71004367;
+}
+
+/* 极化曲线：V_cell = V_rev(T,P) + η_act(j,T) + η_ohm(j,T)
+   a = 0.05 V/decade、j0 = 2e-5 A/cm²、Er = 1600 K 为常量（非输入）；
+   ASR70 取自输入参数 pemASR70。返回 {V,Vrev,etaAct,etaOhm,asr}；
+   非法工况（j≤0、T≤0、压力≤0、饱和蒸汽压≤0）返回 V=NaN，由调用方回退。 */
+const PEM_A_TAFEL = 0.05, PEM_J0 = 2e-5, PEM_ER = 1600;
+function pemCellVoltageCurve(j, T, PH2, PO2){
+  const none = { V:NaN, Vrev:NaN, etaAct:NaN, etaOhm:NaN, asr:NaN };
+  if(!(j>0) || !(T>0) || !(PH2>0) || !(PO2>0)) return none;
+  const Tk   = T + 273.15;
+  const pH2O = satVaporP(T)/100;                         // kPa → bar（饱和蒸汽压）
+  if(!(pH2O>0) || !isFinite(pH2O)) return none;
+  const Vrev   = 1.23 - 0.9e-3*(T-25) + (R_GAS*Tk/(2*F))*Math.log(PH2*Math.pow(PO2,0.5)/pH2O);
+  const etaAct = PEM_A_TAFEL*Math.log10(j/PEM_J0);
+  const asr    = gi('pemASR70')*Math.exp(PEM_ER*(1/Tk - 1/343.15));
+  const etaOhm = j*asr;
+  const V      = Vrev + etaAct + etaOhm;
+  if(!isFinite(V)) return none;
+  return { V, Vrev, etaAct, etaOhm, asr };
+}
+
+function calcPem(){
+  const N=gi('pemCellCount'), A=gi('pemArea'),
+        j=gi('pemCurrentDensity'), etaF=gi('pemFaradayEff'), opT=gi('pemOpTemp');
+
+  /* ---- 单体电压：默认由极化曲线 f(j,T,P) 求取；输入非 0 时作为手动覆盖原样使用 ---- */
+  const VcellIn = gi('pemCellVoltage');
+  const pol     = pemCellVoltageCurve(j, opT, gi('pemH2Pressure'), gi('pemO2Pressure'));
+  const useCurve= !(VcellIn>0) && pol.V>0 && isFinite(pol.V);
+  const Vcell   = (VcellIn>0) ? VcellIn : (useCurve ? pol.V : 0);
+  const polV    = useCurve ? pol : { V:0, Vrev:0, etaAct:0, etaOhm:0, asr:0 };
+  const vSource = (VcellIn>0) ? '手动覆盖' : (useCurve ? '极化曲线' : '无效工况');
+
+  /* ---- 电解槽（法拉第定律） ---- */
+  const I       = A*j;                       // 串联电流 A
+  const Vstack  = Vcell*N;                   // V
+  const Pstack  = Vstack*I/1000;             // kW
+  const nH2th   = I*N/(2*F);                 // 理论产氢 mol/s
+  const nH2     = nH2th*etaF/100;            // 实际产氢 mol/s
+  const nO2     = nH2th/2;                   // 理论产氧 mol/s
+  const etaHHV  = Vcell>0 ? VTHN/Vcell*100 : 0;
+  const etaLHV  = Vcell>0 ? VLHV/Vcell*100 : 0;
+  const Qheat   = Vcell>0 ? Pstack*(Vcell-VTHN)/Vcell : 0;                  // kW 废热
+  const PH2_HHV = Vcell>0 ? Pstack*(VTHN/Vcell)*(etaF/100) : 0;             // kW
+  const PH2_LHV = Vcell>0 ? Pstack*(VLHV/Vcell)*(etaF/100) : 0;
+  const mH2     = nH2*2.016;                 // g/s
+  const mH2kgh  = mH2*3.6;
+  const vH2     = nH2*VMOL*3.6;              // Nm³/h
+  const vO2     = nO2*VMOL*3.6;
+
+  /* ---- 水系统 ---- */
+  const mWaterNet    = nH2*18.015;                        // g/s 反应净耗水
+  const mWaterNetKgh = mWaterNet*3.6;                     // kg/h
+  const dTw          = gi('pemWaterDeltaT');
+  const mHeatWater   = dTw>0 ? Qheat*1000/(cpW(opT)*dTw) : 0; // kg/s 换热需要（比热随 opT）
+  const mReactWater  = mWaterNet/1000*Math.max(1, gi('pemWaterExcess'));
+  const mCirc        = Math.max(mHeatWater, mReactWater); // kg/s 实际循环
+  const mCircKgh     = mCirc*3600;
+  const Vcirc        = mCirc/rhoW(opT)*3600;              // m³/h（密度随 opT）
+  const circRatio    = mWaterNet>0 ? mCirc/(mWaterNet/1000) : 0;
+  /* 原水耗量需计入气相带水，故移到下方「气系统」之后计算 */
+
+  /* ---- 气系统 ---- */
+  const purifRec  = gi('pemPurifRecovery')/100;
+  const sepEff    = gi('pemSepEff')/100;
+  const vH2Pro    = vH2*purifRec;
+  const vH2Loss   = vH2 - vH2Pro;
+  const PH2b      = gi('pemH2Pressure'), PO2b = gi('pemO2Pressure');
+  const dP        = Math.abs(PH2b-PO2b);
+  const dpLim     = gi('pemDpLimit');
+  const pSat      = satVaporP(opT);                       // kPa
+  const h2VapR    = PH2b>0 ? pSat/Math.max(0.1, PH2b*100-pSat) : 0;
+  const o2VapR    = PO2b>0 ? pSat/Math.max(0.1, PO2b*100-pSat) : 0;
+  const h2WaterKgh= nH2*h2VapR*18.015*3.6;
+  const o2WaterKgh= nO2*o2VapR*18.015*3.6;
+  const liqRecover= Math.max(0, mCircKgh - mWaterNetKgh - h2WaterKgh - o2WaterKgh)*sepEff;
+
+  /* 原水耗量：系统净水损失 = 反应净耗水 + 两侧气相带水
+     （气相水随产品氢与氧气排空离开系统，无论气液分离效率多高都会跑掉） */
+  const roRec        = gi('pemRORecovery');
+  const mWaterLossKgh= mWaterNetKgh + h2WaterKgh + o2WaterKgh;
+  const roFeedKgh    = roRec>0 ? mWaterLossKgh/(roRec/100) : 0;
+
+  /* ---- 膜氢氧互窜：以跨界电流密度表征（工程可测量）
+     窜气摩尔流量 = i_x·A·N/(n·F)，n=2 对 H₂、n=4 对 O₂；体积分数 ≈ 摩尔分数 */
+  const icex     = gi('pemH2Crossover')*1e-3;                            // A/cm²
+  const nCrossH2 = icex*A*N/(2*F);                                       // 氢窜至氧侧 mol/s
+  const nCrossO2 = icex*A*N/(4*F);                                       // 氧窜至氢侧 mol/s
+  const h2InO2   = (nO2+nCrossH2)>0 ? nCrossH2/(nO2+nCrossH2)*100 : 0;   // vol%
+  const o2InH2   = (nH2+nCrossO2)>0 ? nCrossO2/(nH2+nCrossO2)*100 : 0;   // vol%
+
+  /* ---- 换热器（板式） ---- */
+  const Thi = opT, Tho = opT - dTw;                 // 热侧（纯水）进/出
+  const Tci = gi('pemCoolantTemp'), Tco = gi('pemCoolantOutlet');  // 冷侧（冷却水）进/出
+  const dt1 = Thi - Tco, dt2 = Tho - Tci;
+  const cross = (dt1<=0 || dt2<=0);                 // 温度交叉
+  const lmtd  = (!cross && Math.abs(dt1-dt2)>1e-9) ? (dt1-dt2)/Math.log(dt1/dt2) : (dt1>0?dt1:0);
+  const K     = gi('pemHxK');
+  const Acalc = (K>0 && lmtd>0) ? Qheat*1000/(K*lmtd) : 0;
+  const Aneed = Acalc*(1 + gi('pemHxMargin')/100);
+  const aPlate= gi('pemHxPlateArea');
+  let Nplate  = aPlate>0 ? Math.ceil(Aneed/aPlate)+1 : 0;
+  if(Nplate>0 && Nplate%2 === 1) Nplate += 1;       // 取偶数，保证两侧流道数相等
+  const Agot  = Nplate>1 ? (Nplate-1)*aPlate : 0;
+  const gapN  = Math.max(0, Nplate-1);
+  const nHotCh= Math.ceil(gapN/2), nColdCh  = Math.floor(gapN/2);
+  const aCh   = gi('pemHxChannelArea');
+  const Tcold = (Tci+Tco)/2;                                     // 冷却水侧均温 ℃
+  const mCold = (Tco>Tci) ? Qheat*1000/(cpW(Tcold)*(Tco-Tci)) : 0;   // kg/s
+  const Vcold = mCold/rhoW(Tcold)*3600;                             // m³/h
+  const uHot  = (nHotCh>0 && aCh>0) ? (Vcirc/3600)/(nHotCh*aCh) : 0;
+  const uCold = (nColdCh>0 && aCh>0) ? (Vcold/3600)/(nColdCh*aCh) : 0;
+  const Deq   = 0.006, Lch = gi('pemHxFlowLength');
+  const ReHot = uHot>0 ? rhoW(opT)*uHot*Deq/muW(opT) : 0;
+  const ReCold= uCold>0 ? rhoW(Tcold)*uCold*Deq/muW(Tcold) : 0;
+  const dpHot = (Lch/Deq)*0.15*(rhoW(opT)*uHot*uHot/2)     + 1.5*(rhoW(opT)*uHot*uHot/2);    // Pa
+  const dpCold= (Lch/Deq)*0.18*(rhoW(Tcold)*uCold*uCold/2) + 1.5*(rhoW(Tcold)*uCold*uCold/2);
+
+  /* ---- 电源 / 辅机 / 能效 ---- */
+  const rectEff  = gi('pemRectEff')/100;
+  const Prect    = rectEff>0 ? Pstack/rectEff : 0;
+  const pumpEff  = Math.max(0.01, gi('pemPumpEff')/100);
+  const cpEff    = Math.max(0.01, gi('pemCoolPumpEff')/100);
+  const P_pump   = rhoW(opT)*9.81*gi('pemPumpHead')*(Vcirc/3600)/pumpEff/1000;
+  const P_cpump  = rhoW(Tcold)*9.81*gi('pemCoolPumpHead')*(Vcold/3600)/cpEff/1000;
+  const dTair    = Math.max(0.1, gi('pemAirTempRise'));
+  const mAir     = Qheat*1000/(CP_AIR*dTair);           // kg/s
+  const Vair     = mAir/RHO_AIR*3600;                    // m³/h
+  const fanEff   = Math.max(0.01, gi('pemFanEff')/100);
+  const P_fan    = gi('pemFanPressure')*(Vair/3600)/fanEff/1000;
+  const P_purif  = Pstack*gi('pemPurifHeat')/100;
+  const bopTotal = P_pump + P_cpump + P_fan + P_purif;
+  const Psys     = Prect + bopTotal;
+  const etaSysHHV= Psys>0 ? PH2_HHV/Psys*100 : 0;
+  const etaSysLHV= Psys>0 ? PH2_LHV/Psys*100 : 0;
+  const kWhKg    = mH2kgh>0 ? Psys/mH2kgh : 0;
+  const kWhNm3   = vH2>0 ? Psys/vH2 : 0;
+
+  return {
+    st:{I, Vstack, Pstack, nH2th, nH2, nO2, etaHHV, etaLHV, Qheat, PH2_HHV, PH2_LHV,
+        mH2kgh, vH2, vO2, Vcell, N,
+        Vrev:polV.Vrev, etaAct:polV.etaAct, etaOhm:polV.etaOhm, asr:polV.asr, vSource},
+    wt:{mWaterNetKgh, mHeatWater: mHeatWater*3600, mCircKgh, Vcirc, circRatio, roFeedKgh, dTw},
+    gs:{vH2Pro, vH2Loss, PH2b, PO2b, dP, dpLim, h2WaterKgh, o2WaterKgh, liqRecover, sepEff, purifRec,
+        pSat, h2VapR, o2VapR, h2InO2, o2InH2},
+    hx:{Qheat, Thi, Tho, Tci, Tco, dt1, dt2, cross, lmtd, K, Acalc, Aneed, Nplate, Agot,
+        nHotCh, nColdCh, uHot, uCold, ReHot, ReCold, dpHot, dpCold, Vcirc, Vcold, mCold},
+    pw:{I, Vstack, Pstack, Prect, P_pump, P_cpump, P_fan, P_purif, bopTotal, Psys,
+        etaSysHHV, etaSysLHV, kWhKg, kWhNm3, Vair}
+  };
+}
+
+/* ---------------- 3. SVG 构建工具 ---------------- */
+function E(tag, attrs, parent){
+  const e = document.createElementNS(NS, tag);
+  for(const k in (attrs||{})) e.setAttribute(k, attrs[k]);
+  (parent||svg).appendChild(e);
+  return e;
+}
+function equipBox(x,y,w,h,cls,label,sub){
+  const g = E('g');
+  E('rect',{x, y, width:w, height:h, rx:8, class:cls}, g);
+  E('text',{x:x+w/2, y:y+h/2-1, class:'equip-label'}, g).textContent = label;
+  if(sub) E('text',{x:x+w/2, y:y+h/2+14, class:'equip-sub'}, g).textContent = sub;
+  return g;
+}
+/* 立式罐体（分离器）：罐身 + 顶部椭圆 + 内部雾化气流 */
+function vessel(x,y,w,h,cls,label,sub){
+  const g = E('g');
+  E('rect',{x, y, width:w, height:h, rx:12, class:cls}, g);
+  E('ellipse',{cx:x+w/2, cy:y+9, rx:w/2, ry:9, fill:'rgba(8,18,32,0.55)', stroke:'#475569','stroke-width':1}, g);
+  const cx = x+w/2, cy = y+h*0.62;
+  [[15.5,3.4,'sep-orbit-a'],[10,2.6,'sep-orbit-b'],[5,1.9,'sep-orbit-c']].forEach(([r,dur,cl])=>{
+    E('circle',{cx, cy, r:6.5, class:'sep-cloud '+cl}, g);
+  });
+  E('text',{x:cx, y:cy-16, class:'equip-label'}, g).textContent = label;
+  if(sub) E('text',{x:cx, y:cy+18, class:'equip-sub'}, g).textContent = sub;
+  return g;
+}
+/* 旋转机械：蜗壳 + 叶轮 */
+function rotary(cx, cy, r, dark, stroke, blades){
+  blades = blades || 6;
+  const g = E('g');
+  E('circle',{cx, cy, r, fill:dark, stroke, 'stroke-width':2}, g);
+  E('path',{d:`M ${cx+r*0.25} ${cy-r*0.55} A ${r*0.8} ${r*0.8} 0 1 1 ${cx+r*0.72} ${cy+r*0.18}`,
+    fill:'none', stroke, 'stroke-width':1.2, opacity:0.55}, g);
+  const rotor = E('g',{class:'rm-spin', style:`transform-origin:${cx}px ${cy}px`}, g);
+  for(let i=0;i<blades;i++){
+    const a=i*360/blades*Math.PI/180, b=a+0.55;
+    const x1=cx+r*0.28*Math.cos(a), y1=cy+r*0.28*Math.sin(a);
+    const x2=cx+r*0.78*Math.cos(a+0.18), y2=cy+r*0.78*Math.sin(a+0.18);
+    const x3=cx+r*0.62*Math.cos(b), y3=cy+r*0.62*Math.sin(b);
+    E('polygon',{points:`${x1},${y1} ${x2},${y2} ${x3},${y3}`,
+      fill:stroke, opacity:(0.92-i*0.1).toFixed(2)}, rotor);
+  }
+  E('circle',{cx, cy, r:r*0.26, fill:stroke, opacity:0.95}, rotor);
+  E('circle',{cx, cy, r:r*0.12, fill:dark}, rotor);
+  return g;
+}
+/* defs：箭头 + 发光 */
+const defs = E('defs');
+const mk = E('marker',{id:'pemAh', viewBox:'0 0 10 10', refX:8, refY:5, markerWidth:7, markerHeight:7, orient:'auto'}, defs);
+E('path',{d:'M0,0 L10,5 L0,10 z', fill:'#f87171'}, mk);
+const mkC = E('marker',{id:'pemAhC', viewBox:'0 0 10 10', refX:8, refY:5, markerWidth:7, markerHeight:7, orient:'auto'}, defs);
+E('path',{d:'M0,0 L10,5 L0,10 z', fill:'#67e8f9'}, mkC);
+const glow = E('filter',{id:'pemGlow', x:'-100%', y:'-100%', width:'300%', height:'300%'}, defs);
+E('feGaussianBlur',{stdDeviation:'2.2', result:'blur'}, glow);
+const mg = E('feMerge',{}, glow);
+E('feMergeNode',{in:'blur'}, mg);
+E('feMergeNode',{in:'SourceGraphic'}, mg);
+
+const PCOL = {'pipe-water':'#a5f3fc','pipe-h2':'#c7d2fe','pipe-o2':'#bae6fd',
+              'pipe-coolant':'#fed7aa','pipe-power':'#fde68a','pipe-heat':'#fca5a5'};
+let pid = 0;
+function pipe(d, cls, flowCls){
+  const id = 'pmp'+(pid++);
+  E('path',{d, class:'pipe '+cls});
+  E('path',{d, class:'flow '+flowCls});
+  E('path',{id, d, fill:'none', stroke:'none'});
+  const c = PCOL[cls] || '#ffffff';
+  const g = E('g');
+  for(let i=0;i<3;i++){
+    const cc = E('circle',{r:3.2, fill:c, filter:'url(#pemGlow)', opacity:0.95}, g);
+    const am = E('animateMotion',{dur:'2.6s', repeatCount:'indefinite', begin:`${i*0.85}s`, rotate:'auto'}, cc);
+    E('mpath',{href:'#'+id, 'xlink:href':'#'+id}, am);
+  }
+}
+function sigArrow(x1,y1,x2,y2,color){
+  E('line',{x1,y1,x2,y2, stroke:color||'#eab308','stroke-width':2,'stroke-dasharray':'6 4','marker-end':'url(#pemAh)'});
+}
+function tag(x,y,text,color,size){
+  E('text',{x, y, class:'section-tag', fill:color||'#7dd3fc','font-size':size||12}).textContent = text;
+}
+
+/* ---------------- 4. 流程图布局 ---------------- */
+/* 分区标题：贴近各自模块的左上角 */
+tag(55, 62, '▎ 电源与控制系统');
+tag(55, 325, '▎ 纯水系统');
+tag(790, 52, '▎ 氧气系统');
+tag(1115, 345, '▎ 氢气系统');
+tag(55, 652, '▎ 热管理与冷却系统');
+
+/* ===== 电源与控制系统 ===== */
+equipBox(70, 95, 200, 66, 'equip-ptc', '制氢电源', 'AC/DC Rectifier');
+equipBox(70, 195, 200, 60, 'equip', '控制系统', 'PLC · SCADA · 联锁');
+sigArrow(170, 193, 170, 163, '#eab308');           // PLC → 电源
+sigArrow(170, 255, 170, 300, '#eab308');           // PLC → 现场仪表（向下）
+E('text',{x:182, y:284, fill:'#fde68a','font-size':9}).textContent = '仪表/联锁';
+
+/* 制氢电源 → 电解槽 直流母线（入口上移到阳极区 y=380，避开纯水循环泵流路的 y=415/y=680 水平段） */
+pipe('M270,128 L270,170 L500,170 L500,380 L660,380', 'pipe-power', 'flow-power');
+
+/* ===== 纯水系统 ===== */
+pipe('M40,375 L70,375', 'pipe-water', 'flow-water');                 // 原水
+equipBox(70, 345, 200, 70, 'equip-humid', '纯水制备', 'RO + EDI + 抛光混床');
+pipe('M170,415 L170,455', 'pipe-water', 'flow-water');               // 制备 → 水箱
+equipBox(70, 455, 200, 64, 'equip-humid', '纯水箱', '18.2 MΩ·cm');
+E('text',{x:40, y:371, fill:'#a5f3fc','font-size':10}).textContent = '原水';
+E('path',{d:'M75,506 L265,506', class:'pem-tank-wave', fill:'none', stroke:'#22d3ee','stroke-width':2, opacity:0.6});
+/* 水箱 → 纯水循环泵 */
+pipe('M270,500 L330,500 L330,600', 'pipe-water', 'flow-water');
+rotary(330, 620, 20, '#0d3b45', '#22d3ee', 6);
+E('text',{x:330, y:655,'text-anchor':'middle', fill:'#e8eef5','font-size':10,'font-weight':'bold'}).textContent = '纯水循环泵';
+E('text',{x:330, y:669,'text-anchor':'middle', fill:'#7dd3fc','font-size':9}).textContent = 'Pure Water Pump';
+/* 循环泵 → 电解槽（阳极供水） */
+pipe('M350,620 L560,620 L560,415 L660,415', 'pipe-water', 'flow-water');
+
+/* ===== 电解槽（阳极在上 / 阴极在下） ===== */
+(function(){
+  E('rect',{x:660, y:330, width:280, height:260, rx:6, class:'equip-stack'});
+  E('text',{x:800, y:349,'text-anchor':'middle', fill:'#a7f3d0','font-size':12,'font-weight':'bold'}).textContent = 'PEM 电解槽';
+  E('text',{x:800, y:361,'text-anchor':'middle', fill:'#6ee7b7','font-size':9}).textContent = 'PEM Electrolyzer · 水电解';
+  // 阳极区（氧侧，正极）—— 内框右缘 900，右侧留给 e⁻ 外电路贴框沿走
+  E('rect',{x:674, y:372, width:226, height:66, rx:4, fill:'#0b2436', stroke:'#38bdf8','stroke-width':1.2});
+  E('text',{x:787, y:394,'text-anchor':'middle', fill:'#7dd3fc','font-size':9,'font-weight':'bold'}).textContent = '阳极 Anode(＋) · 水 / O₂';
+  // 阴极区（氢侧，负极）
+  E('rect',{x:674, y:484, width:226, height:90, rx:4, fill:'#1c1436', stroke:'#a78bfa','stroke-width':1.2});
+  E('text',{x:787, y:506,'text-anchor':'middle', fill:'#c4b5fd','font-size':9,'font-weight':'bold'}).textContent = '阴极 Cathode(－) · H₂';
+  // 质子交换膜：加厚到 38，使 H⁺ 圆点 28 单位位移全程留在膜框 445~483 内
+  E('rect',{x:674, y:445, width:226, height:38, rx:2, fill:'#4a2f08', stroke:'#fbbf24','stroke-width':1.8});
+  for(let i=0;i<27;i++) E('line',{x1:678+i*8, y1:447, x2:678+i*8, y2:481, stroke:'#fcd34d','stroke-width':0.8, opacity:0.28});
+  E('rect',{x:688, y:454, width:110, height:18, rx:3, fill:'rgba(8,16,30,0.92)'});
+  E('text',{x:743, y:467,'text-anchor':'middle', fill:'#fde68a','font-size':9,'font-weight':'bold'}).textContent = '质子交换膜 PEM';
+  // 气体流动（延伸到框内右沿 x=938，与从 x=940 接出的出口管保持连续）
+  E('path',{d:'M692,405 L938,405', class:'pem-gas pem-gas-o2'});
+  E('text',{x:700, y:399, fill:'#7dd3fc','font-size':8}).textContent = 'O₂';
+  E('path',{d:'M692,529 L938,529', class:'pem-gas pem-gas-h2'});
+  E('text',{x:700, y:523, fill:'#c4b5fd','font-size':8}).textContent = 'H₂';
+  // 反应方程（阳极在上、阴极在下）
+  E('text',{x:787, y:426,'text-anchor':'middle', fill:'#7dd3fc','font-size':8.5}).textContent = '2H₂O → O₂ + 4H⁺ + 4e⁻';
+  E('text',{x:787, y:558,'text-anchor':'middle', fill:'#c4b5fd','font-size':8.5}).textContent = '4H⁺ + 4e⁻ → 2H₂';
+  // 质子 H⁺ 迁移方向：阳极(上) → 阴极(下)；cy=450 配合 28px 位移，不越膜框
+  [686,712,738,764,790,816].forEach((cx,i)=>{
+    E('circle',{cx, cy:450, r:2.6, fill:'#fde68a', class:'pem-proton-dn',
+      style:`animation-delay:${(i*0.22).toFixed(2)}s`});
+  });
+  E('text',{x:864, y:466,'text-anchor':'end', fill:'#fde68a','font-size':8,'font-weight':'bold'}).textContent = 'H⁺ ↓';
+  // 电子 e⁻ 经外电路绕行：阳极(＋) → 阴极(－)，紧贴电解槽右侧边沿
+  E('path',{d:'M900,430 L922,430 L922,506 L900,506', class:'pem-elec'});
+  E('text',{x:938, y:472,'text-anchor':'end', fill:'#6ee7b7','font-size':8,'font-weight':'bold'}).textContent = 'e⁻';
+})();
+
+/* 阳极出水（水 + O₂）→ 氧侧气液分离器（从电解槽框沿 x=940 接出） */
+pipe('M940,405 L1040,405 L1040,170 L970,170', 'pipe-o2', 'flow-o2');
+/* 阴极出气（H₂）→ 氢侧气液分离器 */
+pipe('M940,529 L1060,529 L1060,490 L1130,490', 'pipe-h2', 'flow-h2');
+
+/* ===== 氧气系统 ===== */
+vessel(810, 90, 160, 160, 'equip-air', '氧侧气液分离器', 'O₂ Separator');
+pipe('M890,90 L890,64 L990,64', 'pipe-o2', 'flow-o2');
+E('text',{x:1000, y:58, fill:'#7dd3fc','font-size':10}).textContent = 'O₂ 排空 / 回收';
+
+/* ===== 氢气系统（整体右移，让开 x=1040 的氧侧出口竖管） ===== */
+vessel(1130, 360, 130, 170, 'equip-h2', '氢侧气液分离器', 'H₂ Separator');
+pipe('M1260,490 L1270,490', 'pipe-h2', 'flow-h2');
+equipBox(1270, 360, 160, 170, 'equip-h2', '氢气纯化', '脱氧 + 干燥 (TSA)');
+pipe('M1430,445 L1480,445', 'pipe-h2', 'flow-h2');
+E('text',{x:1485, y:430,'text-anchor':'end', fill:'#c7d2fe','font-size':10}).textContent = '产品氢';
+
+/* 氢侧分离水回用示意：虚线自分离器左下角引出，从 pd_h2 气泡左侧下探，在纯水循环泵右侧上行后水平接纯水箱 */
+(function(){
+  E('path',{d:'M1130,530 L1118,530 L1118,670 L450,670 L450,487 L270,487',
+    fill:'none', stroke:'#67e8f9','stroke-width':1.8,'stroke-dasharray':'7 5',
+    opacity:0.6,'marker-end':'url(#pemAhC)'});
+  E('text',{x:980, y:660, fill:'#67e8f9','font-size':9, opacity:0.9}).textContent = '分离水回用';
+})();
+
+/* ===== 热管理与冷却系统 ===== */
+/* 氧侧分离器循环水 → 板式换热器热侧进口：沿电解槽外围左侧下行，终点绑定换热器上沿（不再受框位限制） */
+pipe('M890,250 L890,272 L600,272 L600,740', 'pipe-water', 'flow-water');
+/* 板式换热器：整组再左移 60（累计 140） */
+(function(){
+  E('rect',{x:480, y:740, width:200, height:120, rx:8, class:'equip-heat'});
+  E('text',{x:580, y:762,'text-anchor':'middle', class:'equip-label'}).textContent = '板式换热器';
+  E('text',{x:580, y:777,'text-anchor':'middle', class:'equip-sub'}).textContent = 'Plate Heat Exchanger';
+  for(let i=0;i<9;i++)
+    E('line',{x1:508+i*15, y1:792, x2:508+i*15, y2:848, class:'pem-fall',
+      stroke:'#fca5a5','stroke-width':1.2, style:`animation-delay:${(i*0.15).toFixed(2)}s`});
+})();
+/* 换热器热侧出口 → 纯水箱（回水管走循环泵下方） */
+pipe('M480,840 L45,840 L45,487 L70,487', 'pipe-water', 'flow-water');
+/* 换热器冷侧出口 → 冷却塔 */
+pipe('M680,770 L920,770', 'pipe-coolant', 'flow-coolant');
+/* 冷却塔：标签置于框顶，风机与落水线放在框内下方，避免文字与旋转叶片干涉 */
+(function(){
+  E('rect',{x:920, y:720, width:220, height:140, rx:8, class:'equip-heat'});
+  E('text',{x:1030, y:743,'text-anchor':'middle', class:'equip-label'}).textContent = '冷却塔 / 空冷器';
+  E('text',{x:1030, y:758,'text-anchor':'middle', class:'equip-sub'}).textContent = 'Cooling Tower';
+  [945,967,989,1071,1093,1115].forEach((x,i)=>{
+    E('line',{x1:x, y1:784, x2:x, y2:834, class:'pem-fall',
+      stroke:'#fca5a5','stroke-width':1.6, style:`animation-delay:${(i*0.2).toFixed(2)}s`});
+  });
+  rotary(1030, 808, 24, '#1c0a0a', '#fca5a5', 5);
+})();
+/* 冷却塔 → 冷却水泵：直接一条直线 */
+pipe('M920,800 L780,800', 'pipe-coolant', 'flow-coolant');
+rotary(760, 800, 20, '#3a1515', '#f87171', 6);
+E('text',{x:760, y:842,'text-anchor':'middle', fill:'#e8eef5','font-size':10,'font-weight':'bold'}).textContent = '冷却水泵';
+E('text',{x:760, y:855,'text-anchor':'middle', fill:'#fca5a5','font-size':9}).textContent = 'Coolant Pump';
+/* 冷却水泵 → 换热器冷侧：同样为直线 */
+pipe('M740,800 L680,800', 'pipe-coolant', 'flow-coolant');
+
+/* 热流标注（两处：电堆反应废热 ↓ 循环冷却回路；换热器废热 ↓ 冷却水） */
+E('line',{x1:800, y1:592, x2:800, y2:664, stroke:'#ef4444','stroke-width':2.5,
+  'stroke-dasharray':'8 6','marker-end':'url(#pemAh)'});
+E('text',{x:810, y:628, fill:'#fca5a5','font-size':10}).textContent = '反应废热';
+E('line',{x1:840, y1:700, x2:840, y2:762, stroke:'#ef4444','stroke-width':2.5,
+  'stroke-dasharray':'8 6','marker-end':'url(#pemAh)'});
+/* 标签居中压在虚线上，垫深色底衬保证可读 */
+E('rect',{x:796, y:726, width:88, height:16, rx:3, fill:'#0f1c2e', opacity:0.92});
+E('text',{x:840, y:738,'text-anchor':'middle', fill:'#fca5a5','font-size':10}).textContent = '废热 → 冷却水';
+
+/* ---------------- 5. 数据气泡 ---------------- */
+const nodes = {};
+function addData(id, x, y, anchor){
+  const g = E('g', {id:'pd_'+id});
+  nodes[id] = {g, x, y, anchor:anchor||'start'};
+}
+addData('power', 290, 58);
+addData('bop',   290, 190);
+addData('water',  70, 531);
+addData('o2',    660,  90);
+addData('h2',   1130, 542);
+addData('hx',    480, 872);
+addData('pump1', 292, 680);
+addData('pump2', 729, 872);
+addData('cooltower', 920, 872);
+
+function pemSet(id, lines, tips){
+  const n = nodes[id]; if(!n) return;
+  n.g.innerHTML = '';
+  const pad = 7, lh = 15;
+  const textW = s => [...s].reduce((a,ch)=> a + (/[\u2e80-\u9fff\uff00-\uffef]/.test(ch) ? 12.5 : 7.2), 0);
+  const w = Math.max(...lines.map(l=> textW(l.replace(/<[^>]+>/g,'')))) + pad*2;
+  const h = lines.length*lh + pad*2 - 4;
+  const bx = n.anchor === 'middle' ? n.x - w/2 : n.x;
+  const svgTitle = txt => { const t = document.createElementNS(NS,'title'); t.textContent = txt; return t; };
+  const allTips = (tips||[]).filter(Boolean);
+  if(allTips.length) n.g.appendChild(svgTitle(allTips.join('\n')));
+  const rct = document.createElementNS(NS,'rect');
+  rct.setAttribute('x', bx); rct.setAttribute('y', n.y);
+  rct.setAttribute('width', w); rct.setAttribute('height', h);
+  rct.setAttribute('class','data-bubble');
+  n.g.appendChild(rct);
+  lines.forEach((l,i)=>{
+    const t = document.createElementNS(NS,'text');
+    t.setAttribute('x', bx+pad); t.setAttribute('y', n.y+pad+lh*(i+1)-3);
+    t.setAttribute('class','data-text');
+    if(tips && tips[i]) t.appendChild(svgTitle(tips[i]));
+    const segs = l.match(/<strong>[\s\S]*?<\/strong>|[\s\S]+?(?=<strong>|$)/g) || [l];
+    segs.forEach(s=>{
+      const isVal = /^<strong>/.test(s);
+      const content = s.replace(/<\/?strong>/g,'');
+      if(content.length === 0) return;
+      const ts = document.createElementNS(NS,'tspan');
+      ts.setAttribute('fill', isVal ? '#7dd3fc' : '#e2e8f0');
+      ts.setAttribute('font-weight', isVal ? 'bold' : 'normal');
+      ts.textContent = content;
+      t.appendChild(ts);
+    });
+    n.g.appendChild(t);
+  });
+}
+
+/* 图签 / 图例 / 系统功率汇总（定长 foreignObject） */
+(function(){
+  const fo = document.createElementNS(NS,'foreignObject');
+  fo.setAttribute('x',-45); fo.setAttribute('y',877);
+  fo.setAttribute('width',205); fo.setAttribute('height',104);
+  fo.innerHTML = '<div xmlns="http://www.w3.org/1999/xhtml" class="pfd-titleblock">'
+    + '<div class="tb-name">PEM电解槽系统流程图</div>'
+    + '<div class="tb-sub">PFD · PEM Water Electrolysis</div>'
+    + '<div class="tb-line"></div>'
+    + '<div class="tb-row"><span>版本</span><span>V1.0</span></div>'
+    + '<div class="tb-row"><span>日期</span><span>2026-10-17</span></div>'
+    + '</div>';
+  svg.appendChild(fo);
+})();
+(function(){
+  const fo = document.createElementNS(NS,'foreignObject');
+  fo.setAttribute('x',172); fo.setAttribute('y',877);
+  fo.setAttribute('width',120); fo.setAttribute('height',104);
+  fo.innerHTML = '<div xmlns="http://www.w3.org/1999/xhtml" class="pfd-legend">'
+    + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#06b6d4"></span>纯水/循环水流路</div>'
+    + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#6366f1"></span>氢气流路</div>'
+    + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#38bdf8"></span>氧气流路</div>'
+    + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#f97316"></span>冷却水流路</div>'
+    + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#eab308"></span>电力/信号</div>'
+    + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#ef4444"></span>热流</div>'
+    + '</div>';
+  svg.appendChild(fo);
+})();
+(function(){
+  const fo = document.createElementNS(NS,'foreignObject');
+  fo.setAttribute('x',1230); fo.setAttribute('y',660);
+  fo.setAttribute('width',260); fo.setAttribute('height',290);
+  fo.innerHTML = '<div xmlns="http://www.w3.org/1999/xhtml" class="pfd-pow-table" id="pemPowTable"></div>';
+  svg.appendChild(fo);
+})();
+/* 控制与安全联锁卡：恢复到原宽度（不参与右侧对齐，保持 x=1150 / 宽 335） */
+(function(){
+  const fo = document.createElementNS(NS,'foreignObject');
+  fo.setAttribute('x',1150); fo.setAttribute('y',44);
+  fo.setAttribute('width',335); fo.setAttribute('height',145);
+  fo.innerHTML = '<div xmlns="http://www.w3.org/1999/xhtml" class="pem-note" id="pemCtlNote"></div>';
+  svg.appendChild(fo);
+})();
+
+/* 流程图外框：左沿落在视口左边缘（与图下计算面板左沿对齐），右沿落在视口右边缘 */
+E('rect',{x:-59, y:30, width:1558, height:965, rx:10, fill:'none', stroke:'#38bdf8',
+  'stroke-width':1.6, 'stroke-dasharray':'9 6', opacity:0.4, 'pointer-events':'none'});
+
+/* ---------------- 6. 渲染 ---------------- */
+const F2 = v => (Number(v)||0).toFixed(2);
+const F1 = v => (Number(v)||0).toFixed(1);
+const F0 = v => (Number(v)||0).toFixed(0);
+const F3 = v => (Number(v)||0).toFixed(3);
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const row = (l,val,warn,tip)=>
+  `<div class="hx-result-row"${tip?` title="${esc(tip)}"`:''}><span class="hx-r-label">${l}</span><span class="hx-r-value${warn?' warn':''}">${val}</span></div>`;
+
+function renderPem(){
+  const r = calcPem();
+  const st = r.st, wt = r.wt, gs = r.gs, hx = r.hx, pw = r.pw;
+
+  /* --- 数据气泡 --- */
+  pemSet('power', [
+    `直流电流:<strong>${F0(st.I)}</strong>A`,
+    `直流电压:<strong>${F0(st.Vstack)}</strong>V`,
+    `直流功率:<strong>${F1(st.Pstack)}</strong>kW`,
+    `电源输入:<strong>${F1(pw.Prect)}</strong>kW`,
+    `电源效率:<strong>${F0(gi('pemRectEff'))}</strong>%`,
+    `平均负荷率:<strong>${F0(gi('pemUseFactor'))}</strong>%`
+  ],[
+    '直流电流(A) = 反应面积(cm²) × 电流密度(A/cm²)；整堆串联，各节电流相同',
+    '直流电压(V) = 单体电压(V) × 电解槽节数',
+    '直流功率(kW) = 直流电流(A) × 直流电压(V) / 1000',
+    '电源输入功率(kW) = 电解槽直流功率 / 制氢电源效率；含整流器与变压器损耗',
+    '制氢电源效率(%) = 输入参数「制氢电源效率」',
+    '平均负荷率(%) = 输入参数「平均负荷率」；用于核算年运行小时数下的平均电耗'
+  ]);
+  pemSet('bop', [
+    `辅机合计:<strong>${F2(pw.bopTotal)}</strong>kW`,
+    `系统输入:<strong>${F1(pw.Psys)}</strong>kW`,
+    `系统效率HHV:<strong>${F1(pw.etaSysHHV)}</strong>%`,
+    `电能单耗:<strong>${F2(pw.kWhKg)}</strong>kWh/kg`,
+    `电能单耗:<strong>${F2(pw.kWhNm3)}</strong>kWh/Nm³`
+  ],[
+    '辅机合计(kW) = 纯水循环泵 + 冷却水泵 + 冷却塔风机 + 纯化加热；各设备自身参数见其对应气泡',
+    '系统输入功率(kW) = 制氢电源输入功率 + 辅机合计',
+    '系统效率(HHV)(%) = 产品氢 HHV 功率 / 系统输入功率 × 100',
+    '电能单耗(kWh/kgH₂) = 系统输入功率 / 产氢质量流量(kg/h)',
+    '电能单耗(kWh/Nm³) = 系统输入功率 / 产氢体积流量(Nm³/h)；行业典型 4.5~5.5'
+  ]);
+  pemSet('water', [
+    `反应净耗水:<strong>${F1(wt.mWaterNetKgh)}</strong>kg/h`,
+    `循环水量:<strong>${F1(wt.Vcirc)}</strong>m³/h`,
+    `换热需求:<strong>${F1(wt.mHeatWater)}</strong>kg/h`,
+    `循环倍率:<strong>${F0(wt.circRatio)}</strong>倍`,
+    `原水耗量:<strong>${F1(wt.roFeedKgh)}</strong>kg/h`,
+    `水质:<strong>≥18.2</strong>MΩ·cm`
+  ],[
+    '反应净耗水(kg/h) = 实际产氢量(mol/s) × 18.015 × 3.6；电解 1 mol 水生成 1 mol 氢',
+    '循环水量(m³/h) = max(换热需求, 反应用水) / ρ × 3600；纯水侧兼作反应物与冷却介质',
+    '换热需求(kg/h) = 废热×1000/(水的比热 4186 × 纯水侧温差) × 3600',
+    '循环倍率 = 循环质量流量 / 反应净耗水质量流量；通常由换热需求主导（可达百倍级）',
+    '原水耗量(kg/h) = (反应净耗水 + 氢侧气相带水 + 氧侧气相带水) / 纯水制备回收率；气相水随产品氢与氧气排空离开系统，与气液分离效率无关；RO 浓水按回收率折算',
+    '纯水电阻率 ≥18.2 MΩ·cm（25℃）；金属离子会毒化质子交换膜与催化剂'
+  ]);
+  pemSet('o2', [
+    `产氧流量:<strong>${F1(st.vO2)}</strong>Nm³/h`,
+    `氧侧带水:<strong>${F1(gs.o2WaterKgh)}</strong>kg/h`,
+    `氧侧压力:<strong>${F1(gs.PO2b)}</strong>bar`,
+    `分离效率:<strong>${F0(gs.sepEff*100)}</strong>%`
+  ],[
+    '理论产氧流量(Nm³/h) = 理论产氢量(mol/s)/2 × 22.414 × 3.6；阳极 2H₂O → O₂ + 4H⁺ + 4e⁻',
+    '氧侧气相带水(kg/h) = 产氧量 × 饱和摩尔比 × 18.015 × 3.6；饱和摩尔比 = p_sat/(P−p_sat)',
+    '氧气侧绝对压力(bar) = 输入参数「氧气侧压力」；低压运行使氧侧带水量显著增大',
+    '气液分离效率(%) = 输入参数「气液分离效率」'
+  ]);
+  pemSet('h2', [
+    `实际产氢:<strong>${F1(st.vH2)}</strong>Nm³/h`,
+    `产氢质量:<strong>${F1(st.mH2kgh)}</strong>kg/h`,
+    `产品氢:<strong>${F1(gs.vH2Pro)}</strong>Nm³/h`,
+    `纯化损失:<strong>${F2(gs.vH2Loss)}</strong>Nm³/h`,
+    `氢侧压力:<strong>${F1(gs.PH2b)}</strong>bar`,
+    `纯度:<strong>${F0(gi('pemH2Purity'))}</strong>%`
+  ],[
+    '实际产氢(Nm³/h) = 理论产氢(mol/s) × 法拉第效率 × 22.414 × 3.6',
+    '产氢质量(kg/h) = 实际产氢(mol/s) × 2.016 × 3.6',
+    '产品氢流量(Nm³/h) = 实际产氢 × 纯化回收率',
+    '纯化损失(Nm³/h) = 实际产氢 − 产品氢；含脱氧消耗与干燥再生吹扫损失',
+    '氢气侧绝对压力(bar) = 输入参数「氢气侧压力」；高压产氢可直接对接储氢，省去压缩机',
+    '产品氢纯度(%) = 输入参数「产品氢纯度」'
+  ]);
+  pemSet('hx', [
+    `热负荷:<strong>${F1(hx.Qheat)}</strong>kW`,
+    `LMTD:<strong>${F1(hx.lmtd)}</strong>℃`,
+    `计算面积:<strong>${F2(hx.Acalc)}</strong>m²`,
+    `板片数:<strong>${F0(hx.Nplate)}</strong>片`,
+    `热侧压降:<strong>${F2(hx.dpHot/1000)}</strong>kPa`
+  ],[
+    `热负荷(kW) = 直流功率 × (单体电压 − 热中性电压1.481)/单体电压；单体电压高于1.481V即持续放热`,
+    '对数平均温差(℃)：逆流布置，端差取 (纯水进口−冷却水出口) 与 (纯水出口−冷却水进口)',
+    '计算面积(m²) = 热负荷×1000/(传热系数K × LMTD)',
+    '板片数(片) = 计算面积×(1+裕度)/单板面积 + 1，向上取整并取偶数',
+    '换热器压降(kPa) = 摩擦阻力 + 局部阻力；摩擦项 = (流道长/当量直径)×摩擦系数×ρu²/2'
+  ]);
+  pemSet('pump1', [
+    `流量:<strong>${F1(wt.Vcirc)}</strong>m³/h`,
+    `扬程:<strong>${F0(gi('pemPumpHead'))}</strong>m`,
+    `效率:<strong>${F0(gi('pemPumpEff'))}</strong>%`,
+    `功耗:<strong>${F2(pw.P_pump)}</strong>kW`
+  ],[
+    '纯水循环泵流量(m³/h) = 纯水循环水量 = max(换热需求, 反应用水)/ρ×3600',
+    '扬程(m) = 输入参数「纯水循环泵扬程」；需覆盖板式换热器与电解槽的沿程及局部阻力',
+    '总效率(%) = 输入参数「纯水循环泵总效率」',
+    `功耗(kW) = ρ g H Q / η；ρ 取纯水温度 ${gi('pemOpTemp')}℃ 下的水密度`
+  ]);
+  pemSet('pump2', [
+    `流量:<strong>${F1(hx.Vcold)}</strong>m³/h`,
+    `扬程:<strong>${F0(gi('pemCoolPumpHead'))}</strong>m`,
+    `效率:<strong>${F0(gi('pemCoolPumpEff'))}</strong>%`,
+    `功耗:<strong>${F2(pw.P_cpump)}</strong>kW`
+  ],[
+    '冷却水泵流量(m³/h) = 冷却水循环量 = 热负荷×1000/(4178×冷却水温升)/ρ×3600',
+    '扬程(m) = 输入参数「冷却水泵扬程」；需覆盖板式换热器冷侧压降与冷却塔提升高度',
+    '总效率(%) = 输入参数「冷却水泵总效率」',
+    '功耗(kW) = ρ g H Q / η；冷却水按 34℃ 取 ρ=994 kg/m³'
+  ]);
+  pemSet('cooltower', [
+    `冷却水进/出:<strong>${F1(hx.Tci)}/${F1(hx.Tco)}</strong>℃`,
+    `冷却水流量:<strong>${F1(hx.Vcold)}</strong>m³/h`,
+    `空气流量:<strong>${F0(pw.Vair)}</strong>m³/h`,
+    `风机功耗:<strong>${F2(pw.P_fan)}</strong>kW`,
+    `带走热量:<strong>${F1(hx.Qheat)}</strong>kW`
+  ],[
+    '冷却水进口温度 = 输入参数「冷却水进口温度」；出口温度 = 输入参数「冷却水出口温度」',
+    '冷却水流量(m³/h) = 热负荷×1000/(冷却水比热 4178 × 冷却水温升)/ρ×3600',
+    '冷却塔空气流量(m³/h) = 废热×3600/(空气定压比热 1005 × 空气温升 × 空气密度 1.2)',
+    '风机功耗(kW) = 风机全压(Pa) × 空气体积流量(m³/s) / 风机效率',
+    '带走热量(kW) = 电解槽反应废热 = 直流功率 ×(单体电压 − 1.481)/单体电压'
+  ]);
+
+  /* --- 计算面板 --- */
+  document.getElementById('pem-water-results').innerHTML = [
+    ['反应净耗水(kg/h)',            F1(wt.mWaterNetKgh), false, '反应净耗水 = 实际产氢量(mol/s)×18.015×3.6'],
+    ['换热所需水量(kg/h)',          F1(wt.mHeatWater),   false, `换热需求 = 废热×1000/(纯水比热 c_w×纯水侧温差)×3600；c_w 取 ${gi('pemOpTemp')}℃ 下的水比热`],
+    ['反应用水(kg/h)',              F1(wt.mWaterNetKgh*Math.max(1,gi('pemWaterExcess'))), false, '反应用水 = 反应净耗水 × 纯水循环倍率'],
+    ['循环水量(m³/h)',              F1(wt.Vcirc),        false, `循环水量 = max(换热需求, 反应用水)/ρ × 3600；ρ 取纯水温度 ${gi('pemOpTemp')}℃ 下的水密度`],
+    ['循环水量(L/min)',             F1(wt.Vcirc/60*1000), false, '循环水量(L/min) = 循环水量(m³/h) × 1000/60'],
+    ['循环倍率',                    F0(wt.circRatio)+' 倍', wt.circRatio<10, '循环倍率 = 循环质量流量/反应净耗水质量流量'],
+    ['纯水制备能力(kg/h)',          F1(wt.mWaterNetKgh), false, '纯水制备产水能力 ≥ 反应净耗水；反应消耗的水由制备系统持续补充'],
+    ['原水耗量(kg/h)',              F1(wt.roFeedKgh),   false, '原水耗量 = (反应净耗水 + 氢侧气相带水 + 氧侧气相带水) / 纯水制备回收率（气相水随产品氢与氧气排空离开系统，与气液分离效率无关；RO 浓水按回收率折算）'],
+    ['纯水侧温差(℃)',              F1(wt.dTw),         false, '纯水侧温差 = 输入参数「纯水侧温差」；取值越小流量越大、温差应力越小'],
+    ['纯水电阻率(MΩ·cm)',          '≥ 18.2',           false, 'PEM 必须使用超纯水；金属离子会毒化质子交换膜与催化剂，导致电压升高'],
+    ['纯水温度(℃)',                F1(gi('pemOpTemp')), false, '循环纯水温度 = 电解槽工作温度（进出口平均）']
+  ].map(a=>row(a[0],a[1],a[2],a[3])).join('');
+
+  document.getElementById('pem-gas-results').innerHTML = [
+    ['理论产氢(mol/s)',    F3(st.nH2th), false, '理论产氢 = 电流(A)×节数/(2×96485)；法拉第定律'],
+    ['实际产氢(mol/s)',    F3(st.nH2),   false, '实际产氢 = 理论产氢 × 法拉第效率'],
+    ['产氢流量(Nm³/h)',    F1(st.vH2),  false, '产氢流量 = 实际产氢(mol/s)×22.414×3.6'],
+    ['产氢质量(kg/h)',     F1(st.mH2kgh), false, '产氢质量 = 实际产氢(mol/s)×2.016×3.6'],
+    ['产品氢流量(Nm³/h)',  F1(gs.vH2Pro), false, '产品氢 = 产氢流量 × 纯化回收率'],
+    ['纯化损失(Nm³/h)',    F2(gs.vH2Loss), false, '纯化损失 = 产氢流量 − 产品氢流量'],
+    ['产品氢纯度(%)',      F0(gi('pemH2Purity'))+' (≥99.999 目标)', false, '纯化后产品氢纯度目标（脱氧 + 干燥后）'],
+    ['理论产氧(Nm³/h)',    F1(st.vO2),   false, '理论产氧 = 理论产氢/2 × 22.414 × 3.6；阳极 OER 反应'],
+    ['氢侧气相带水(kg/h)', F1(gs.h2WaterKgh), false, `氢侧带水 = 产氢量 × 饱和摩尔比 × 18.015 × 3.6；饱和摩尔比 = p_sat(${gi('pemOpTemp')}℃)/(P−p_sat)`],
+    ['氧侧气相带水(kg/h)', F1(gs.o2WaterKgh), false, '氧侧带水 = 产氧量 × 饱和摩尔比 × 18.015 × 3.6；常压氧侧带水量远大于高压氢侧'],
+    [`${gi('pemOpTemp')}℃饱和蒸汽压(kPa)`,F2(gs.pSat),   false, '饱和蒸汽压由操作温度的多项式拟合式计算'],
+    ['分离器回收液态水(kg/h)', F1(gs.liqRecover), false, '回收液态水 = (循环水量 − 反应耗水 − 两侧气相带水) × 气液分离效率'],
+    ['气液分离效率(%)',    F0(gs.sepEff*100), false, '气液分离效率 = 输入参数「气液分离效率」'],
+    ['氢侧压力(bar)',      F1(gs.PH2b),  false, '氢气侧绝对压力 = 输入参数「氢气侧压力」'],
+    ['氧侧压力(bar)',      F1(gs.PO2b),  false, '氧气侧绝对压力 = 输入参数「氧气侧压力」'],
+    ['氢氧压差(bar)',      F2(gs.dP)+' / 限值 '+F2(gs.dpLim), gs.dP>gs.dpLim, '氢氧压差 = |氢侧压力 − 氧侧压力|；超限将导致膜击穿、氢氧互窜'],
+    ['压差校核',           gs.dP>gs.dpLim?'超限 ✗ 需调整压力或加装差压联锁':'合格 ✓', gs.dP>gs.dpLim, '设计要求 |P_H₂ − P_O₂| ≤ 氢氧压差限值，并设置软件+硬件+机械三重保护'],
+    ['氢中氧浓度(vol%)',   F3(gs.h2InO2)+' (报警 2 / 联锁 4)', gs.h2InO2>=2, '氢中氧浓度 = 膜氢氧互窜量/(产氧量+互窜量)×100；互窜量由输入「膜氢氧互窜电流密度」决定：≥2 vol% 报警、≥4 vol%（爆炸下限）立即联锁停车'],
+    ['氧中氢浓度(vol%)',   F3(gs.o2InH2)+' (报警 2)',          gs.o2InH2>=2, '氧中氢浓度 = 膜氧窜氢量/(产氢量+互窜量)×100；≥2 vol% 报警并停车，判断膜是否泄漏']
+  ].map(a=>row(a[0],a[1],a[2],a[3])).join('');
+
+  document.getElementById('pem-hx-results').innerHTML = [
+    ['热负荷 Q(kW)',        F1(hx.Qheat), false, '热负荷 = 直流功率 × (单体电压 − 1.481)/单体电压；1.481V 为 HHV 热中性电压'],
+    ['热侧(纯水)进口(℃)',  F1(hx.Thi),   false, '纯水进口温度 = 电解槽工作温度'],
+    ['热侧(纯水)出口(℃)',  F1(hx.Tho),   false, '纯水出口温度 = 工作温度 − 纯水侧温差'],
+    ['冷侧(冷却水)进口(℃)',F1(hx.Tci),   false, '冷却水进口温度 = 输入参数「冷却水进口温度」'],
+    ['冷侧(冷却水)出口(℃)',F1(hx.Tco),   false, '冷却水出口温度 = 输入参数「冷却水出口温度」'],
+    ['端差 Δt₁ / Δt₂(℃)',   F1(hx.dt1)+' / '+F1(hx.dt2), hx.cross, '逆流布置端差：Δt₁ = 纯水进口 − 冷却水出口；Δt₂ = 纯水出口 − 冷却水进口；任一端差 ≤0 即温度交叉'],
+    ['对数平均温差 LMTD(℃)',F1(hx.lmtd),  hx.cross, 'LMTD = (Δt₁−Δt₂)/ln(Δt₁/Δt₂)'],
+    ['总传热系数 K W/(m²·K)',F0(hx.K),   false, '水-水板式换热器经验值 3000~6000；此处取输入参数「换热器传热系数K」'],
+    ['计算面积(m²)',        F2(hx.Acalc), false, '计算面积 = 热负荷×1000/(K × LMTD)'],
+    ['面积裕度(%)',         F0(gi('pemHxMargin')), false, '面积裕度 = 输入参数「换热面积裕度」，用于应对结垢与性能衰减（常规 15%~25%）'],
+    ['需求面积(含裕度)(m²)',F2(hx.Aneed), false, '需求面积 = 计算面积 × (1 + 裕度)'],
+    ['板片数(片)',          F0(hx.Nplate), false, '板片数 = 需求面积/单板有效面积 + 1，向上取整并取偶数使两侧流道数相等'],
+    ['实际换热面积(m²)',    F2(hx.Agot),  false, '实际面积 = (板片数 − 1) × 单板有效面积'],
+    ['热侧流道数 / 冷侧流道数', F0(hx.nHotCh)+' / '+F0(hx.nColdCh), false, '流道数由板间通道数均分得到，两侧并联流道数决定流速'],
+    ['热侧流速(m/s)',       F2(hx.uHot),  hx.uHot<0.3||hx.uHot>1.5, '热侧流速 = (循环流量/3600)/(热侧流道数 × 单板流道面积)；推荐 0.3~1.0 m/s'],
+    ['冷侧流速(m/s)',       F2(hx.uCold), hx.uCold<0.3||hx.uCold>1.5, '冷侧流速 = (冷却水流量/3600)/(冷侧流道数 × 单板流道面积)'],
+    ['热侧雷诺数 Re',       F0(hx.ReHot), false, 'Re = ρ·u·D_eq/μ；D_eq 取 2×板间距 ≈ 0.006 m；Re>3000 视为湍流'],
+    ['冷侧雷诺数 Re',       F0(hx.ReCold),false, 'Re = ρ·u·D_eq/μ；冷却水 34℃ 取 μ=0.742 mPa·s'],
+    ['热侧压降(kPa)',       F2(hx.dpHot/1000),  hx.dpHot/1000>100, '压降 = (流道长/当量直径)×f×ρu²/2 + 1.5×ρu²/2；推荐 ≤100 kPa'],
+    ['冷侧压降(kPa)',       F2(hx.dpCold/1000), hx.dpCold/1000>100, '压降 = 摩擦阻力 + 进出口局部阻力'],
+    ['冷却水循环量(m³/h)',  F1(hx.Vcold), false, '冷却水流量 = 热负荷×1000/(4178 × 冷却水温升)/ρ×3600']
+  ].map(a=>row(a[0],a[1],a[2],a[3])).join('');
+
+  document.getElementById('pem-power-results').innerHTML = [
+    ['可逆电压 V_rev(V)',    F3(st.Vrev),  false, '可逆电压 = 1.23 − 0.9e-3×(T−25) + (R·T_k/(2F))·ln(P_H2·P_O2^0.5/P_H2O)；T 为工作温度(℃)，T_k = T+273.15，压力取绝压(bar)，P_H2O 为 T 下饱和蒸汽压(kPa→bar)'],
+    ['激活过电位 η_act(V)',  F3(st.etaAct), false, '激活过电位 = a×log10(j/j0)；Tafel 斜率 a = 0.05 V/decade，交换电流密度 j0 = 2e-5 A/cm²（常量，非输入），j 为电流密度(A/cm²)'],
+    ['欧姆过电位 η_ohm(V)',  F3(st.etaOhm), false, '欧姆过电位 = j×ASR(T)；ASR(T) = ASR70×exp(Er×(1/(T+273.15) − 1/343.15))，Er = 1600 K，ASR70 取输入参数「面积比电阻@70℃」'],
+    ['单体电压('+st.vSource+')(V)', F3(st.Vcell), false, '单体电压 = V_rev + η_act + η_ohm，由电流密度 j、温度 T 与氢氧压力解算；若输入「单体电压」非 0 则直接采用该值（手动覆盖，不再走曲线）'],
+    ['系统电化学效率 (HHV)(%)', F1(etaHHVv(r)), false, '基于高热值：效率 = 1.481V/单体电压；1.481V 为水的 HHV 热中性电压'],
+    ['系统电化学效率 (LHV)(%)', F2(st.etaLHV), false, '基于低热值：效率 = 1.254V/单体电压'],
+    ['电解槽直流功率(kW)',   F1(st.Pstack), false, '直流功率 = 直流电流 × 直流电压 / 1000'],
+    ['制氢电源输入功率(kW)', F1(pw.Prect),  false, '电源输入 = 直流功率 / 制氢电源效率'],
+    ['纯水循环泵(kW)',       F2(pw.P_pump), false, '泵功率 = ρgH·Q/η'],
+    ['冷却水泵(kW)',         F2(pw.P_cpump),false, '泵功率 = ρgH·Q/η'],
+    ['冷却塔风机(kW)',       F2(pw.P_fan),  false, '风机 = 全压 × 风量 / 效率；风量由废热与空气温升求得'],
+    ['纯化加热(kW)',         F2(pw.P_purif),false, '纯化加热 = 直流功率 × 纯化加热占比'],
+    ['辅机合计(kW)',         F2(pw.bopTotal), false, '辅机合计 = 纯水循环泵 + 冷却水泵 + 通风机 + 纯化加热'],
+    ['系统输入功率(kW)',     F1(pw.Psys),   false, '系统输入 = 制氢电源输入 + 辅机合计'],
+    ['系统效率 (HHV)(%)',    F1(pw.etaSysHHV), false, '系统效率 = 产品氢 HHV 功率 / 系统输入功率'],
+    ['系统效率 (LHV)(%)',    F1(pw.etaSysLHV), false, '系统效率 = 产品氢 LHV 功率 / 系统输入功率'],
+    ['电能单耗(kWh/kgH₂)',   F2(pw.kWhKg),  false, '电能单耗 = 系统输入功率 / 产氢质量流量(kg/h)'],
+    ['电能单耗(kWh/Nm³)',    F2(pw.kWhNm3), false, '电能单耗 = 系统输入功率 / 产氢流量(Nm³/h)；行业典型 4.5~5.5'],
+    ['理论最低电耗(kWh/kg)', F1(LHV_KWH_KG)+' (LHV) / '+F1(HHV_KWH_KG)+' (HHV)', false, '氢的 LHV=33.33 kWh/kg、HHV=39.41 kWh/kg，为电耗理论下限'],
+    ['冷却塔空气流量(m³/h)', F0(pw.Vair),   false, '空气流量 = 废热×3600/(空气定压比热 × 空气温升)/空气密度'],
+    ['氢氧压差校核(bar)',    F2(gs.dP)+' / ≤'+F2(gs.dpLim), gs.dP>gs.dpLim, '压差超限需调整氢/氧侧压力设定或加装差压联锁保护'],
+    ['电解槽温度校核(℃)',   F1(gi('pemOpTemp'))+' / ≤85', gi('pemOpTemp')>85, '温度过高加速膜降解与催化剂溶解；典型控制 60~80℃'],
+    ['纯水电阻率校核',      '≥18.2 MΩ·cm', false, '在线监测循环水电导率，超限需再生混床并降功率运行'],
+    ['安全联锁要求',         'SIL2 独立于主控', false, '氢中氧/氧中氢、氢氧压差、系统超压、超温、冷却水断流、液位异常均须联锁停车']
+  ].map(a=>row(a[0],a[1],a[2],a[3])).join('');
+}
+/* HHV 电化学效率（避免变量遮蔽，直接取 calcPem 已解算的单体电压） */
+function etaHHVv(r){
+  const Vc = (r && r.st) ? r.st.Vcell : gi('pemCellVoltage');
+  return Vc>0 ? VTHN/Vc*100 : 0;
+}
+
+/* 系统功率汇总表 + 控制联锁卡 */
+function renderTables(){
+  const r = calcPem(), st = r.st, pw = r.pw, gs = r.gs;
+  const t = document.getElementById('pemPowTable');
+  if(t){
+    /* foreignObject 内 SVG <title> 无效，故此处用 HTML title 属性（悬停显示公式） */
+    const ta = tip => ' title="'+esc(tip)+'"';
+    t.innerHTML =
+      '<div class="pfd-pow-head">系统功率汇总</div>'
+      + '<div class="pfd-pow-row"'+ta('单体电压 = V_rev + η_act + η_ohm，由电流密度 j、温度 T 与氢氧压力解算；来源为极化曲线时由曲线求取，输入值非 0 时为手动覆盖')+'><span>单体电压（'+st.vSource+'）</span><span>'+F2(st.Vcell)+' V</span></div>'
+      + '<div class="pfd-pow-row"'+ta('电解槽节数 = 输入参数「电解槽节数」（单体串联数）；电压逐节累加、各节电流相同')+'><span>电解槽节数</span><span>'+F0(st.N)+' 节</span></div>'
+      + '<div class="pfd-pow-row"'+ta('直流电流 = 反应面积(cm²) × 电流密度(A/cm²)；全槽串联，各节电流相同')+'><span>直流电流</span><span>'+F0(st.I)+' A</span></div>'
+      + '<div class="pfd-pow-row"'+ta('直流电压 = 单体电压 × 电解槽节数')+'><span>直流电压</span><span>'+F0(st.Vstack)+' V</span></div>'
+      + '<div class="pfd-pow-row pfd-pow-group"'+ta('直流功率 = 直流电流 × 直流电压 / 1000（毛功率，未扣辅机）')+'><span>电解槽直流功率</span><span>'+F1(st.Pstack)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('电源输入 = 直流功率 / 制氢电源效率')+'><span>制氢电源输入</span><span>'+F1(pw.Prect)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('泵功率 = ρgH·Q/η；Q 为纯水循环流量，H 为泵压头，η 为泵效率')+'><span>纯水循环泵</span><span>'+F2(pw.P_pump)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('泵功率 = ρgH·Q/η；Q 为冷却水循环流量，H 为泵压头，η 为泵效率')+'><span>冷却水泵</span><span>'+F2(pw.P_cpump)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('风机 = 全压 × 风量 / 效率；风量由废热与空气温升求得')+'><span>冷却塔风机</span><span>'+F2(pw.P_fan)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('纯化加热 = 直流功率 × 纯化加热占比')+'><span>纯化加热</span><span>'+F2(pw.P_purif)+' kW</span></div>'
+      + '<div class="pfd-pow-row pfd-pow-group"'+ta('辅机合计 = 纯水循环泵 + 冷却水泵 + 冷却塔风机 + 纯化加热')+'><span>辅机合计</span><span>'+F2(pw.bopTotal)+' kW</span></div>'
+      + '<div class="pfd-pow-row pfd-pow-sys"'+ta('系统输入 = 制氢电源输入 + 辅机合计')+'><span>系统输入功率</span><span>'+F1(pw.Psys)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('产氢流量 = 实际产氢(mol/s)×22.414×3.6；实际产氢 = 理论产氢 × 法拉第效率')+'><span>产氢量</span><span>'+F1(st.vH2)+' Nm³/h</span></div>'
+      + '<div class="pfd-pow-row"'+ta('产氢质量 = 实际产氢(mol/s)×2.016×3.6')+'><span>产氢质量</span><span>'+F1(st.mH2kgh)+' kg/h</span></div>'
+      + '<div class="pfd-pow-row pfd-pow-sys"'+ta('电能单耗(kWh/kg) = 系统输入功率 / 产氢质量流量(kg/h)；kWh/Nm³ = 系统输入功率 / 产氢流量(Nm³/h)；行业典型 4.5~5.5')+'><span>电能单耗</span><span>'+F2(pw.kWhKg)+' kWh/kg</span></div>'
+      + '<div class="pfd-pow-row"'+ta('系统效率 = 产品氢 HHV 功率 / 系统输入功率；HHV 热中性电压 1.481 V')+'><span>系统效率(HHV)</span><span>'+F1(pw.etaSysHHV)+' %</span></div>';
+  }
+  const c = document.getElementById('pemCtlNote');
+  if(c){
+    const ok = gs.dP <= gs.dpLim;
+    const tOK = gi('pemOpTemp') <= 85;
+    const ta = tip => ' title="'+esc(tip)+'"';
+    c.innerHTML =
+      '<div class="pn-head">控制与安全联锁</div>'
+      + '<div class="pn-row"'+ta('氢氧压差 = |氢侧压力 − 氧侧压力|；设计要求 |P_H₂ − P_O₂| ≤ 氢氧压差限值，超限将导致膜击穿与氢氧互窜，须设置软件+硬件+机械三重保护')+'><span>氢氧压差</span><span class="pn-v '+(ok?'ok':'warn')+'">'+F2(gs.dP)+' bar / ≤'+F2(gs.dpLim)+'</span></div>'
+      + '<div class="pn-row"'+ta('电解槽工作温度；限值 ≤85 ℃（过高会加速膜降解与催化剂溶解），推荐控制 60~80 ℃')+'><span>电解槽温度</span><span class="pn-v '+(tOK?'ok':'warn')+'">'+F1(gi('pemOpTemp'))+' ℃ / ≤85</span></div>'
+      + '<div class="pn-row"'+ta('氢中氧浓度 = 膜氢氧互窜量/(产氧量+互窜量)×100，互窜量由「膜氢氧互窜电流密度」决定；≥2 vol% 报警、≥4 vol% 立即联锁停车，4% 为氢的爆炸下限(LEL)')+'><span>氢中氧</span><span class="pn-v '+(gs.h2InO2<2?'ok':'warn')+'">'+F3(gs.h2InO2)+' vol%（2 报警 / 4 联锁）</span></div>'
+      + '<div class="pn-row"'+ta('氧中氢浓度 = 膜氧窜氢量/(产氢量+互窜量)×100；≥2 vol% 报警并停车，用于判断膜是否泄漏')+'><span>氧中氢</span><span class="pn-v '+(gs.o2InH2<2?'ok':'warn')+'">'+F3(gs.o2InH2)+' vol%（2 报警）</span></div>'
+      + '<div class="pn-row"'+ta('PEM 必须使用超纯水，电阻率 ≥18.2 MΩ·cm（25℃）；金属离子会毒化质子交换膜与催化剂导致电压升高，需在线监测电导率并再生混床')+'><span>纯水电阻率</span><span class="pn-v">≥18.2 MΩ·cm</span></div>'
+      + '<div class="pn-row"'+ta('安全仪表功能等级 SIL2，联锁逻辑独立于主控 PLC/DCS；氢中氧/氧中氢、氢氧压差、系统超压、超温、冷却水断流、液位异常均须联锁停车')+'><span>安全等级</span><span class="pn-v">SIL2 · 独立于主控</span></div>';
+  }
+}
+
+/* 图签与图例：底边对齐到外框下沿（fy+fh-14），较矮的图例上沿自然低于图签上沿。
+   页面隐藏时 offsetHeight 为 0，直接跳过，等切换到本页时再测。 */
+function layoutFurniture(){
+  const bottom = 995 - 14;                       // 外框下沿(y=995) − 边距 14
+  ['.pfd-titleblock', '.pfd-legend'].forEach(sel=>{
+    const box = svg.querySelector(sel);
+    if(!box) return;
+    const h = Math.ceil(box.offsetHeight);
+    if(!h) return;
+    const fo = box.parentNode;
+    fo.setAttribute('height', h);
+    fo.setAttribute('y', bottom - h);
+  });
+  /* 系统功率汇总表：底边对齐图签底边（同一基准线 bottom） */
+  const pwt = document.getElementById('pemPowTable');
+  if(pwt){
+    const h = Math.ceil(pwt.offsetHeight);
+    if(h){
+      const fo = pwt.parentNode;
+      fo.setAttribute('height', h);
+      fo.setAttribute('y', bottom - h);
+    }
+  }
+}
+
+function pemRun(){ renderPem(); renderTables(); layoutFurniture(); }
+
+/* ---------------- 7. 事件绑定 ---------------- */
+PEM_INPUTS.forEach(it=>{
+  const el = document.getElementById(it.id);
+  if(el) el.addEventListener('input', pemRun);
+});
+/* 第四页：参数导出 / 导入（复用全局 setupParamIO） */
+setupParamIO({
+  pageId: 'page-pem',
+  name: 'PEM电解槽系统设计 · 输入参数',
+  fileBase: 'PEM电解槽系统设计_输入参数',
+  exportId: 'pemExportBtn',
+  importBtnId: 'pemImportBtn',
+  importFileId: 'pemImportFile',
+  onImported: ()=>{ pemRun(); }
+});
+/* 计算逻辑说明弹窗 */
+(function(){
+  const ov = document.getElementById('pemHelpOverlay');
+  const body = document.getElementById('pemHelpBody');
+  if(!ov) return;
+  const open = ()=>{ ov.classList.add('open'); if(body) body.scrollTop = 0; };
+  const close = ()=>{ ov.classList.remove('open'); };
+  document.getElementById('pemHelpBtn').addEventListener('click', open);
+  document.getElementById('pemHelpClose').addEventListener('click', close);
+  ov.addEventListener('click', e=>{ if(e.target === ov) close(); });
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape') close(); });
+})();
+/* 切换回本页时重新测量图签/图例高度（隐藏状态下测不到） */
+const pemTabBtn = document.querySelector('.tab-btn[data-page="pem"]');
+if(pemTabBtn) pemTabBtn.addEventListener('click', layoutFurniture);
+/* ---------------- 8. 设计文档导出（浏览器原生打印 → PDF，零依赖） ---------------- */
+/* 结果面板一律「读取页面上已渲染的行」，不另维护一份标签→数值映射，避免两处失步；
+   面板若尚未渲染（例如异步/隐藏场景），先按 calcPem() 现算一次再读。 */
+const PEM_PANELS = [
+  ['二、水系统计算（纯水制备 · 循环 · 水平衡）', 'pem-water-results'],
+  ['三、气系统计算（产氢纯化 · 产氧 · 分离 · 压差）', 'pem-gas-results'],
+  ['四、换热器选型计算（板式换热器）', 'pem-hx-results'],
+  ['五、电源 · 能效 · 控制计算', 'pem-power-results']
+];
+function pemReadPanel(id){
+  const host = document.getElementById(id);
+  if(!host) return [];
+  if(!host.querySelector('.hx-result-row')){ renderPem(); renderTables(); }
+  const out = [];
+  host.querySelectorAll('.hx-result-row').forEach(rw=>{
+    const l = rw.querySelector('.hx-r-label'), v = rw.querySelector('.hx-r-value');
+    if(!l || !v) return;
+    const val = (v.textContent || '').replace(/\s+/g,' ').trim();   // 去掉 <strong>/<tspan> 等嵌套标记
+    if(!val) return;                                                // 跳过空值行
+    out.push({ label: l.textContent.trim(), value: val, warn: v.classList.contains('warn') });
+  });
+  return out;
+}
+/* 流程图：克隆 #pemPfd → 内联页面样式（SVG 作为 <img> 时不会套用页面 CSS）→ data-URI <img> */
+function pemPfdFigure(){
+  const src = document.getElementById('pemPfd');
+  if(!src) return null;
+  const clone = src.cloneNode(true);
+  clone.setAttribute('xmlns', NS);
+  clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+  clone.setAttribute('width', '1560');
+  clone.setAttribute('height', '1000');
+  let css = '';
+  Array.from(document.styleSheets).forEach(sh=>{
+    try{ Array.from(sh.cssRules).forEach(rr=>{ css += rr.cssText + '\n'; }); }catch(err){}
+  });
+  const styleEl = document.createElementNS(NS, 'style');
+  styleEl.textContent = css;
+  clone.insertBefore(styleEl, clone.firstChild);
+  const img = document.createElement('img');
+  img.className = 'pdl-pfd-img';
+  img.alt = 'PEM电解槽系统流程图';
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(clone));
+  return img;
+}
+function buildPemPrintLayout(){
+  const box = document.getElementById('pemPrintLayout');
+  if(!box) return;
+  const r = calcPem(), st = r.st, pw = r.pw;
+  const d = new Date(), p2 = n => (n<10?'0':'')+n;
+  const ts = d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+' '+p2(d.getHours())+':'+p2(d.getMinutes());
+
+  const row2 = (l,v,cls)=>'<tr><th>'+esc(l)+'</th><td'+(cls?' class="'+cls+'"':'')+'>'+esc(v)+'</td></tr>';
+  const row3 = (a,b,c)=>'<tr><th>'+esc(a)+'</th><td>'+esc(b)+'</td><td>'+esc(c)+'</td></tr>';
+  const tab  = (rows,head)=>'<table class="pdl-tab">'
+      + (head?'<thead><tr>'+head.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead>':'')
+      + '<tbody>'+rows.join('')+'</tbody></table>';
+  const sec  = (t,inner)=>'<section class="pdl-sec"><h3>'+esc(t)+'</h3>'+inner+'</section>';
+
+  /* ① 题头 + 设计点摘要 */
+  const sum = [
+    ['单体电压（'+st.vSource+'）',   F3(st.Vcell)+' V'],
+    ['电解槽直流功率',               F1(st.Pstack)+' kW'],
+    ['产氢量',                       F1(st.vH2)+' Nm³/h'],
+    ['系统效率 HHV / LHV',           F1(pw.etaSysHHV)+' % / '+F1(pw.etaSysLHV)+' %'],
+    ['电能单耗',                     F2(pw.kWhKg)+' kWh/kgH₂'],
+    ['电能单耗',                     F2(pw.kWhNm3)+' kWh/Nm³']
+  ];
+  const headHtml = '<div class="pdl-head">'
+    + '<div class="pdl-title"><h1>PEM电解槽系统设计 · 设计文档</h1>'
+    + '<div class="pdl-meta"><span>生成时间：'+ts+'</span>'
+    + '<span>工作点：j = '+F2(gi('pemCurrentDensity'))+' A/cm² · T = '+F0(gi('pemOpTemp'))+' ℃ · N = '+F0(gi('pemCellCount'))+' 节 · 单体电压来源：'+esc(st.vSource)+'</span></div></div>'
+    + '<div class="pdl-sum">'+sum.map(s=>'<div class="pdl-sum-item"><div class="k">'+esc(s[0])+'</div><div class="v">'+esc(s[1])+'</div></div>').join('')+'</div>'
+    + '</div>';
+
+  /* ② 输入参数表（读 PEM_INPUTS 与各输入框当前值） */
+  const inpRows = PEM_INPUTS.map(it=>{
+    const el = document.getElementById(it.id);
+    return row3(it.label, el ? el.value : '', it.step);
+  });
+  const inpHtml = sec('一、输入参数（共 '+PEM_INPUTS.length+' 项）', tab(inpRows, ['参数','当前值','步长']));
+
+  /* ③ 计算结果：逐面板读取已渲染的行 */
+  const resHtml = PEM_PANELS.map(([t,id])=>{
+    const rows = pemReadPanel(id);
+    return rows.length ? sec(t, tab(rows.map(x=>row2(x.label, x.value, x.warn?'pdl-warn':'')), ['项目','数值'])) : '';
+  }).join('');
+
+  /* ④ 校核结论：锁卡行 + ok/warn 状态（转成「合格/超限」文字） */
+  const ctl = document.getElementById('pemCtlNote');
+  const ctlRows = [];
+  if(ctl){
+    ctl.querySelectorAll('.pn-row').forEach(rw=>{
+      const v = rw.querySelector('.pn-v'), sp = rw.querySelectorAll('span');
+      const label = sp[0] ? sp[0].textContent.trim() : '';
+      const val = v ? (v.textContent || '').replace(/\s+/g,' ').trim() : '';
+      if(!label || !val) return;
+      const state = !v ? '' : (v.classList.contains('ok') ? '合格' : (v.classList.contains('warn') ? '超限' : '—'));
+      ctlRows.push('<tr><th>'+esc(label)+'</th><td>'+esc(val)+'</td><td class="'
+        + (state==='超限'?'pdl-warn':(state==='合格'?'pdl-ok':''))+'">'+esc(state)+'</td></tr>');
+    });
+  }
+  const ctlHtml = sec('六、校核结论（控制与安全联锁）', tab(ctlRows, ['校核项','数值 / 判据','结论']));
+
+  /* ⑤ 极化曲线分解 */
+  const polRows = [
+    row2('可逆电压 V_rev',            F3(st.Vrev)+' V'),
+    row2('激活过电位 η_act',          F3(st.etaAct)+' V'),
+    row2('欧姆过电位 η_ohm',          F3(st.etaOhm)+' V'),
+    row2('面积比电阻 ASR(T)',         (Number(st.asr)||0).toFixed(4)+' Ω·cm²'),
+    row2('单体电压 V_cell = V_rev + η_act + η_ohm', F3(st.Vcell)+' V（来源：'+st.vSource+'）')
+  ];
+  const polHtml = sec('七、极化曲线分解', tab(polRows, ['项目','数值']));
+
+  /* ⑥ 关键公式与常数（浓缩版） */
+  const formulas = [
+    '法拉第链：I = A·j；n(H₂,理论) = I·N/(2F)；n(H₂) = n(H₂,理论)·η_F；V_stack = V_cell·N；P_stack = V_stack·I/1000',
+    '产氢换算：v_H₂ = n(H₂)×22.414×3.6 Nm³/h；m_H₂ = n(H₂)×2.016×3.6 kg/h；F = 96485 C/mol',
+    '极化曲线：V_cell = V_rev + η_act + η_ohm',
+    '  可逆电压 V_rev = 1.23 − 0.9e-3×(T−25) + (R·T_k/(2F))·ln(P_H₂·P_O₂^0.5 / P_H₂O)，R = 8.314 J/(mol·K)，T_k = T+273.15',
+    '  激活过电位 η_act = a×log10(j/j0)，a = 0.05 V/decade、j0 = 2e-5 A/cm²（常量，非输入）',
+    '  欧姆过电位 η_ohm = j×ASR(T)，ASR(T) = ASR70×exp(Er×(1/T_k − 1/343.15))，Er = 1600 K',
+    '效率与电耗：η_HHV = 1.481/V_cell；η_LHV = 1.254/V_cell；η_sys = P_H₂,HHV / 系统输入功率；电能单耗 = 系统输入功率 / 产氢质量(或体积)流量',
+    '热平衡：Q_heat = P_stack×(V_cell − 1.481)/V_cell；冷却水流量 = Q_heat×1000/(c_p,水×ΔT)/ρ×3600',
+    '互窜模型：窜气摩尔流量 = i_x·A·N/(n·F)（H₂ 取 n = 2、O₂ 取 n = 4）；气相饱和摩尔比 = p_sat/(P − p_sat)',
+    '  饱和蒸汽压 p_sat(T) = 9.7e-7·T⁴ − 3.455e-5·T³ + 3.71504e-3·T² + 0.01245629·T + 0.71004367   （kPa，T 为 ℃）',
+    '水物性函数：ρ_w(T) = 1000×[1 − (T+288.9414)/(508929.2×(T+68.12963))×(T−3.9863)²]   （kg/m³，Kell 式）',
+    '  μ_w(T) = 2.414e-5×10^(247.8/(T+273.15−140))   （Pa·s）；c_p,水(T) 按 0~100 ℃ 水表线性插值；（T 均为 ℃）',
+    '常数：V_热中性,HHV = 1.481 V；V_热中性,LHV = 1.254 V；V_m = 22.414 L/mol；HHV = 39.41 kWh/kg；LHV = 33.33 kWh/kg'
+  ].join('\n');
+  const fmHtml = sec('八、关键公式与常数', '<pre class="pdl-pre">'+esc(formulas)+'</pre>');
+
+  /* ⑦ 流程图 */
+  const pfdHtml = '<section class="pdl-sec pdl-pfd-sec"><h3>九、流程图 · PEM电解槽系统（PFD）</h3><div class="pdl-pfd-fig"></div></section>';
+
+  box.innerHTML = '<div class="pdl">'+headHtml+inpHtml+resHtml+ctlHtml+polHtml+fmHtml
+    + '<div class="pdl-foot">本文件由 system-flow.html 的「导出设计文档(PDF)」按钮在浏览器本地生成（零依赖），数值与该页当前工况的实时计算结果一致。</div>'
+    + pfdHtml
+    + '</div>';
+  const figWrap = box.querySelector('.pdl-pfd-fig');
+  const fig = pemPfdFigure();
+  if(figWrap && fig) figWrap.appendChild(fig);
+}
+/* 点按钮：填布局 → 等流程图像素解码完成 → 加打印类 → 调起打印；afterprint 复原 */
+const pemPdfBtn = document.getElementById('pemPdfBtn');
+if(pemPdfBtn) pemPdfBtn.addEventListener('click', ()=>{
+  buildPemPrintLayout();
+  let fired = false;
+  const go = ()=>{
+    if(fired) return; fired = true;
+    document.body.classList.add('printing');
+    window.print();
+  };
+  const fig = document.querySelector('#pemPrintLayout img.pdl-pfd-img');
+  if(fig && !fig.complete){
+    fig.addEventListener('load', go, {once:true});
+    fig.addEventListener('error', go, {once:true});
+    setTimeout(go, 2000);
+  } else go();
+});
+window.addEventListener('afterprint', ()=>{ document.body.classList.remove('printing'); });
+
+/* 首次渲染：面板与气泡为定长图形，隐藏状态下也可安全计算 */
+pemRun();
+})();
 </script>
 </body>
 </html>
