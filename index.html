@@ -734,6 +734,9 @@
     border-radius: 4px; padding: 6px 8px; margin: 0;
   }
   #pfdPrintLayout .pdl-sec { page-break-inside: avoid; break-inside: avoid; margin-bottom: 4px; }
+  /* 「一、输入参数」表较长（约 37 行）：允许本节跨页流动——从第 1 页紧随题头开始，
+     超出部分顺延到下一页；行级 page-break-inside: avoid 仍保留，保证单行不被切断。 */
+  #pfdPrintLayout .pdl-sec.pdl-flow { page-break-inside: auto; break-inside: auto; }
   #pfdPrintLayout table.pdl-tab tr { page-break-inside: avoid; break-inside: avoid; }
   /* 流程图页：纵向 A4，图幅 1500×880 旋转 90° 竖放以尽量保留放大倍数 */
   #pfdPrintLayout .pdl-pfd-fig {
@@ -4822,7 +4825,7 @@ setupParamIO({
   const tab  = (rows,head)=>'<table class="pdl-tab">'
       + (head?'<thead><tr>'+head.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead>':'')
       + '<tbody>'+rows.join('')+'</tbody></table>';
-  const sec  = (t,inner)=>'<section class="pdl-sec"><h3>'+esc(t)+'</h3>'+inner+'</section>';
+  const sec  = (t,inner,cls)=>'<section class="pdl-sec'+(cls?' '+cls:'')+'"><h3>'+esc(t)+'</h3>'+inner+'</section>';
 
   const PFD_PANELS = [
     ['散热器计算', 'hx-rad-results'],
@@ -4927,7 +4930,7 @@ setupParamIO({
       const el = document.getElementById(it.id);
       return row3(it.label, el ? el.value : '', it.step);
     });
-    const inpHtml = sec('一、输入参数（共 '+INPUTS.length+' 项）', tab(inpRows, ['参数','当前值','步长']));
+    const inpHtml = sec('一、输入参数（共 '+INPUTS.length+' 项）', tab(inpRows, ['参数','当前值','步长']), 'pdl-flow');
 
     /* 气泡构成的表格行：优先读屏幕上已渲染的气泡；为空则回退到 calc() 的值 */
     const secBubbles = (title, items, extra)=>{
