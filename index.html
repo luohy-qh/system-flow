@@ -398,6 +398,25 @@
   .hx-result-row .hx-r-label { color: #94a3b8; }
   .hx-result-row .hx-r-value { color: #7dd3fc; font-weight: bold; }
   .hx-result-row .hx-r-value.warn { color: #f87171; }
+  /* 换热器面板下方的「计算依据与参考资料」（可折叠；仅页面展示，不进入导出设计文档与计算说明） */
+  .hx-refs {
+    margin-top: 12px;
+    border: 1px dashed #334e6e; border-radius: 6px; background: rgba(11,22,40,0.45);
+  }
+  .hx-refs-head {
+    cursor: pointer; padding: 9px 12px;
+    font-size: 0.8rem; font-weight: bold; color: #7dd3fc;
+  }
+  .hx-refs-head .hx-refs-sum { font-weight: normal; font-size: 0.7rem; color: #64748b; margin-left: 6px; }
+  .hx-refs-body { display: none; padding: 0 12px 10px; }
+  .hx-refs.open .hx-refs-body { display: block; }
+  .hx-refs-grp { font-size: 0.74rem; color: #a5d8ff; margin: 8px 0 2px; }
+  .hx-refs-body .hx-refs-grp:first-child { margin-top: 0; }
+  .hx-refs ul { margin: 0 0 0 16px; padding: 0; }
+  .hx-refs li { font-size: 0.74rem; color: #94a3b8; line-height: 1.6; margin-bottom: 3px; }
+  .hx-refs li b { color: #cbd5e1; font-weight: 600; }
+  .hx-refs li i { color: #7dd3fc; font-style: normal; }
+  .hx-refs-note { font-size: 0.7rem; color: #64748b; line-height: 1.55; margin-top: 8px; }
 
   /* 流程图内嵌「系统功率汇总」表（foreignObject，坐标随 SVG 缩放） */
   .pfd-pow-table {
@@ -1289,7 +1308,37 @@ BOP  ：空压机 22.61 + 泵 1.097 + 风扇 3.571 + 氢循环泵 0.210 = 27.49 
       <!-- 换热器 -->
       <div class="hx-section">
         <div class="hx-section-header" data-toggle="pem-hx"><span>▾ 换热器选型计算（板式换热器）</span></div>
-        <div class="hx-section-body" id="pem-hx"><div class="hx-results" id="pem-hx-results"></div></div>
+        <div class="hx-section-body" id="pem-hx">
+          <div class="hx-results" id="pem-hx-results"></div>
+          <!-- 计算依据与参考资料：可折叠；仅本页展示，不进入「导出设计文档(PDF)」，也不写入 pem-calc-logic.html -->
+          <div class="hx-refs" id="pemHxRefs">
+            <div class="hx-refs-head" id="pemHxRefsHead"><span>▸ 计算依据与参考资料</span><span class="hx-refs-sum">12 条 · 3 类</span></div>
+            <div class="hx-refs-body">
+            <div class="hx-refs-grp">板式换热器 · 传热与压降</div>
+            <ul>
+              <li><b>《传热学》</b>（杨世铭、陶文铨，高等教育出版社）—— 逆流对数平均温差、传热面积与对流换热的理论依据。</li>
+              <li><b>Incropera F.P., DeWitt D.P., Fundamentals of Heat and Mass Transfer</b>（Wiley）—— 对流换热与沿程 / 局部压降的计算方法。</li>
+              <li><b>Muley A., Manglik R.M.（1999）</b>，Experimental study of turbulent flow heat transfer and pressure drop in a plate heat exchanger with chevron plates，<i>Int. J. Heat and Mass Transfer</i> —— 人字形板片湍流摩擦系数关联式，本页热侧 / 冷侧压降式即取此形式。</li>
+              <li><b>Martin H.（1996）</b>，A theoretical approach to predict the performance of chevron-type plate heat exchangers，<i>Chemical Engineering and Processing</i> —— 人字形板片的换热与压降性能预测。</li>
+              <li><b>尾花英朗《热交换器设计手册》</b>—— 板式换热器选型流程与经验取值（流速 0.3~1.0 m/s、压降 ≤100 kPa）。</li>
+              <li><b>GB/T 16409《板式换热器》</b>、<b>NB/T 47004《板式热交换器》</b>—— 板片结构、设计与验收。</li>
+            </ul>
+            <div class="hx-refs-grp">水电解 · PEM 制氢</div>
+            <ul>
+              <li><b>Carmo M., Fritz D.L., Mergel J., Stolten D.（2013）</b>，A comprehensive review on PEM water electrolysis，<i>Int. J. Hydrogen Energy</i> —— 法拉第定律、效率口径与系统构成。</li>
+              <li><b>GB/T《压力型水电解制氢系统技术条件》</b>—— 系统性能指标与安全要求。</li>
+              <li><b>GB/T《压力型水电解制氢系统安全要求》</b>—— 氢氧压差、氢中氧 / 氧中氢联锁判据。</li>
+            </ul>
+            <div class="hx-refs-grp">水的物性与饱和蒸汽压</div>
+            <ul>
+              <li><b>Kell G.S.（1975）</b>，Density, thermal expansivity, and compressibility of liquid water from 0° to 150 °C，<i>J. Chem. Eng. Data</i> —— 纯水密度式（本页 ρ_w(T) 即 Kell 式）。</li>
+              <li><b>《CRC Handbook of Chemistry and Physics》</b>—— 纯水比热与动力粘度取值。</li>
+              <li><b>Antoine 型饱和蒸汽压拟合式</b>—— 气相带水量与饱和水蒸气摩尔比的计算（与第一页同式）。</li>
+            </ul>
+            <p class="hx-refs-note">说明：经济性（LCOH）与运行策略部分为工程估算口径，其假设（单位投资、折现率、项目寿命、衰减率、分时电价等）已逐条列在参数栏、帮助弹窗与导出设计文档中，不在本清单范围内。</p>
+            </div>
+          </div>
+        </div>
       </div>
       <!-- 电源 / 能效 / 控制 -->
       <div class="hx-section">
@@ -6679,6 +6728,18 @@ if(pemTabBtn) pemTabBtn.addEventListener('click', ()=>{ layoutFurniture(); rende
   document.getElementById('pemVerClose').addEventListener('click', close);
   ov.addEventListener('click', e=>{ if(e.target === ov) close(); });
   document.addEventListener('keydown', e=>{ if(e.key === 'Escape') close(); });
+})();
+/* 换热器面板下的「计算依据与参考资料」折叠开关 */
+(function(){
+  const box = document.getElementById('pemHxRefs');
+  const head = document.getElementById('pemHxRefsHead');
+  if(!box || !head) return;
+  head.addEventListener('click', ()=>{
+    box.classList.toggle('open');
+    const span = head.querySelector('span');
+    if(span) span.textContent = span.textContent.replace(box.classList.contains('open') ? '▸' : '▾',
+                                                        box.classList.contains('open') ? '▾' : '▸');
+  });
 })();
 /* ---------------- 8. 设计文档导出（浏览器原生打印 → PDF，零依赖） ---------------- */
 /* 结果面板一律「读取页面上已渲染的行」，不另维护一份标签→数值映射，避免两处失步；
