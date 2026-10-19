@@ -49,6 +49,16 @@
   .input-group input:disabled {
     color: #64748b; background: #0a1220; border-color: #24384f; cursor: not-allowed;
   }
+  /* LCOH 参数分组虚线框（仅 PEM 页参数栏使用，不影响其他页共用的 .input-group）
+     左右各外扩 10px = 边框 1px + 内边距 9px，使框内标签/输入框与框外参数严格对齐 */
+  #pemInputs .input-sect {
+    margin: 10px -10px 6px; padding: 8px 9px 3px;
+    border: 1px dashed #38bdf8; border-radius: 8px;
+  }
+  #pemInputs .input-sect .sect-cap {
+    font-size: 0.72rem; color: #7dd3fc; letter-spacing: .03em; margin-bottom: 6px;
+  }
+  #pemInputs .input-sect .input-group:last-child { margin-bottom: 2px; }
   .legend {
     margin-top: 14px; padding-top: 12px; border-top: 1px solid #2a4a6b;
     font-size: 0.78rem; color: #94a3b8;
@@ -1414,6 +1424,20 @@ u      = (V / 3600) / (n_ch × A_ch)               推荐 0.3~1.0 m/s</pre>
 氢气电费成本     = 电能单耗(kWh/kg) × 电价(元/kWh)          → 元/kg
 年电费(万元)     = 年耗电量(kWh) × 电价(元/kWh) / 10000</pre>
       <blockquote>「平均负荷率」是本页年量核算的关键入口：它与「年运行小时数」相乘得到等效满负荷小时数，再乘以满负荷工况下的产氢流量与系统输入功率，得到年制氢量与年耗电量；「电价」仅用于折算<strong>氢气电费成本</strong>与<strong>年电费</strong>（不含设备折旧与运维）。</blockquote>
+
+      <h5>6.5 综合氢成本 LCOH（平准化制氢成本）</h5>
+      <pre>总投资        = 系统输入功率(kW) × 单位投资(元/kW) / 10000        → 万元
+CRF           = i(1+i)^n / [(1+i)^n − 1]                     i = 折现率，n = 项目寿命
+年CAPEX摊销   = 总投资 × CRF                                 → 万元/年
+年运维        = 总投资 × 年运维费率                            → 万元/年
+年更换摊销    = 总投资 × 电堆更换成本占比 / 电堆更换周期          → 万元/年
+年总成本      = 年CAPEX摊销 + 年运维 + 年更换摊销 + 年电费        → 万元/年
+LCOH          = 年总成本(万元) × 10000 / 年制氢量(kg)           → 元/kg</pre>
+      <blockquote>
+        <strong>假设清单</strong>（界面与导出文档均按此口径估算）：投资按「单位投资(元/kW) × 系统输入功率」计，非设备清单报价；<strong>已含电堆更换</strong>（PEM 电堆寿命通常短于项目寿命，不建模会系统性低估成本）；未计人工、土地、并网、水费与融资成本外的税费。<br>
+        <strong>与「氢气电费成本」的口径区别</strong>：<code>氢气电费成本 = 电能单耗 × 电价</code> 只与电耗有关、<strong>与运行小时数无关</strong>；而 <code>LCOH</code> 的固定成本（CAPEX/运维/更换）要靠年制氢量摊薄，因此 <strong>利用率越高、LCOH 越低</strong>，低利用率工况下 LCOH 会显著高于电费成本。<br>
+        <strong>敏感性提示</strong>：LCOH 对折现率、项目寿命、单位投资三项极为敏感，改动任一项前请确认口径一致（默认 8% / 15 年 / 10000 元·kW⁻¹）。
+      </blockquote>
 
       <h4>七、安全联锁与设计校核</h4>
       <table>
@@ -5404,6 +5428,12 @@ const PEM_INPUTS = [
   { id:'pemUseFactor',     label:'平均负荷率(%)',             val:'100',   step:'1'     },
   { id:'pemAnnualHours',   label:'年运行小时数(h)',            val:'4000',  step:'100'   },
   { id:'pemPowerPrice',    label:'电价(元/kWh)',              val:'0.3',   step:'0.01'  },
+  { id:'pemUnitInvest',    label:'单位投资(元/kW)',            val:'10000', step:'500',  sect:1 },
+  { id:'pemDiscount',      label:'折现率(%)',                 val:'8',     step:'0.5',  sect:1 },
+  { id:'pemLife',          label:'项目寿命(年)',              val:'15',    step:'1',    sect:1 },
+  { id:'pemOmRate',        label:'年运维费率(%投资/年)',       val:'3',     step:'0.5',  sect:1 },
+  { id:'pemStackCycle',    label:'电堆更换周期(年)',           val:'8',     step:'1',    sect:1 },
+  { id:'pemStackCost',     label:'电堆更换成本(%投资)',        val:'40',    step:'5',    sect:1 },
   { id:'pemPumpHead',      label:'纯水循环泵扬程(m)',          val:'25',    step:'1'     },
   { id:'pemPumpEff',       label:'纯水循环泵总效率(%)',        val:'60',    step:'1'     },
   { id:'pemCoolPumpHead',  label:'冷却水泵扬程(m)',            val:'18',    step:'1'     },
@@ -5419,11 +5449,23 @@ const PEM_INPUTS = [
   { id:'pemHxFlowLength',  label:'换热器板片流道长度(m)',       val:'0.65',  step:'0.01'  }
 ];
 const host = document.getElementById('pemInputs');
+let sect = null;   // 带 sect 标记的参数（LCOH 估算参数）收进同一个虚线框
 PEM_INPUTS.forEach(it=>{
   const g = document.createElement('div');
   g.className = 'input-group';
   g.innerHTML = `<label for="${it.id}">${it.label}</label><input type="number" id="${it.id}" value="${it.val}" step="${it.step}">`;
-  host.appendChild(g);
+  if(it.sect){
+    if(!sect){
+      sect = document.createElement('div');
+      sect.className = 'input-sect';
+      sect.innerHTML = '<div class="sect-cap">LCOH 估算参数</div>';
+      host.appendChild(sect);
+    }
+    sect.appendChild(g);
+  } else {
+    sect = null;
+    host.appendChild(g);
+  }
 });
 const gi = id => { const e = document.getElementById(id); return e ? (parseFloat(e.value) || 0) : 0; };
 
@@ -5596,6 +5638,25 @@ function calcPem(){
   const h2CostKg  = kWhKg*price;                             // 元/kg 氢气电费成本
   const aCostWan  = aKWh*price/10000;                        // 万元 年电费
 
+  /* ---- 综合氢成本 LCOH ----
+     投资口径 = 系统输入功率(kW) × 单位投资(元/kW)；固定资产成本按资本回收系数 CRF 年金化 */
+  const unitInvest = Math.max(0, gi('pemUnitInvest'));       // 元/kW
+  const capexWan   = Psys*unitInvest/10000;                  // 万元 总投资
+  const discRate   = Math.max(0, gi('pemDiscount'))/100;     // 折现率
+  const lifeYr     = Math.max(1, gi('pemLife'));             // 项目寿命（年）
+  const omRate     = Math.max(0, gi('pemOmRate'))/100;       // 年运维费率（占初投资）
+  const stackCycle = Math.max(0.1, gi('pemStackCycle'));     // 电堆更换周期（年）
+  const stackCostR = Math.max(0, gi('pemStackCost'))/100;    // 电堆更换成本（占初投资）
+  const crf        = discRate>0
+      ? discRate*Math.pow(1+discRate,lifeYr)/(Math.pow(1+discRate,lifeYr)-1)
+      : 1/lifeYr;                                            // 资本回收系数
+  const capexAnnual= capexWan*crf;                           // 万元/年 年CAPEX摊销
+  const omAnnual   = capexWan*omRate;                        // 万元/年 年运维
+  const stackAnnual= capexWan*stackCostR/stackCycle;         // 万元/年 电堆更换摊销
+  const totalAnnual= capexAnnual+omAnnual+stackAnnual+aCostWan;  // 万元/年 年总成本
+  const lcoh       = aH2Kg>0 ? totalAnnual*10000/aH2Kg : 0;  // 元/kg 综合氢成本
+  const elecShare  = totalAnnual>0 ? aCostWan/totalAnnual*100 : 0;  // % 电费占比
+
   return {
     st:{I, Vstack, Pstack, nH2th, nH2, nO2, etaHHV, etaLHV, Qheat, PH2_HHV, PH2_LHV,
         mH2kgh, vH2, vO2, Vcell, N,
@@ -5607,7 +5668,9 @@ function calcPem(){
         nHotCh, nColdCh, uHot, uCold, ReHot, ReCold, dpHot, dpCold, Vcirc, Vcold, mCold},
     pw:{I, Vstack, Pstack, Prect, P_pump, P_cpump, P_fan, P_purif, bopTotal, Psys,
         etaSysHHV, etaSysLHV, kWhKg, kWhNm3, Vair,
-        eqFullH, aH2Kg, aH2Nm3, aKWh, h2CostKg, aCostWan}
+        eqFullH, aH2Kg, aH2Nm3, aKWh, h2CostKg, aCostWan,
+        unitInvest, capexWan, discRate, lifeYr, omRate, stackCycle, stackCostR, crf,
+        capexAnnual, omAnnual, stackAnnual, totalAnnual, lcoh, elecShare}
   };
 }
 
@@ -5939,7 +6002,8 @@ function pemSet(id, lines, tips, lhIn){
   fo.innerHTML = '<div xmlns="http://www.w3.org/1999/xhtml" class="pem-note" id="pemCtlNote"></div>';
   svg.appendChild(fo);
 })();
-/* 项目经济性卡（年运行核算）：置于联锁卡正下方，同一视觉族（.pem-note），随 calcPem() 重算刷新 */
+/* 项目经济性卡（年运行核算 + LCOH）：置于联锁卡正下方，同一视觉族（.pem-note），随 calcPem() 重算刷新
+   高度定长 130 为「页隐藏时」的初值；切到本页时由 renderTables() 按内容实测回写（卡片下方紧邻流程图分区标题，不可超高） */
 let pemEconFo = null;
 (function(){
   const fo = document.createElementNS(NS,'foreignObject');
@@ -6188,6 +6252,11 @@ function renderPem(){
     ['年耗电量(kWh)',        F0(pw.aKWh),   false, '年耗电量(kWh) = 系统输入功率(kW) × 等效满负荷小时数'],
     ['氢气电费成本(元/kg)',  F2(pw.h2CostKg), false, '氢气电费成本(元/kg) = 电能单耗(kWh/kg) × 电价(元/kWh)；仅计电费，不含设备折旧与运维'],
     ['年电费(万元)',         F2(pw.aCostWan), false, '年电费(万元) = 年耗电量(kWh) × 电价(元/kWh) / 10000'],
+    ['年CAPEX摊销(万元/年)', F1(pw.capexAnnual), false, '年CAPEX摊销 = 总投资 × CRF；总投资(万元) = 系统输入功率(kW) × 单位投资(元/kW) / 10000；CRF = i(1+i)^n/[(1+i)^n−1]，i 为折现率、n 为项目寿命'],
+    ['年运维与更换(万元/年)',F1(pw.omAnnual+pw.stackAnnual), false, '年运维 = 总投资 × 年运维费率；年更换摊销 = 总投资 × 电堆更换成本占比 / 电堆更换周期'],
+    ['年总成本(万元/年)',    F1(pw.totalAnnual), false, '年总成本 = 年CAPEX摊销 + 年运维 + 电堆更换摊销 + 年电费（不含人工与并网等其他费用）'],
+    ['综合氢成本 LCOH(元/kg)', F2(pw.lcoh), false, 'LCOH = 年总成本(万元) × 10000 / 年制氢量(kg)；随利用率变化：固定成本靠年制氢量摊薄，故 LCOH 不等同于与运行小时无关的「氢气电费成本」'],
+    ['电费占比(%)',          F1(pw.elecShare), false, '电费占比 = 年电费 / 年总成本 × 100；衡量电价对综合氢成本的敏感度'],
     ['理论最低电耗(kWh/kg)', F1(LHV_KWH_KG)+' (LHV) / '+F1(HHV_KWH_KG)+' (HHV)', false, '氢的 LHV=33.33 kWh/kg、HHV=39.41 kWh/kg，为电耗理论下限'],
     ['冷却塔空气流量(m³/h)', F0(pw.Vair),   false, '空气流量 = 废热×3600/(空气定压比热 × 空气温升)/空气密度'],
     ['氢氧压差校核(bar)',    F2(gs.dP)+' / ≤'+F2(gs.dpLim), gs.dP>gs.dpLim, '压差超限需调整氢/氧侧压力设定或加装差压联锁保护'],
@@ -6242,17 +6311,18 @@ function renderTables(){
       + '<div class="pn-row"'+ta('PEM 必须使用超纯水，电阻率 ≥18.2 MΩ·cm（25℃）；金属离子会毒化质子交换膜与催化剂导致电压升高，需在线监测电导率并再生混床')+'><span>纯水电阻率</span><span class="pn-v">≥18.2 MΩ·cm</span></div>'
       + '<div class="pn-row"'+ta('安全仪表功能等级 SIL2，联锁逻辑独立于主控 PLC/DCS；氢中氧/氧中氢、氢氧压差、系统超压、超温、冷却水断流、液位异常均须联锁停车')+'><span>安全等级</span><span class="pn-v">SIL2 · 独立于主控</span></div>';
   }
-  /* 项目经济性卡：与电源·能效·控制面板同源的六个年运行核算值 */
+  /* 项目经济性卡：与电源·能效·控制面板同源的年运行核算值 + LCOH 综合氢成本 */
   const ec = document.getElementById('pemEconNote');
   if(ec){
     const ta = tip => ' title="'+esc(tip)+'"';
     ec.innerHTML =
-      '<div class="pn-head">项目经济性（年运行核算）</div>'
+      '<div class="pn-head">项目经济性（LCOH 综合氢成本）</div>'
       + '<div class="pn-row"'+ta('等效满负荷小时数 = 年运行小时数 × 平均负荷率/100；把变负荷运行折算为满负荷小时数，作为下述年量的核算基准')+'><span>等效满负荷小时数</span><span class="pn-v">'+F0(pw.eqFullH)+' h</span></div>'
       + '<div class="pn-row"'+ta('年制氢量(kg) = 产氢质量流量(kg/h) × 等效满负荷小时数；年制氢量(Nm³) = 产氢体积流量(Nm³/h) × 等效满负荷小时数')+'><span>年制氢量</span><span class="pn-v">'+F1(pw.aH2Kg/1000)+' t（'+F0(pw.aH2Nm3)+' Nm³）</span></div>'
       + '<div class="pn-row"'+ta('年耗电量(kWh) = 系统输入功率(kW) × 等效满负荷小时数')+'><span>年耗电量</span><span class="pn-v">'+F1(pw.aKWh/1000)+' MWh</span></div>'
-      + '<div class="pn-row"'+ta('氢气电费成本(元/kg) = 电能单耗(kWh/kg) × 电价(元/kWh)；仅计电费，不含设备折旧与运维')+'><span>氢气电费成本</span><span class="pn-v">'+F2(pw.h2CostKg)+' 元/kg</span></div>'
-      + '<div class="pn-row"'+ta('年电费(万元) = 年耗电量(kWh) × 电价(元/kWh) / 10000')+'><span>年电费</span><span class="pn-v">'+F1(pw.aCostWan)+' 万元</span></div>';
+      + '<div class="pn-row"'+ta('氢气电费成本(元/kg) = 电能单耗(kWh/kg) × 电价(元/kWh)；仅计电费，与运行小时数无关，不含设备折旧与运维')+'><span>氢气电费成本</span><span class="pn-v">'+F2(pw.h2CostKg)+' 元/kg</span></div>'
+      + '<div class="pn-row"'+ta('年电费(万元) = 年耗电量(kWh) × 电价(元/kWh) / 10000；年耗电量 = 系统输入功率 × 等效满负荷小时数')+'><span>年电费</span><span class="pn-v">'+F1(pw.aCostWan)+' 万元</span></div>'
+      + '<div class="pn-row"'+ta('LCOH = 年总成本(万元) × 10000 / 年制氢量(kg)。年总成本 = 年CAPEX摊销(总投资×CRF) + 年运维(总投资×运维费率) + 年更换摊销(总投资×电堆更换占比/更换周期) + 年电费；总投资 = 系统输入功率(kW)×单位投资(元/kW)/10000；CRF = i(1+i)^n/[(1+i)^n−1]（默认 i=8%、n=15 年）。注意口径：LCOH 随年制氢量摊薄，与「氢气电费成本」口径不同，低利用率下 LCOH 更高')+'><span>综合氢成本 LCOH</span><span class="pn-v">'+F2(pw.lcoh)+' 元/kg</span></div>';
     /* 启用可见时按内容实测高度回写，避免字宽差异导致裁切；隐藏状态下保留定长 130 */
     const hh = Math.ceil(ec.offsetHeight);
     if(pemEconFo && hh) pemEconFo.setAttribute('height', hh);
@@ -6313,9 +6383,9 @@ setupParamIO({
   ov.addEventListener('click', e=>{ if(e.target === ov) close(); });
   document.addEventListener('keydown', e=>{ if(e.key === 'Escape') close(); });
 })();
-/* 切换回本页时重新测量图签/图例高度（隐藏状态下测不到） */
+/* 切换回本页时重新测量：图签/图例高度 + 经济性卡内容高度（隐藏状态下两者都测不到） */
 const pemTabBtn = document.querySelector('.tab-btn[data-page="pem"]');
-if(pemTabBtn) pemTabBtn.addEventListener('click', layoutFurniture);
+if(pemTabBtn) pemTabBtn.addEventListener('click', ()=>{ layoutFurniture(); renderTables(); });
 /* ---------------- 8. 设计文档导出（浏览器原生打印 → PDF，零依赖） ---------------- */
 /* 结果面板一律「读取页面上已渲染的行」，不另维护一份标签→数值映射，避免两处失步；
    面板若尚未渲染（例如异步/隐藏场景），先按 calcPem() 现算一次再读。 */
@@ -6391,15 +6461,21 @@ function buildPemPrintLayout(){
     + '<div class="pdl-sum">'+sum.map(s=>'<div class="pdl-sum-item"><div class="k">'+esc(s[0])+'</div><div class="v">'+esc(s[1])+'</div></div>').join('')+'</div>'
     + '</div>';
 
-  /* ② 项目经济性（年运行核算）：置于题头之后、输入参数之前，读者先见经济性再看参数 */
+  /* ② 项目经济性（年运行核算 + LCOH）：置于题头之后、输入参数之前，读者先见经济性再看参数 */
   const ecoRows = [
     row2('等效满负荷小时数', F0(pw.eqFullH)+' h'),
     row2('年制氢量（质量 / 体积）', F1(pw.aH2Kg/1000)+' t / '+F0(pw.aH2Nm3)+' Nm³'),
     row2('年耗电量', F1(pw.aKWh/1000)+' MWh（'+F0(pw.aKWh)+' kWh）'),
     row2('氢气电费成本', F2(pw.h2CostKg)+' 元/kg'),
-    row2('年电费', F1(pw.aCostWan)+' 万元')
+    row2('年电费', F1(pw.aCostWan)+' 万元'),
+    row2('总投资（'+F1(pw.unitInvest/10000)+' 万元/kW · '+F0(pw.Psys)+' kW）', F1(pw.capexWan)+' 万元'),
+    row2('年CAPEX摊销（CRF = '+F3(pw.crf)+'）', F1(pw.capexAnnual)+' 万元/年'),
+    row2('年运维与更换（运维 '+F1(pw.omRate*100)+'% · 更换 '+F0(pw.stackCostR*100)+'%/'+F0(pw.stackCycle)+'年）', F1(pw.omAnnual+pw.stackAnnual)+' 万元/年'),
+    row2('年总成本', F1(pw.totalAnnual)+' 万元/年'),
+    row2('综合氢成本 LCOH', F2(pw.lcoh)+' 元/kg'),
+    row2('电费占比', F1(pw.elecShare)+' %')
   ];
-  const ecoHtml = sec('一、项目经济性（年运行核算）', tab(ecoRows, ['项目','数值']));
+  const ecoHtml = sec('一、项目经济性（年运行核算 · LCOH 综合氢成本）', tab(ecoRows, ['项目','数值']));
 
   /* ③ 输入参数表（读 PEM_INPUTS 与各输入框当前值） */
   const inpRows = PEM_INPUTS.map(it=>{
@@ -6454,7 +6530,10 @@ function buildPemPrintLayout(){
     '  饱和蒸汽压 p_sat(T) = 9.7e-7·T⁴ − 3.455e-5·T³ + 3.71504e-3·T² + 0.01245629·T + 0.71004367   （kPa，T 为 ℃）',
     '水物性函数：ρ_w(T) = 1000×[1 − (T+288.9414)/(508929.2×(T+68.12963))×(T−3.9863)²]   （kg/m³，Kell 式）',
     '  μ_w(T) = 2.414e-5×10^(247.8/(T+273.15−140))   （Pa·s）；c_p,水(T) 按 0~100 ℃ 水表线性插值；（T 均为 ℃）',
-    '常数：V_热中性,HHV = 1.481 V；V_热中性,LHV = 1.254 V；V_m = 22.414 L/mol；HHV = 39.41 kWh/kg；LHV = 33.33 kWh/kg'
+    '常数：V_热中性,HHV = 1.481 V；V_热中性,LHV = 1.254 V；V_m = 22.414 L/mol；HHV = 39.41 kWh/kg；LHV = 33.33 kWh/kg',
+    '经济性：年制氢量 = 产氢质量流量 × 等效满负荷小时数；等效满负荷小时数 = 年运行小时数 × 平均负荷率/100',
+    '  LCOH = 年总成本(万元)×10000 / 年制氢量(kg)；年总成本 = 总投资×CRF + 总投资×运维费率 + 总投资×电堆更换占比/更换周期 + 年电费',
+    '  总投资 = 系统输入功率(kW)×单位投资(元/kW)/10000；CRF = i(1+i)^n/[(1+i)^n−1]（i 折现率、n 项目寿命）；氢气电费成本 = 电能单耗×电价（与运行小时数无关，仅供对照）'
   ].join('\n');
   const fmHtml = sec('九、关键公式与常数', '<pre class="pdl-pre">'+esc(formulas)+'</pre>');
 
