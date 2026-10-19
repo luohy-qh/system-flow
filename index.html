@@ -2792,8 +2792,8 @@ el('text',{x:825,y:651,class:'section-tag'}).textContent='▎ 换热子系统';
 // 坐标：x 640-880, y 300-540
 (function(){
   el('rect',{x:640,y:300,width:240,height:240,rx:6,class:'equip-stack'});
-  el('text',{x:816,y:319,'text-anchor':'middle',fill:'#a7f3d0','font-size':12,'font-weight':'bold'}).textContent='燃料电池电堆';
-  el('text',{x:816,y:331,'text-anchor':'middle',fill:'#6ee7b7','font-size':9}).textContent='Fuel Cell Stack';
+  el('text',{x:781,y:319,'text-anchor':'middle',fill:'#a7f3d0','font-size':12,'font-weight':'bold'}).textContent='燃料电池电堆';
+  el('text',{x:781,y:331,'text-anchor':'middle',fill:'#6ee7b7','font-size':9}).textContent='Fuel Cell Stack';
 
   // 阴极区（空气 / 氧气）
   el('rect',{x:644,y:340,width:208,height:62,rx:4,fill:'#0b2436',stroke:'#38bdf8','stroke-width':1.2});
@@ -2810,7 +2810,8 @@ el('text',{x:825,y:651,class:'section-tag'}).textContent='▎ 换热子系统';
   el('text',{x:697,y:424,'text-anchor':'middle',fill:'#fde68a','font-size':9,'font-weight':'bold'}).textContent='质子交换膜 PEM';
 
   // ---- 气体流动（O₂ 阴极 / H₂ 阳极）----
-  el('path',{d:'M760,300 L760,380',fill:'none',stroke:'#38bdf8','stroke-width':2,opacity:0.45});
+  // 原有 el('path',{d:'M760,300 L760,380'...}) 这根阴极进气竖细实线正好穿过
+  // 「燃料电池电堆 / Fuel Cell Stack」标签，按需求取消；下方动画气路与框顶接口圆点保留。
   el('path',{d:'M760,380 L846,380',class:'pem-gas pem-gas-o2'});
   el('path',{d:'M650,478 L846,478',class:'pem-gas pem-gas-h2'});
   el('text',{x:790,y:373,'text-anchor':'middle',fill:'#7dd3fc','font-size':8}).textContent='O₂';
@@ -3188,7 +3189,8 @@ addData('comp', 360, 158);
 addData('intercooler', 580, 158);
 addData('hum_dry', 830, 185, 'middle');
 addData('hum_wet', 1035, 395);
-addData('stack_top', 640, 262);
+/* 电堆气泡：原 640 与电堆框左沿对齐，现左移 30 至 610（向左探出框沿 30px） */
+addData('stack_top', 610, 262);
 addData('h2_supply', 60, 466);
 addData('h2_mix', 420, 372, 'middle');
 addData('anode_out', 470, 528);
@@ -5720,14 +5722,14 @@ pipe('M270,500 L330,500 L330,600', 'pipe-water', 'flow-water');
 rotary(330, 620, 20, '#0d3b45', '#22d3ee', 6);
 E('text',{x:330, y:655,'text-anchor':'middle', fill:'#e8eef5','font-size':10,'font-weight':'bold'}).textContent = '纯水循环泵';
 E('text',{x:330, y:669,'text-anchor':'middle', fill:'#7dd3fc','font-size':9}).textContent = 'Pure Water Pump';
-/* 循环泵 → 电解槽（阳极供水） */
-pipe('M350,620 L560,620 L560,415 L660,415', 'pipe-water', 'flow-water');
+/* 循环泵 → 电解槽（阳极供水）：上折段原在 x=560，左移到 540（与板式换热器那根 x=580 的管路拉开 40px） */
+pipe('M350,620 L540,620 L540,415 L660,415', 'pipe-water', 'flow-water');
 
 /* ===== 电解槽（阳极在上 / 阴极在下） ===== */
 (function(){
   E('rect',{x:660, y:330, width:280, height:260, rx:6, class:'equip-stack'});
-  E('text',{x:800, y:349,'text-anchor':'middle', fill:'#a7f3d0','font-size':12,'font-weight':'bold'}).textContent = 'PEM 电解槽';
-  E('text',{x:800, y:361,'text-anchor':'middle', fill:'#6ee7b7','font-size':9}).textContent = 'PEM Electrolyzer · 水电解';
+  E('text',{x:820, y:349,'text-anchor':'middle', fill:'#a7f3d0','font-size':12,'font-weight':'bold'}).textContent = 'PEM 电解槽';
+  E('text',{x:820, y:361,'text-anchor':'middle', fill:'#6ee7b7','font-size':9}).textContent = 'PEM Electrolyzer · 水电解';
   // 阳极区（氧侧，正极）—— 内框右缘 900，右侧留给 e⁻ 外电路贴框沿走
   E('rect',{x:674, y:372, width:226, height:66, rx:4, fill:'#0b2436', stroke:'#38bdf8','stroke-width':1.2});
   E('text',{x:787, y:394,'text-anchor':'middle', fill:'#7dd3fc','font-size':9,'font-weight':'bold'}).textContent = '阳极 Anode(＋) · 水 / O₂';
@@ -5760,8 +5762,8 @@ pipe('M350,620 L560,620 L560,415 L660,415', 'pipe-water', 'flow-water');
 
 /* 阳极出水（水 + O₂）→ 氧侧气液分离器（从电解槽框沿 x=940 接出） */
 pipe('M940,405 L1040,405 L1040,170 L970,170', 'pipe-o2', 'flow-o2');
-/* 阴极出气（H₂）→ 氢侧气液分离器 */
-pipe('M940,529 L1060,529 L1060,490 L1130,490', 'pipe-h2', 'flow-h2');
+/* 阴极出气（H₂）→ 氢侧气液分离器（分离器左移 30 后，末段终点随之改为 1100） */
+pipe('M940,529 L1060,529 L1060,490 L1100,490', 'pipe-h2', 'flow-h2');
 
 /* ===== 氧气系统 ===== */
 vessel(810, 90, 160, 160, 'equip-air', '氧侧气液分离器', 'O₂ Separator');
@@ -5769,15 +5771,15 @@ pipe('M890,90 L890,64 L990,64', 'pipe-o2', 'flow-o2');
 E('text',{x:1000, y:58, fill:'#7dd3fc','font-size':10}).textContent = 'O₂ 排空 / 回收';
 
 /* ===== 氢气系统（整体右移，让开 x=1040 的氧侧出口竖管） ===== */
-vessel(1130, 360, 130, 170, 'equip-h2', '氢侧气液分离器', 'H₂ Separator');
-pipe('M1260,490 L1270,490', 'pipe-h2', 'flow-h2');
-equipBox(1270, 360, 160, 170, 'equip-h2', '氢气纯化', '脱氧 + 干燥 (TSA)');
-pipe('M1430,445 L1480,445', 'pipe-h2', 'flow-h2');
-E('text',{x:1485, y:430,'text-anchor':'end', fill:'#c7d2fe','font-size':10}).textContent = '产品氢';
+vessel(1100, 360, 130, 170, 'equip-h2', '氢侧气液分离器', 'H₂ Separator');
+pipe('M1230,490 L1240,490', 'pipe-h2', 'flow-h2');
+equipBox(1240, 360, 160, 170, 'equip-h2', '氢气纯化', '脱氧 + 干燥 (TSA)');
+pipe('M1400,445 L1450,445', 'pipe-h2', 'flow-h2');
+E('text',{x:1455, y:430,'text-anchor':'end', fill:'#c7d2fe','font-size':10}).textContent = '产品氢';
 
 /* 氢侧分离水回用示意：虚线自分离器左下角引出，从 pd_h2 气泡左侧下探，在纯水循环泵右侧上行后水平接纯水箱 */
 (function(){
-  E('path',{d:'M1130,530 L1118,530 L1118,670 L450,670 L450,487 L270,487',
+  E('path',{d:'M1100,530 L1088,530 L1088,670 L450,670 L450,487 L270,487',
     fill:'none', stroke:'#67e8f9','stroke-width':1.8,'stroke-dasharray':'7 5',
     opacity:0.6,'marker-end':'url(#pemAhC)'});
   E('text',{x:980, y:660, fill:'#67e8f9','font-size':9, opacity:0.9}).textContent = '分离水回用';
@@ -5785,7 +5787,7 @@ E('text',{x:1485, y:430,'text-anchor':'end', fill:'#c7d2fe','font-size':10}).tex
 
 /* ===== 热管理与冷却系统 ===== */
 /* 氧侧分离器循环水 → 板式换热器热侧进口：沿电解槽外围左侧下行，终点绑定换热器上沿（不再受框位限制） */
-pipe('M890,250 L890,272 L600,272 L600,740', 'pipe-water', 'flow-water');
+pipe('M890,250 L890,272 L580,272 L580,740', 'pipe-water', 'flow-water');
 /* 板式换热器：整组再左移 60（累计 140） */
 (function(){
   E('rect',{x:480, y:740, width:200, height:120, rx:8, class:'equip-heat'});
@@ -5838,16 +5840,22 @@ addData('power', 290, 58);
 addData('bop',   290, 190);
 addData('water',  70, 531);
 addData('o2',    660,  90);
-addData('h2',   1130, 542);
+addData('h2',   1100, 542);
 addData('hx',    480, 872);
 addData('pump1', 292, 680);
 addData('pump2', 729, 872);
 addData('cooltower', 920, 872);
+/* 电堆参数气泡：压在电解槽框(左沿 x=660、框顶 y=330)的左上角上（允许与边框重叠），
+   与燃料电池页 stack_top 的贴法一致。行距单独收到 14（高度 94）。
+   注：底沿 382 已越过直流母线水平段(y=380)与阳极内框上沿(y=372)，
+   即气泡下缘会盖住母线进入电解槽的最后一段（约 60px）及阳极框顶边线；
+   若需让开，把 y 调回 278（底沿 372，与阳极相切、离母线 6.75px）。 */
+addData('stack', 600, 288);
 
-function pemSet(id, lines, tips){
+function pemSet(id, lines, tips, lhIn){
   const n = nodes[id]; if(!n) return;
   n.g.innerHTML = '';
-  const pad = 7, lh = 15;
+  const pad = 7, lh = lhIn || 15;
   const textW = s => [...s].reduce((a,ch)=> a + (/[\u2e80-\u9fff\uff00-\uffef]/.test(ch) ? 12.5 : 7.2), 0);
   const w = Math.max(...lines.map(l=> textW(l.replace(/<[^>]+>/g,'')))) + pad*2;
   const h = lines.length*lh + pad*2 - 4;
@@ -6069,6 +6077,22 @@ function renderPem(){
     '风机功耗(kW) = 风机全压(Pa) × 空气体积流量(m³/s) / 风机效率',
     '带走热量(kW) = 电解槽反应废热 = 直流功率 ×(单体电压 − 1.481)/单体电压'
   ]);
+
+  pemSet('stack', [
+    `单体电压:<strong>${F2(st.Vcell)}</strong>V`,
+    `电解槽节数:<strong>${F0(st.N)}</strong>节`,
+    `直流电压:<strong>${F0(st.Vstack)}</strong>V`,
+    `直流功率:<strong>${F1(st.Pstack)}</strong>kW`,
+    `电堆效率(HHV):<strong>≈${F1(st.etaHHV)}</strong>%`,
+    `反应产热:<strong>${F1(st.Qheat)}</strong>kW`
+  ],[
+    '单体电压(V) = V_rev + η_act + η_ohm，由电流密度 j、温度 T 与氢氧压力解算；来源为极化曲线时由曲线求取，输入值非 0 时为手动覆盖',
+    '电解槽节数 = 输入参数「电解槽节数」（单体串联数）；电压逐节累加、各节电流相同',
+    '直流电压(V) = 单体电压(V) × 电解槽节数',
+    '直流功率(kW) = 直流电流(A) × 直流电压(V) / 1000',
+    '电堆效率(HHV)(%) = HHV热中性电压1.481V / 单体电压 × 100；基于高热值口径',
+    '反应产热(kW) = 直流功率 × (单体电压 − 热中性电压1.481)/单体电压；单体电压高于1.481V即持续放热'
+  ], 14);
 
   /* --- 计算面板 --- */
   document.getElementById('pem-water-results').innerHTML = [
