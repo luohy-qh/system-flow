@@ -673,6 +673,7 @@
     border-radius: 4px; padding: 6px 8px; margin: 0;
   }
   #pemPrintLayout .pdl-sec { page-break-inside: avoid; break-inside: avoid; margin-bottom: 4px; }
+  #pemPrintLayout .pdl-sec.pdl-flow { page-break-inside: auto; break-inside: auto; }
   #pemPrintLayout table.pdl-tab tr { page-break-inside: avoid; break-inside: avoid; }
   /* 流程图页：纵向 A4。图幅本身很宽（1560×1000）→ 将图片旋转 90°，
      使长边竖放，从而在纵向页上尽量保留原来的放大倍数（≈原横置时的比例）。 */
@@ -1404,6 +1405,15 @@ u      = (V / 3600) / (n_ch × A_ch)               推荐 0.3~1.0 m/s</pre>
 
 理论最低电耗：LHV 33.33 kWh/kg、HHV 39.41 kWh/kg</pre>
       <blockquote>注意区分三组效率：<code>η_HHV / η_LHV</code> 是<strong>电化学效率</strong>（只看电堆本体），<code>η_sys</code> 是<strong>系统效率</strong>（含电源与辅机损耗）。工程报价与可研一般看系统效率与电能单耗；行业典型 PEM 系统电耗为 4.5~5.5 kWh/Nm³。</blockquote>
+
+      <h5>6.4 年运行核算（年制氢量 · 年耗电量 · 年电费）</h5>
+      <pre>等效满负荷小时数 = 年运行小时数 × 平均负荷率/100          把运行平均出力折算为满负荷小时
+年制氢量(kg)     = 产氢质量流量(kg/h) × 等效满负荷小时数
+年制氢量(Nm³)    = 产氢体积流量(Nm³/h) × 等效满负荷小时数
+年耗电量(kWh)    = 系统输入功率(kW) × 等效满负荷小时数
+氢气电费成本     = 电能单耗(kWh/kg) × 电价(元/kWh)          → 元/kg
+年电费(万元)     = 年耗电量(kWh) × 电价(元/kWh) / 10000</pre>
+      <blockquote>「平均负荷率」是本页年量核算的关键入口：它与「年运行小时数」相乘得到等效满负荷小时数，再乘以满负荷工况下的产氢流量与系统输入功率，得到年制氢量与年耗电量；「电价」仅用于折算<strong>氢气电费成本</strong>与<strong>年电费</strong>（不含设备折旧与运维）。</blockquote>
 
       <h4>七、安全联锁与设计校核</h4>
       <table>
@@ -5389,6 +5399,8 @@ const PEM_INPUTS = [
   { id:'pemH2Purity',      label:'产品氢纯度(%)',             val:'99.999',step:'0.001' },
   { id:'pemRectEff',       label:'制氢电源效率(%)',            val:'96',    step:'1'     },
   { id:'pemUseFactor',     label:'平均负荷率(%)',             val:'100',   step:'1'     },
+  { id:'pemAnnualHours',   label:'年运行小时数(h)',            val:'4000',  step:'100'   },
+  { id:'pemPowerPrice',    label:'电价(元/kWh)',              val:'0.3',   step:'0.01'  },
   { id:'pemPumpHead',      label:'纯水循环泵扬程(m)',          val:'25',    step:'1'     },
   { id:'pemPumpEff',       label:'纯水循环泵总效率(%)',        val:'60',    step:'1'     },
   { id:'pemCoolPumpHead',  label:'冷却水泵扬程(m)',            val:'18',    step:'1'     },
@@ -5569,6 +5581,18 @@ function calcPem(){
   const kWhKg    = mH2kgh>0 ? Psys/mH2kgh : 0;
   const kWhNm3   = vH2>0 ? Psys/vH2 : 0;
 
+  /* ---- 年运行核算 ----
+     等效满负荷小时数 = 年运行小时数 × 平均负荷率/100（把运行期间的平均出力折算为满负荷小时数） */
+  const annualH   = Math.max(0, gi('pemAnnualHours'));       // h
+  const useFactor = Math.max(0, gi('pemUseFactor'))/100;
+  const eqFullH   = annualH*useFactor;                       // h 等效满负荷小时数
+  const aH2Kg     = mH2kgh*eqFullH;                          // kg 年制氢量（质量）
+  const aH2Nm3    = vH2*eqFullH;                             // Nm³ 年制氢量（体积）
+  const aKWh      = Psys*eqFullH;                            // kWh 年耗电量
+  const price     = Math.max(0, gi('pemPowerPrice'));        // 元/kWh 电价
+  const h2CostKg  = kWhKg*price;                             // 元/kg 氢气电费成本
+  const aCostWan  = aKWh*price/10000;                        // 万元 年电费
+
   return {
     st:{I, Vstack, Pstack, nH2th, nH2, nO2, etaHHV, etaLHV, Qheat, PH2_HHV, PH2_LHV,
         mH2kgh, vH2, vO2, Vcell, N,
@@ -5579,7 +5603,8 @@ function calcPem(){
     hx:{Qheat, Thi, Tho, Tci, Tco, dt1, dt2, cross, lmtd, K, Acalc, Aneed, Nplate, Agot,
         nHotCh, nColdCh, uHot, uCold, ReHot, ReCold, dpHot, dpCold, Vcirc, Vcold, mCold},
     pw:{I, Vstack, Pstack, Prect, P_pump, P_cpump, P_fan, P_purif, bopTotal, Psys,
-        etaSysHHV, etaSysLHV, kWhKg, kWhNm3, Vair}
+        etaSysHHV, etaSysLHV, kWhKg, kWhNm3, Vair,
+        eqFullH, aH2Kg, aH2Nm3, aKWh, h2CostKg, aCostWan}
   };
 }
 
@@ -5898,6 +5923,16 @@ function pemSet(id, lines, tips){
   fo.innerHTML = '<div xmlns="http://www.w3.org/1999/xhtml" class="pem-note" id="pemCtlNote"></div>';
   svg.appendChild(fo);
 })();
+/* 项目经济性卡（年运行核算）：置于联锁卡正下方，同一视觉族（.pem-note），随 calcPem() 重算刷新 */
+let pemEconFo = null;
+(function(){
+  const fo = document.createElementNS(NS,'foreignObject');
+  fo.setAttribute('x',1150); fo.setAttribute('y',195);
+  fo.setAttribute('width',335); fo.setAttribute('height',130);
+  fo.innerHTML = '<div xmlns="http://www.w3.org/1999/xhtml" class="pem-note" id="pemEconNote"></div>';
+  svg.appendChild(fo);
+  pemEconFo = fo;
+})();
 
 /* 流程图外框：左沿落在视口左边缘（与图下计算面板左沿对齐），右沿落在视口右边缘 */
 E('rect',{x:-59, y:30, width:1558, height:965, rx:10, fill:'none', stroke:'#38bdf8',
@@ -5930,7 +5965,7 @@ function renderPem(){
     '直流功率(kW) = 直流电流(A) × 直流电压(V) / 1000',
     '电源输入功率(kW) = 电解槽直流功率 / 制氢电源效率；含整流器与变压器损耗',
     '制氢电源效率(%) = 输入参数「制氢电源效率」',
-    '平均负荷率(%) = 输入参数「平均负荷率」；用于核算年运行小时数下的平均电耗'
+    '平均负荷率(%) = 输入参数「平均负荷率」（运行期间平均出力/额定出力）；与「年运行小时数」共同决定等效满负荷小时数，据此核算年制氢量、年耗电量与年电费'
   ]);
   pemSet('bop', [
     `辅机合计:<strong>${F2(pw.bopTotal)}</strong>kW`,
@@ -6115,6 +6150,12 @@ function renderPem(){
     ['系统效率 (LHV)(%)',    F1(pw.etaSysLHV), false, '系统效率 = 产品氢 LHV 功率 / 系统输入功率'],
     ['电能单耗(kWh/kgH₂)',   F2(pw.kWhKg),  false, '电能单耗 = 系统输入功率 / 产氢质量流量(kg/h)'],
     ['电能单耗(kWh/Nm³)',    F2(pw.kWhNm3), false, '电能单耗 = 系统输入功率 / 产氢流量(Nm³/h)；行业典型 4.5~5.5'],
+    ['等效满负荷小时数(h)',  F0(pw.eqFullH), false, '等效满负荷小时数 = 年运行小时数 × 平均负荷率/100；把变负荷运行折算为满负荷小时数，供下述年量核算'],
+    ['年制氢量(kg)',         F0(pw.aH2Kg),  false, '年制氢量(kg) = 产氢质量流量(kg/h) × 等效满负荷小时数'],
+    ['年制氢量(Nm³)',        F0(pw.aH2Nm3), false, '年制氢量(Nm³) = 产氢体积流量(Nm³/h) × 等效满负荷小时数'],
+    ['年耗电量(kWh)',        F0(pw.aKWh),   false, '年耗电量(kWh) = 系统输入功率(kW) × 等效满负荷小时数'],
+    ['氢气电费成本(元/kg)',  F2(pw.h2CostKg), false, '氢气电费成本(元/kg) = 电能单耗(kWh/kg) × 电价(元/kWh)；仅计电费，不含设备折旧与运维'],
+    ['年电费(万元)',         F2(pw.aCostWan), false, '年电费(万元) = 年耗电量(kWh) × 电价(元/kWh) / 10000'],
     ['理论最低电耗(kWh/kg)', F1(LHV_KWH_KG)+' (LHV) / '+F1(HHV_KWH_KG)+' (HHV)', false, '氢的 LHV=33.33 kWh/kg、HHV=39.41 kWh/kg，为电耗理论下限'],
     ['冷却塔空气流量(m³/h)', F0(pw.Vair),   false, '空气流量 = 废热×3600/(空气定压比热 × 空气温升)/空气密度'],
     ['氢氧压差校核(bar)',    F2(gs.dP)+' / ≤'+F2(gs.dpLim), gs.dP>gs.dpLim, '压差超限需调整氢/氧侧压力设定或加装差压联锁保护'],
@@ -6168,6 +6209,21 @@ function renderTables(){
       + '<div class="pn-row"'+ta('氧中氢浓度 = 膜氧窜氢量/(产氢量+互窜量)×100；≥2 vol% 报警并停车，用于判断膜是否泄漏')+'><span>氧中氢</span><span class="pn-v '+(gs.o2InH2<2?'ok':'warn')+'">'+F3(gs.o2InH2)+' vol%（2 报警）</span></div>'
       + '<div class="pn-row"'+ta('PEM 必须使用超纯水，电阻率 ≥18.2 MΩ·cm（25℃）；金属离子会毒化质子交换膜与催化剂导致电压升高，需在线监测电导率并再生混床')+'><span>纯水电阻率</span><span class="pn-v">≥18.2 MΩ·cm</span></div>'
       + '<div class="pn-row"'+ta('安全仪表功能等级 SIL2，联锁逻辑独立于主控 PLC/DCS；氢中氧/氧中氢、氢氧压差、系统超压、超温、冷却水断流、液位异常均须联锁停车')+'><span>安全等级</span><span class="pn-v">SIL2 · 独立于主控</span></div>';
+  }
+  /* 项目经济性卡：与电源·能效·控制面板同源的六个年运行核算值 */
+  const ec = document.getElementById('pemEconNote');
+  if(ec){
+    const ta = tip => ' title="'+esc(tip)+'"';
+    ec.innerHTML =
+      '<div class="pn-head">项目经济性（年运行核算）</div>'
+      + '<div class="pn-row"'+ta('等效满负荷小时数 = 年运行小时数 × 平均负荷率/100；把变负荷运行折算为满负荷小时数，作为下述年量的核算基准')+'><span>等效满负荷小时数</span><span class="pn-v">'+F0(pw.eqFullH)+' h</span></div>'
+      + '<div class="pn-row"'+ta('年制氢量(kg) = 产氢质量流量(kg/h) × 等效满负荷小时数；年制氢量(Nm³) = 产氢体积流量(Nm³/h) × 等效满负荷小时数')+'><span>年制氢量</span><span class="pn-v">'+F1(pw.aH2Kg/1000)+' t（'+F0(pw.aH2Nm3)+' Nm³）</span></div>'
+      + '<div class="pn-row"'+ta('年耗电量(kWh) = 系统输入功率(kW) × 等效满负荷小时数')+'><span>年耗电量</span><span class="pn-v">'+F1(pw.aKWh/1000)+' MWh</span></div>'
+      + '<div class="pn-row"'+ta('氢气电费成本(元/kg) = 电能单耗(kWh/kg) × 电价(元/kWh)；仅计电费，不含设备折旧与运维')+'><span>氢气电费成本</span><span class="pn-v">'+F2(pw.h2CostKg)+' 元/kg</span></div>'
+      + '<div class="pn-row"'+ta('年电费(万元) = 年耗电量(kWh) × 电价(元/kWh) / 10000')+'><span>年电费</span><span class="pn-v">'+F1(pw.aCostWan)+' 万元</span></div>';
+    /* 启用可见时按内容实测高度回写，避免字宽差异导致裁切；隐藏状态下保留定长 130 */
+    const hh = Math.ceil(ec.offsetHeight);
+    if(pemEconFo && hh) pemEconFo.setAttribute('height', hh);
   }
 }
 
@@ -6232,10 +6288,10 @@ if(pemTabBtn) pemTabBtn.addEventListener('click', layoutFurniture);
 /* 结果面板一律「读取页面上已渲染的行」，不另维护一份标签→数值映射，避免两处失步；
    面板若尚未渲染（例如异步/隐藏场景），先按 calcPem() 现算一次再读。 */
 const PEM_PANELS = [
-  ['二、水系统计算（纯水制备 · 循环 · 水平衡）', 'pem-water-results'],
-  ['三、气系统计算（产氢纯化 · 产氧 · 分离 · 压差）', 'pem-gas-results'],
-  ['四、换热器选型计算（板式换热器）', 'pem-hx-results'],
-  ['五、电源 · 能效 · 控制计算', 'pem-power-results']
+  ['三、水系统计算（纯水制备 · 循环 · 水平衡）', 'pem-water-results'],
+  ['四、气系统计算（产氢纯化 · 产氧 · 分离 · 压差）', 'pem-gas-results'],
+  ['五、换热器选型计算（板式换热器）', 'pem-hx-results'],
+  ['六、电源 · 能效 · 控制计算', 'pem-power-results']
 ];
 function pemReadPanel(id){
   const host = document.getElementById(id);
@@ -6285,7 +6341,7 @@ function buildPemPrintLayout(){
   const tab  = (rows,head)=>'<table class="pdl-tab">'
       + (head?'<thead><tr>'+head.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead>':'')
       + '<tbody>'+rows.join('')+'</tbody></table>';
-  const sec  = (t,inner)=>'<section class="pdl-sec"><h3>'+esc(t)+'</h3>'+inner+'</section>';
+  const sec  = (t,inner,extra)=>'<section class="pdl-sec'+(extra?' '+extra:'')+'"><h3>'+esc(t)+'</h3>'+inner+'</section>';
 
   /* ① 题头 + 设计点摘要 */
   const sum = [
@@ -6303,14 +6359,24 @@ function buildPemPrintLayout(){
     + '<div class="pdl-sum">'+sum.map(s=>'<div class="pdl-sum-item"><div class="k">'+esc(s[0])+'</div><div class="v">'+esc(s[1])+'</div></div>').join('')+'</div>'
     + '</div>';
 
-  /* ② 输入参数表（读 PEM_INPUTS 与各输入框当前值） */
+  /* ② 项目经济性（年运行核算）：置于题头之后、输入参数之前，读者先见经济性再看参数 */
+  const ecoRows = [
+    row2('等效满负荷小时数', F0(pw.eqFullH)+' h'),
+    row2('年制氢量（质量 / 体积）', F1(pw.aH2Kg/1000)+' t / '+F0(pw.aH2Nm3)+' Nm³'),
+    row2('年耗电量', F1(pw.aKWh/1000)+' MWh（'+F0(pw.aKWh)+' kWh）'),
+    row2('氢气电费成本', F2(pw.h2CostKg)+' 元/kg'),
+    row2('年电费', F1(pw.aCostWan)+' 万元')
+  ];
+  const ecoHtml = sec('一、项目经济性（年运行核算）', tab(ecoRows, ['项目','数值']));
+
+  /* ③ 输入参数表（读 PEM_INPUTS 与各输入框当前值） */
   const inpRows = PEM_INPUTS.map(it=>{
     const el = document.getElementById(it.id);
     return row3(it.label, el ? el.value : '', it.step);
   });
-  const inpHtml = sec('一、输入参数（共 '+PEM_INPUTS.length+' 项）', tab(inpRows, ['参数','当前值','步长']));
+  const inpHtml = sec('二、输入参数（共 '+PEM_INPUTS.length+' 项）', tab(inpRows, ['参数','当前值','步长']), 'pdl-flow');
 
-  /* ③ 计算结果：逐面板读取已渲染的行 */
+  /* ④ 计算结果：逐面板读取已渲染的行 */
   const resHtml = PEM_PANELS.map(([t,id])=>{
     const rows = pemReadPanel(id);
     return rows.length ? sec(t, tab(rows.map(x=>row2(x.label, x.value, x.warn?'pdl-warn':'')), ['项目','数值'])) : '';
@@ -6330,7 +6396,7 @@ function buildPemPrintLayout(){
         + (state==='超限'?'pdl-warn':(state==='合格'?'pdl-ok':''))+'">'+esc(state)+'</td></tr>');
     });
   }
-  const ctlHtml = sec('六、校核结论（控制与安全联锁）', tab(ctlRows, ['校核项','数值 / 判据','结论']));
+  const ctlHtml = sec('七、校核结论（控制与安全联锁）', tab(ctlRows, ['校核项','数值 / 判据','结论']));
 
   /* ⑤ 极化曲线分解 */
   const polRows = [
@@ -6340,7 +6406,7 @@ function buildPemPrintLayout(){
     row2('面积比电阻 ASR(T)',         (Number(st.asr)||0).toFixed(4)+' Ω·cm²'),
     row2('单体电压 V_cell = V_rev + η_act + η_ohm', F3(st.Vcell)+' V（来源：'+st.vSource+'）')
   ];
-  const polHtml = sec('七、极化曲线分解', tab(polRows, ['项目','数值']));
+  const polHtml = sec('八、极化曲线分解', tab(polRows, ['项目','数值']));
 
   /* ⑥ 关键公式与常数（浓缩版） */
   const formulas = [
@@ -6358,12 +6424,12 @@ function buildPemPrintLayout(){
     '  μ_w(T) = 2.414e-5×10^(247.8/(T+273.15−140))   （Pa·s）；c_p,水(T) 按 0~100 ℃ 水表线性插值；（T 均为 ℃）',
     '常数：V_热中性,HHV = 1.481 V；V_热中性,LHV = 1.254 V；V_m = 22.414 L/mol；HHV = 39.41 kWh/kg；LHV = 33.33 kWh/kg'
   ].join('\n');
-  const fmHtml = sec('八、关键公式与常数', '<pre class="pdl-pre">'+esc(formulas)+'</pre>');
+  const fmHtml = sec('九、关键公式与常数', '<pre class="pdl-pre">'+esc(formulas)+'</pre>');
 
   /* ⑦ 流程图 */
-  const pfdHtml = '<section class="pdl-sec pdl-pfd-sec"><h3>九、流程图 · PEM电解槽系统（PFD）</h3><div class="pdl-pfd-fig"></div></section>';
+  const pfdHtml = '<section class="pdl-sec pdl-pfd-sec"><h3>十、流程图 · PEM电解槽系统（PFD）</h3><div class="pdl-pfd-fig"></div></section>';
 
-  box.innerHTML = '<div class="pdl">'+headHtml+inpHtml+resHtml+ctlHtml+polHtml+fmHtml
+  box.innerHTML = '<div class="pdl">'+headHtml+ecoHtml+inpHtml+resHtml+ctlHtml+polHtml+fmHtml
     + '<div class="pdl-foot">本文件由 system-flow.html 的「导出设计文档(PDF)」按钮在浏览器本地生成（零依赖），数值与该页当前工况的实时计算结果一致。</div>'
     + pfdHtml
     + '</div>';
