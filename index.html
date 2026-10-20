@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>燃料电池混合动力系统&amp;PEM电解槽 设计与仿真平台</title>
 <style>
+  /* ==========================================================================
+     【本版本特有】隐藏四个板块的「使用说明」——是隐藏，不是删除。
+     下面 4 个说明弹窗与 4 个「?」按钮在 HTML 与 JS 中仍然完整保留，
+     只是不显示（不影响任何计算、仿真与导出逻辑；导出的 PDF 本来也不含它们）。
+     若要恢复：删掉下面这一条规则即可，其余代码无需改动。
+     注：图签内的「版本升级说明」弹窗（#pemVerOverlay）不属于使用说明，保持可用。
+     ========================================================================== */
+  #pfdHelpOverlay, #hybridHelpOverlay, #simHelpOverlay, #pemHelpOverlay,
+  #pfdHelpBtn,     #hybridHelpBtn,     #simHelpBtn,     #pemHelpBtn { display: none !important; }
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
@@ -78,6 +88,25 @@
     background: #1a2b3f; color: #cbd5e1; border: 1px solid #334e6e; border-radius: 3px;
   }
   #page-pem .strategy-note { font-size: 0.68rem; color: #94a3b8; line-height: 1.5; margin: 2px 0 8px; }
+  /* 策略对比矩阵（5~6 列，列头用 ①②③… 序号以适配窄参数栏） */
+  #page-pem .strategy-matrix-wrap {
+    margin: 8px 0 6px; padding: 6px 7px 5px;
+    border: 1px dashed #334e6e; border-radius: 6px; background: rgba(11,22,40,0.45);
+    overflow-x: auto;
+  }
+  #page-pem .strategy-matrix-cap { font-size: 0.74rem; font-weight: bold; color: #7dd3fc; margin-bottom: 3px; }
+  #page-pem .strategy-matrix { width: 100%; border-collapse: collapse; }
+  #page-pem .strategy-matrix th, #page-pem .strategy-matrix td {
+    padding: 2px 2px; border-bottom: 1px dashed #2a4a6b;
+    font-size: 0.57rem; text-align: right; white-space: nowrap; cursor: help;
+  }
+  #page-pem .strategy-matrix th:first-child, #page-pem .strategy-matrix td:first-child {
+    text-align: left; color: #94a3b8; white-space: normal; min-width: 44px;
+  }
+  #page-pem .strategy-matrix thead th { color: #7dd3fc; font-weight: bold; border-bottom: 1px solid #2a4a6b; }
+  #page-pem .strategy-matrix td.v { color: #7dd3fc; font-weight: bold; }
+  #page-pem .strategy-matrix td.m-best { color: #34d399; }
+  #page-pem .strategy-matrix-foot { font-size: 0.6rem; color: #64748b; line-height: 1.45; margin-top: 4px; }
   .legend {
     margin-top: 14px; padding-top: 12px; border-top: 1px solid #2a4a6b;
     font-size: 0.78rem; color: #94a3b8;
@@ -730,6 +759,13 @@
   }
   #pemPrintLayout .pdl-sec { page-break-inside: avoid; break-inside: avoid; margin-bottom: 4px; }
   #pemPrintLayout .pdl-sec.pdl-flow { page-break-inside: auto; break-inside: auto; }
+  #pemPrintLayout .pdl-sub { font-weight: bold; font-size: 8.5pt; margin: 5px 0 2px; color: #0b4767; }
+  #pemPrintLayout .pdl-subnote { font-size: 7.5pt; color: #64748b; margin: 3px 0 0; }
+  #pemPrintLayout table.pdl-tab.pdl-tab-mx { font-size: 7.4pt; }
+  #pemPrintLayout table.pdl-tab.pdl-tab-mx tbody th { width: 26%; }
+  #pemPrintLayout table.pdl-tab.pdl-tab-mx th,
+  #pemPrintLayout table.pdl-tab.pdl-tab-mx td { padding: 2px 3px; text-align: right; }
+  #pemPrintLayout table.pdl-tab.pdl-tab-mx tbody th { text-align: left; }
   #pemPrintLayout table.pdl-tab tr { page-break-inside: avoid; break-inside: avoid; }
   /* 流程图页：纵向 A4。图幅本身很宽（1560×1000）→ 将图片旋转 90°，
      使长边竖放，从而在纵向页上尽量保留原来的放大倍数（≈原横置时的比例）。 */
@@ -1591,20 +1627,34 @@ LCOH          = 年总成本(万元) × 10000 / 年制氢量(kg)           → �
         <strong>设计点仍取寿命初期电压</strong>：设备选型与极化曲线、系统效率、气泡数值都按新电堆（BOL）呈现；只有年度量与 LCOH 采用含衰减的平均口径。
       </blockquote>
 
-      <h5>6.7 运行策略（分时电价调度 · 8760 h 时序）</h5>
-      <pre>时序离散：8760 个 1 h 步长；电价序列 = 24 点分时电价按日重复
-调度需求 N(h) = 年运行小时数 × 平均负荷率/100          （= 等效满负荷小时数）
+      <h5>6.7 运行策略（风光·分时电价·部分负荷调度 · 8760 h 时序）</h5>
+      <pre>时序离散：8760 个 1 h 步长
+电价序列  = 24 点分时电价按日重复（仅对「电网电量」计价）
+风光序列  = 按「装机 × 8760 × 容量系数」确定性合成（固定种子），或粘贴曲线覆盖
+调度需求 N(h) = 年运行小时数 × 平均负荷率/100             （= 等效满负荷小时数）
 
-① 定值电价基准（现状口径）  年电费 = 年耗电量 × 电价输入值
-② 恒定功率型（不调度）      加权电价 = 8760 h 电价序列的算术平均
-③ 谷电优先型              加权电价 = 按电价升序取最便宜 N 小时的平均价
+部分负荷曲线：x ∈ [最小负荷, 1] 上扫描 7 点
+  Psys(x)、mH2(x) ← 以「周期内平均单体电压」为基准、按电流密度 j·x 复算整链
+  最小负荷(%)：输入非 0 取输入；为 0 时在 j∈(0, j_design] 上二分，找「氢中氧 = 目标 vol%」的 j
+               （窜气量恒定、主气流随 j 变小 → 氢中氧随 j 单调下降，二分必收敛）
 
-LCOH(策略) = (固定成本 + 年电费) × 10000 / 年制氢量
-固定成本 = 年CAPEX摊销 + 年运维 + 年更换摊销     不随策略变化</pre>
+① 定值电价基准（电网口径）  年电费 = 年耗电量 × 电价输入值
+② 恒定功率型（电网口径）    加权电价 = 8760 h 电价序列的算术平均
+③ 谷电优先型（电网口径）    取全年最便宜的 N 小时运行
+④ 跟随风光型               x = Psys⁻¹(可用风光出力)，低于最小负荷即停机；不买电，多余风光计弃电
+⑤ 优化型 · 无约束下界       逐时寻优：电价 < LCOH/电能单耗 即运行（Dinkelbach 不动点迭代）
+⑥ 优化型 · 含约束           在⑤上做可执行性修复（最短运行时长 / 年启停上限）
+
+单小时电费 = 自有风光电量 × 绿电成本 + 电网电量 × 该小时电价
+LCOH(策略) = (固定成本 + 年电费) × 10000 / 年制氢量     固定成本不随策略变化</pre>
       <blockquote>
-        <strong>为什么三策略的年耗电量相同</strong>：本版三策略都是「满负荷运行」，只改变<strong>在哪些小时运行</strong>，不改变运行多少小时、也不改变出力水平。因此年耗电量、年产氢量与固定成本都相同，<strong>年电费与 LCOH 的差异完全由加权电价决定</strong>——这正是回答「把定值假设换成实际调度值多少」的干净对照。<br>
-        <strong>谷电优先的算法</strong>：把全年 8760 h 按电价升序排序，取最便宜的 N 小时运行。若谷电时段（例如 8 h·d⁻¹ × 365 = 2920 h）不足以覆盖 N（默认 4000 h），则自动顺延到次便宜的平电时段。<br>
-        <strong>尚未建模（后续版本）</strong>：分季节电价、风光出力曲线（跟随型策略）、最大功率以外的爬坡约束、启停次数与最短运行/停机时长、热待机、储氢缓冲，以及以 LCOH 最小为目标的逐时优化调度。本版先把「对比框架」立起来。
+        <strong>两个版本共享同一面板</strong>：面板顶部「策略版本」可切换——<strong>基础版</strong>只做分时电价调度（①②③ 三条策略、满负荷、不使用自有电源，即加入风光之前的原口径）；<strong>进阶版</strong>在基础版之上再加自有电源、部分负荷与优化调度。<strong>两版的 ①②③ 数值完全相同</strong>，可直接对照；基础版隐藏「自有电源」与「调度约束」两组输入。<br>
+        <strong>自有电源为什么要单独定价</strong>：光伏/风电自身的投资<strong>不在</strong>「单位投资(元/kW)」口径内（那只是制氢系统），故以「绿电成本(元/kWh)」单独计价。若按 0 元/kWh 计，优化器会无限多用风光来摊薄固定成本，LCOH 会被压到不真实的低位；做一体化经济性时把该值设为其自身 LCOE 即可。<br>
+        <strong>①②③ 是电网口径基线</strong>：它们不使用自有电源、满负荷运行，与既有结果逐位一致，专门用来做对照；④⑤⑥ 才使用「自有电源 + 电网」。因此矩阵必须给出「年制氢量」列——④⑤⑥ 的年产氢量由资源与策略决定，与 ①②③ 不同，LCOH 的分母也就不同。<br>
+        <strong>优化型的目标是 LCOH 最小</strong>：判据源自 <code>多运行一小时的边际成本 &lt; 当前 LCOH 则摊薄固定成本更划算</code>，即 <code>电价 &lt; LCOH ÷ 电能单耗</code>。等价于把电价阈值 <code>p*</code> 解成不动点 <code>p* = LCOH(p*) ÷ 电能单耗</code>，故它总是「多跑便宜的电源」。<strong>⑤ 是无约束下界</strong>（作收益上界看），<strong>⑥ 才是可执行结果</strong>。<br>
+        <strong>约束修复是启发式，不保证全局最优</strong>：不足「最短运行时长」的运行段在「延长」与「删除」间取代价小者；运行段数超过「年启停次数上限」时，在「<strong>填谷合并</strong>（把两段之间的谷按可行出力跑起来，两段并为一段）」与「整段删除」之间取收益牺牲小者——收益口径为 <code>λ·产氢 − 电费</code>，因此大产氢量的段更值得保留。当启停上限收得很紧时，你会看到 ⑥ 的年产氢量反而<strong>高于</strong> ⑤（填谷把零碎运行并成连续运行），这正是「少启停、连续跑」的物理直觉。<br>
+        <strong>低负荷的代价方向（易误判）</strong>：本模型下低负荷的 kWh/kg <strong>反而更低</strong>——单体电压随电流密度下降带来的电化学效率收益，大于 BOP 占比升高与法拉第效率下降的损失。因此限制最小负荷的理由不是电耗，而是<strong>安全</strong>（氢中氧 ≤ 2 vol%）与<strong>固定成本摊薄</strong>（单位时间产氢少）。<br>
+        <strong>尚未建模（后续版本）</strong>：分季节电价、风光曲线按季节/年型细分、热待机（低负荷保温功耗）、储氢缓冲（产氢与售氢解耦）、爬坡约束。
       </blockquote>
 
       <h4>七、安全联锁与设计校核</h4>
@@ -3946,10 +3996,10 @@ hybridInputIds.forEach(id=>{
 });
 
 /* ========== 参数导出 / 导入 ========== */
-// 收集容器内所有带 id 的数值输入与下拉框
+// 收集容器内所有带 id 的数值输入、下拉框与多行文本（textarea：如风光曲线 / 自定义工况折线）
 function collectParams(root){
   const out = {};
-  root.querySelectorAll('input[type="number"], select').forEach(el=>{
+  root.querySelectorAll('input[type="number"], select, textarea').forEach(el=>{
     if(el.id) out[el.id] = el.value;
   });
   return out;
@@ -3957,7 +4007,7 @@ function collectParams(root){
 // 回填参数并逐项触发 input/change 事件（带动已有联动计算）
 function applyParams(root, data){
   let n = 0;
-  root.querySelectorAll('input[type="number"], select').forEach(el=>{
+  root.querySelectorAll('input[type="number"], select, textarea').forEach(el=>{
     if(!el.id || !(el.id in data)) return;
     el.value = data[el.id];
     el.dispatchEvent(new Event('input',{bubbles:true}));
@@ -5646,6 +5696,33 @@ const TOU_CODE = ['谷','平','峰'];
 const TOU_SWATCH = [['#0b3b52','#7dd3fc'], ['#1a2b3f','#cbd5e1'], ['#4a1f24','#fca5a5']];
 /* 默认时段：23:00–07:00 谷、10:00–12:00 与 18:00–21:00 峰、其余为平（典型工商业） */
 const TOU_DEFAULT = [0,0,0,0,0,0,0,1,1,1,2,2,1,1,1,1,1,1,2,2,2,1,1,0];
+/* 策略版本：基础版 = 仅分时电价调度（三策略 · 满负荷 · 不使用自有电源）；
+   进阶版 = 在基础版之上再加自有风光、部分负荷与优化调度 */
+const PEM_STRAT_TITLE = {
+  base:'运行策略 · 基础版（分时电价调度）',
+  adv :'运行策略 · 进阶版（风光 · 分时电价 · 部分负荷调度）'
+};
+const PEM_STRAT_NOTE = {
+  base:'三策略均为<b>满负荷运行</b>，年耗电量与年产氢量相同，差异只来自「在哪些小时运行」，即加权电价。'
+     + '谷电优先 = 全年按电价升序取最便宜的小时运行；本版<strong>不使用自有电源</strong>，'
+     + '如需风光、部分负荷与优化调度，请把「策略版本」切到<b>进阶版</b>。',
+  adv :'①②③ 为<b>电网口径基线</b>（不使用自有电源，便于与既有结果逐位对照）；④ 跟随风光、⑤ 优化型使用自有电源 + 电网。'
+     + '所有策略的实际出力被限制在「最小负荷 ~ 100%」之间。优化型以 <b>LCOH 最小</b>为目标逐时寻优，'
+     + '并按「最短运行时长 / 年启停次数上限」做可执行性修复。'
+};
+/* 按「策略版本」切换面板标题、说明文字与「进阶专属输入」的显隐 */
+function pemApplyStratMode(){
+  const mode = (document.getElementById('pemStrategyMode')||{}).value === 'base' ? 'base' : 'adv';
+  const box = document.getElementById('pemAdvInputs');
+  if(box) box.style.display = (mode==='adv') ? '' : 'none';
+  const hd = document.querySelector('#pemStrategyHead > span');
+  if(hd){
+    const arrow = (hd.textContent.trim().charAt(0) === '▾') ? '▾ ' : '▸ ';
+    hd.textContent = arrow + PEM_STRAT_TITLE[mode];
+  }
+  const note = document.getElementById('pemStrategyNote');
+  if(note) note.innerHTML = PEM_STRAT_NOTE[mode];
+}
 const touSlotEl = h => document.getElementById('pemTouSlot'+h);
 const touPrices = () => [gi('pemTouValley'), gi('pemTouFlat'), gi('pemTouPeak')];   // [谷,平,峰] 元/kWh
 function touSlots(){ const a=[]; for(let h=0;h<24;h++){ const e=touSlotEl(h); a.push(e?(parseInt(e.value,10)||0):0); } return a; }
@@ -5678,6 +5755,9 @@ function touRuns(slots){
     +   '<span>▸ 运行策略（分时电价调度）</span><span class="st-sum" id="pemStrategySum"></span>'
     + '</div>'
     + '<div class="strategy-body">'
+    +   '<div class="input-group"><label for="pemStrategyMode">策略版本</label><select id="pemStrategyMode">'
+    +     '<option value="adv" selected>进阶版 · 风光 + 部分负荷 + 优化调度</option>'
+    +     '<option value="base">基础版 · 仅分时电价调度</option></select></div>'
     +   '<div class="input-sect"><div class="sect-cap">分时电价（24 点 · 按日重复）</div>'
     +     '<div class="input-group"><label for="pemTouPeak">峰电价(元/kWh)</label><input type="number" id="pemTouPeak" value="0.8" step="0.01"></div>'
     +     '<div class="input-group"><label for="pemTouFlat">平电价(元/kWh)</label><input type="number" id="pemTouFlat" value="0.35" step="0.01"></div>'
@@ -5685,7 +5765,26 @@ function touRuns(slots){
     +   '</div>'
     +   '<div class="sect-cap" style="color:#7dd3fc;font-size:0.72rem;margin:2px 0 4px">时段类型（点击切换 谷 / 平 / 峰）</div>'
     +   '<div class="tou-grid"></div>'
-    +   '<div class="strategy-note">三策略均为满负荷运行，年耗电量与年产氢量相同，差异只来自「在哪些小时运行」，即加权电价。谷电优先 = 全年按电价升序取最便宜的小时运行。</div>'
+    +   '<div id="pemAdvInputs">'
+    +     '<div class="input-sect"><div class="sect-cap">自有电源（风光 · 逐时出力序列）</div>'
+    +       '<div class="input-group"><label for="pemGenType">电源类型</label><select id="pemGenType">'
+    +         '<option value="none">无（仅电网）</option><option value="pv" selected>光伏</option><option value="wind">风电</option></select></div>'
+    +       '<div class="input-group"><label for="pemGenCap">装机容量(kWp)</label><input type="number" id="pemGenCap" value="1200" step="100"></div>'
+    +       '<div class="input-group"><label for="pemGenCF">容量系数(%)</label><input type="number" id="pemGenCF" value="16" step="1"></div>'
+    +       '<div class="input-group"><label for="pemGenCost">绿电成本(元/kWh)</label><input type="number" id="pemGenCost" value="0.2" step="0.01"></div>'
+    +       '<div class="input-group"><label for="pemGridBackup">电网补充</label><select id="pemGridBackup">'
+    +         '<option value="1" selected>允许（不足时买电）</option><option value="0">禁止（纯离网）</option></select></div>'
+    +     '</div>'
+    +     '<div class="input-group"><label for="pemGenProfile">风光曲线粘贴（每行「小时,出力kW」；留空=按上方参数合成）</label>'
+    +       '<textarea id="pemGenProfile" class="sim-textarea" rows="3" placeholder="0,0&#10;6,100&#10;12,900&#10;18,0"></textarea></div>'
+    +     '<div class="input-sect"><div class="sect-cap">调度约束（可执行性）</div>'
+    +       '<div class="input-group"><label for="pemMinLoad">最小负荷(%)，0=按氢中氧反推</label><input type="number" id="pemMinLoad" value="0" step="1"></div>'
+    +       '<div class="input-group"><label for="pemH2InO2Lim">氢中氧目标(vol%)</label><input type="number" id="pemH2InO2Lim" value="2" step="0.1"></div>'
+    +       '<div class="input-group"><label for="pemMinRun">最短运行时长(h)</label><input type="number" id="pemMinRun" value="2" step="1"></div>'
+    +       '<div class="input-group"><label for="pemMaxStarts">年启停次数上限(次)</label><input type="number" id="pemMaxStarts" value="365" step="10"></div>'
+    +     '</div>'
+    +   '</div>'
+    +   '<div class="strategy-note" id="pemStrategyNote"></div>'
     +   '<div class="hx-results" id="pem-strategy-results"></div>'
     + '</div>';
   host.appendChild(wrap);
@@ -5703,10 +5802,23 @@ function touRuns(slots){
     sel.addEventListener('change', ()=>{ touPaint(sel); pemRun(); });
   }
   wrap.querySelectorAll('input[type="number"]').forEach(el=>el.addEventListener('input', pemRun));
+  /* 新增：电源类型 / 电网补充（select）与风光曲线粘贴（textarea）也要触发重算；
+     「策略版本」单独处理（切换时还要同步标题/说明/输入显隐） */
+  wrap.querySelectorAll('select:not(.tou-sel):not(#pemStrategyMode)').forEach(el=>el.addEventListener('change', pemRun));
+  const taProf = wrap.querySelector('#pemGenProfile');
+  if(taProf) taProf.addEventListener('input', pemRun);
+  const modeSel = wrap.querySelector('#pemStrategyMode');
+  if(modeSel) modeSel.addEventListener('change', ()=>{ pemApplyStratMode(); pemRun(); });
+  pemApplyStratMode();
   wrap.querySelector('#pemStrategyHead').addEventListener('click', ()=>wrap.classList.toggle('open'));
 })();
 
-/* 运行策略对比：定值电价（现状基准） vs 恒定功率型 vs 谷电优先型 */
+/* 运行策略对比（5 条策略）
+   ①②③ 电网口径基线：满负荷运行、不使用自有电源（口径与既有结果逐位一致，便于对照）
+   ④   跟随风光型：出力跟随风光、不买电，多余风光记为弃电
+   ⑤   优化型：以 LCOH 最小为目标逐时寻优（Dinkelbach 不动点），再做可执行性修复
+   ①②③ 的年耗电量与年产氢量与「在哪些小时运行」无关，只差加权电价；
+   ④⑤ 由资源与策略决定出力，年产氢量不同 —— 故矩阵必须给出「年制氢量」列。 */
 function renderStrategy(){
   const host = document.getElementById('pem-strategy-results');
   if(!host) return;
@@ -5715,48 +5827,200 @@ function renderStrategy(){
   const slots = touSlots();
   const cnt   = [0,0,0]; slots.forEach(c=>cnt[c]++);
   const N     = Math.max(0, Math.round(pw.eqFullH));          // 调度需求（等效满负荷小时数）
-  const kWh   = pw.aKWh;                                      // 年耗电量（含电压衰减，与策略无关）
-  const fixed = pw.capexAnnual + pw.omAnnual + pw.stackAnnual;// 万元/年 固定成本（与策略无关）
+  const kWh   = pw.aKWh;                                      // 年耗电量（含衰减）
+  const fixed = pw.capexAnnual + pw.omAnnual + pw.stackAnnual;// 万元/年 固定成本
   const pBase = Math.max(0, gi('pemPowerPrice'));             // 定值电价（现状口径）
 
-  /* 8760 h 电价序列（24 点按日重复） */
+  /* ---- 8760 h 电价序列（24 点按日重复） ---- */
   const p = new Float64Array(8760);
   for(let t=0;t<8760;t++) p[t] = pr[slots[t%24]];
-  /* 恒定功率型（不调度）：运行时段在全年均匀摊开 → 加权电价 = 全年均价 */
-  let sum=0; for(let t=0;t<8760;t++) sum += p[t];
-  const pMean = sum/8760;
-  /* 谷电优先型：全年按电价升序取最便宜的 N 小时 */
+  let pSum=0; for(let t=0;t<8760;t++) pSum += p[t];
+  const pMean = pSum/8760;
   const nH = Math.min(8760, N);
-  const sorted = Array.from(p).sort((a,b)=>a-b);
-  let cs=0; for(let i=0;i<nH;i++) cs += sorted[i];
-  const pOpt = nH>0 ? cs/nH : 0;
+  const sortedP = Array.from(p).sort((a,b)=>a-b);
+  let csP=0; for(let i=0;i<nH;i++) csP += sortedP[i];
+  const pOpt = nH>0 ? csP/nH : 0;
 
-  const elecWan = prc => kWh*prc/10000;                                       // 万元/年
-  const lcohOf  = prc => pw.aH2Kg>0 ? (fixed+elecWan(prc))*10000/pw.aH2Kg : 0; // 元/kg
-  const dl = lcohOf(pOpt)-lcohOf(pBase);
-  const dPct = lcohOf(pBase)>0 ? dl/lcohOf(pBase)*100 : 0;
+  /* ---- 基础版：只做分时电价调度（三策略 · 满负荷 · 不使用自有电源）
+     与加风光之前的口径逐位一致，专门留作对照与快速试算 ---- */
+  if((document.getElementById('pemStrategyMode')||{}).value === 'base'){
+    const elecWan = prc => kWh*prc/10000;                                        // 万元/年
+    const lcohOf  = prc => pw.aH2Kg>0 ? (fixed+elecWan(prc))*10000/pw.aH2Kg : 0;  // 元/kg
+    const dl0   = lcohOf(pOpt) - lcohOf(pBase);
+    const dPct0 = lcohOf(pBase)>0 ? dl0/lcohOf(pBase)*100 : 0;
+    const sign0 = v => v<0 ? '−' : '+';
+    host.innerHTML = [
+      ['调度需求（等效满负荷小时数）', F0(N)+' h', false, '来自输入「年运行小时数 × 平均负荷率/100」；三策略都只跑这么多等效满负荷小时'],
+      ['峰 / 平 / 谷电价', F2(pr[2])+' / '+F2(pr[1])+' / '+F2(pr[0])+' 元/kWh', false, '分时电价输入；24 点序列按日重复组成 8760 h 电价曲线'],
+      ['时段结构（谷 / 平 / 峰）', F0(cnt[0])+' / '+F0(cnt[1])+' / '+F0(cnt[2])+' h·d⁻¹', false, '由 24 格时段选择器统计，合计 24 h·d⁻¹'],
+      ['谷 / 平 / 峰 时段(h)', touRuns(slots), false, '小时区间为左闭右开，例如「0–7」表示 00:00–07:00；24 点按日重复覆盖全年'],
+      ['全年均价（恒定功率型加权电价）', F3(pMean)+' 元/kWh', false, '恒定功率型不调度，运行时段在全年均匀摊开，其加权电价即 8760 h 电价序列的算术平均'],
+      ['谷电优先加权电价', F3(pOpt)+' 元/kWh', false, '谷电优先型把全年 8760 h 按电价升序排序，取最便宜的 '+F0(N)+' 小时运行，其加权电价即该批小时的平均价；若谷电时段不足，则自动顺延到次便宜的平电'],
+      ['年耗电量（三策略相同·含衰减）', F0(kWh)+' kWh', false, '年耗电量 = 系统输入功率(按更换周期内平均单体电压复算) × 等效满负荷小时数；与在哪些小时运行无关'],
+      ['年电费 · 定值电价基准', F2(elecWan(pBase))+' 万元', false, '现状口径：单一电价 '+F2(pBase)+' 元/kWh × 年耗电量，即上方「年电费」'],
+      ['年电费 · 恒定功率型', F2(elecWan(pMean))+' 万元', false, '不分时段、不调度的基线：年耗电量 × 全年均价'],
+      ['年电费 · 谷电优先型', F2(elecWan(pOpt))+' 万元', false, '年耗电量 × 谷电优先加权电价'],
+      ['年电费较基准节省（谷电优先）', F2(elecWan(pBase)-elecWan(pOpt))+' 万元', false, '= 定值电价年电费 − 谷电优先年电费；即把「定值假设」换成「实际调度」在电费上值多少'],
+      ['LCOH · 定值电价基准', F2(lcohOf(pBase))+' 元/kg', false, '固定成本（CAPEX 摊销 + 运维 + 更换）不随策略变化，仅电费项变化，故 LCOH 差异完全由年电费差异驱动'],
+      ['LCOH · 恒定功率型', F2(lcohOf(pMean))+' 元/kg', false, '年电费按全年均价口径'],
+      ['LCOH · 谷电优先型', F2(lcohOf(pOpt))+' 元/kg', false, '年电费按谷电优先加权电价口径'],
+      ['结论 · LCOH 变化（谷电优先 − 基准）', sign0(dl0)+F2(Math.abs(dl0))+' 元/kg（'+sign0(dPct0)+F1(Math.abs(dPct0))+'%）', false, '负值表示 LCOH 下降，即调度优化带来的成本收益；正值表示该策略比现状口径更贵'],
+      ['提示', '本版未使用自有电源、出力恒为满负荷；切换「策略版本」为<b>进阶版</b>可使用风光、部分负荷与 LCOH 最小化调度', false,
+        '基础版与进阶版的 ①②③ 三列数值完全相同，可直接对照']
+    ].map(a=>row(a[0],a[1],a[2],a[3])).join('');
+    const el0 = document.getElementById('pemStrategySum');
+    if(el0) el0.textContent = '谷电优先 LCOH '+F2(lcohOf(pOpt))+' 元/kg（'+sign0(dl0)+F2(Math.abs(dl0))+' 元/kg）';
+    return;
+  }
+
+  /* ---- 部分负荷曲线 · 最小负荷 · 自有电源 ---- */
+  const curve = pemLoadCurve();
+  const ml    = pemMinLoadX();
+  const xmin  = Math.max(0.001, Math.min(1, ml.x));
+  const Pmax  = Math.max(1e-9, pemCurveAt(curve, 1).Psys);
+  const gen   = pemGenSeries();
+  const cGen  = Math.max(0, gi('pemGenCost'));
+  const gridOn= (document.getElementById('pemGridBackup')||{}).value !== '0';
+  const Tmin  = Math.max(1, Math.round(gi('pemMinRun')));
+  const Kmax  = Math.max(1, Math.round(gi('pemMaxStarts')));
+  /* 出力 → 满发电量所需的负荷率（反查部分负荷曲线），供「跟随风光」与优化型取候选档 */
+  const NG=200, gP=new Float64Array(NG+1), gH=new Float64Array(NG+1);
+  for(let i=0;i<=NG;i++){ const c=pemCurveAt(curve, i/NG); gP[i]=c.Psys; gH[i]=c.mH2; }
+  const xForPsys = ps => {
+    if(!(ps>0)) return 0;
+    let i=0; while(i<NG && gP[i+1]<ps) i++;
+    if(i>=NG) return 1;
+    const w=(ps-gP[i])/Math.max(1e-9, gP[i+1]-gP[i]);
+    return Math.min(1, (i+w)/NG);
+  };
+  const genKWh = (()=>{ let s=0; for(let t=0;t<8760;t++) s+=gen[t]; return s; })();
+  const genHrs = (()=>{ let s=0; for(let t=0;t<8760;t++) if(gen[t]>0) s++; return s; })();
+  const ctx = { curve, gen, p, cGen, gridOn, xmin, Pmax, fixed, pBase, xForPsys };
+
+  /* ---- 统一记录结构（矩阵的列） ---- */
+  const rec = (h, name, sub, kg, kWht, costWan, curt, starts, runH, tip) => ({
+    h, name, sub, kg, kWht, costWan, curt, starts, runH,
+    price: kWht>0 ? costWan*10000/kWht : 0,
+    lcoh : kg>0 ? (fixed+costWan)*10000/kg : 0, tip });
+  const gridTip = '电网口径基线：不使用自有电源，满负荷运行';
+  const rBase = rec('①','定值电价基准','单一电价', pw.aH2Kg, kWh, kWh*pBase/10000, null, null, N,
+      gridTip+'；年电费 = 年耗电量 × 定值电价 '+F2(pBase)+' 元/kWh');
+  const rMean = rec('②','恒定功率型','不调度', pw.aH2Kg, kWh, kWh*pMean/10000, null, null, N,
+      gridTip+'；运行时段全年均匀摊开，加权电价即 8760 h 电价序列的算术平均');
+  const rOpt  = rec('③','谷电优先型','取最便宜 N 小时', pw.aH2Kg, kWh, kWh*pOpt/10000, null, null, N,
+      gridTip+'；全年按电价升序取最便宜的 '+F0(N)+' 小时运行（谷电不足自动顺延到平电）');
+
+  /* ---- ④ 跟随风光型：出力跟随风光、不买电 ---- */
+  const xFW = new Float64Array(8760);
+  for(let t=0;t<8760;t++){
+    const x = xForPsys(gen[t]);                 // 把可用风光用尽（Psys(x) = 可用出力）
+    xFW[t] = (x >= xmin) ? x : 0;
+  }
+  const aFW = pemAggregate(xFW, ctx);
+  const rFW = rec('④','跟随风光型','风光用尽·不买电', aFW.kg, aFW.kWh, aFW.costWan, aFW.curt, aFW.starts, aFW.runH,
+      '出力跟随可用风光：x = Psys⁻¹(可用出力)，低于最小负荷即停机；不买电，多余风光计入弃电；'
+    + '电费按自有风光「绿电成本」'+F2(cGen)+' 元/kWh 计');
+
+  /* ---- ⑤⑥ 优化型：LCOH 最小逐时寻优 + 约束修复 ---- */
+  ctx.lam0 = rBase.lcoh;                       // 迭代初值：① 基准 LCOH（元/kg，与 λ 同量纲）
+  const opt   = pemOptimize(ctx);
+  const aFree = pemAggregate(opt.x, ctx);
+  const lcohFree = aFree.kg>0 ? (fixed+aFree.costWan)*10000/aFree.kg : 0;
+  const xRep  = pemRepair(opt.x, ctx, Tmin, Kmax, lcohFree);   // 内部会复制，不改动无约束解
+  const aRep  = pemAggregate(xRep, ctx);
+  const rFree = rec('⑤','优化型 · 无约束下界','理论上限收益', aFree.kg, aFree.kWh, aFree.costWan,
+                    aFree.curt, aFree.starts, aFree.runH,
+      '以 LCOH 最小为目标逐时寻优：只要某小时的边际电价 < LCOH / 电能单耗 就运行（Dinkelbach 不动点迭代）。'
+    + '固定成本靠年产氢量摊薄，故该解会「多跑便宜的电源」；此列不含启停/最短时长约束，是收益上界');
+  const rRep  = rec('⑥','优化型 · 含约束','可执行调度', aRep.kg, aRep.kWh, aRep.costWan,
+                    aRep.curt, aRep.starts, aRep.runH,
+      '在无约束解上做可执行性修复：不足「最短运行时长 '+Tmin+' h」的运行段 → 延长或整段删除（取代价小者）；'
+    + '运行段数超过「年启停上限 '+Kmax+' 次」→ 逐次删除「元/kg 最高」的段。'
+    + '修复为启发式，不保证全局最优');
+
+  const cols = [rBase, rMean, rOpt, rFW, rFree, rRep];
+  const best = cols.reduce((a,c)=> (c.lcoh>0 && (!a || c.lcoh<a.lcoh)) ? c : a, null);
   const sign = v => v<0 ? '−' : '+';
+  const dOpt = rRep.lcoh - rBase.lcoh;
+  const dVs3 = rRep.lcoh - rOpt.lcoh;
+  const dCost= rRep.lcoh - rFree.lcoh;
 
-  host.innerHTML = [
-    ['调度需求（等效满负荷小时数）', F0(N)+' h', false, '来自输入「年运行小时数 × 平均负荷率/100」；三策略都只跑这么多等效满负荷小时'],
-    ['峰 / 平 / 谷电价', F2(pr[2])+' / '+F2(pr[1])+' / '+F2(pr[0])+' 元/kWh', false, '分时电价输入；24 点序列按日重复组成 8760 h 电价曲线'],
+  /* ---- 矩阵：行 = 指标（值 + 悬停口径），列 = 策略 ---- */
+  const metrics = [
+    ['年制氢量(t)',   c => c.kg>0 ? F1(c.kg/1000) : '—',
+      c => '年制氢量 = Σ 逐时产氢。（'+c.h+'）'+c.tip],
+    ['耗电量(万kWh)', c => F1(c.kWht/1e4),
+      c => '年耗电量 = Σ 逐时系统输入功率（含电压衰减口径）。（'+c.h+'）'+c.tip],
+    ['电价(元/kWh)', c => F3(c.price),
+      c => '加权电价 = 年电费 ÷ 年耗电量；自有风光按「绿电成本」计价、电网按分时电价计价。（'+c.h+'）'+c.tip],
+    ['电费(万元)',   c => F1(c.costWan),
+      c => '年电费 = Σ 逐时电费（自有风光电量 × 绿电成本 + 电网电量 × 该小时电价）。（'+c.h+'）'+c.tip],
+    ['弃电(万kWh)',    c => c.curt==null ? '—' : F1(c.curt/1e4),
+      c => '弃电 = Σ max(0, 可用风光 − 实际使用功率)；①②③ 为电网口径基线，不使用自有电源 → 不适用。（'+c.h+'）'+c.tip],
+    ['弃电率(%)',      c => c.curt==null ? '—' : (genKWh>0 ? F1(c.curt/genKWh*100) : '0.0'),
+      c => '弃电率 = 弃电 ÷ 年风光发电量('+F1(genKWh/1e4)+' 万kWh)。（'+c.h+'）'+c.tip],
+    ['启停(次)',       c => c.starts==null ? '—' : F0(c.starts),
+      c => '启停次数 = 全年由停机转为运行的次数（⑥ 列为约束修复后的实际次数）。（'+c.h+'）'+c.tip],
+    ['运行小时(h)',    c => F0(c.runH),
+      c => '有效运行小时 = 出力 > 0 的小时数（与「等效满负荷小时」不同：部分负荷下运行更久但等效小时不变）。（'+c.h+'）'+c.tip],
+    ['LCOH(元/kg)',    c => c.lcoh>0 ? F2(c.lcoh) : '—',
+      c => 'LCOH = (固定成本 + 年电费)×10000 ÷ 年制氢量；固定成本 = CAPEX 摊销 + 运维 + 电堆更换摊销，与调度无关。（'+c.h+'）'+c.tip],
+    ['ΔLCOH vs ①', c => (c.lcoh>0 && rBase.lcoh>0) ? sign(c.lcoh-rBase.lcoh)+F1(Math.abs(c.lcoh-rBase.lcoh)) : '—',
+      c => '相对「① 定值电价基准」的 LCOH 变化，单位 元/kg；负值 = 比现状更省。（'+c.h+'）'+c.tip]
+  ];
+  const matrix = '<table class="strategy-matrix"><thead><tr><th>指标</th>'
+    + cols.map(c=>'<th title="'+esc(c.name+'（'+c.sub+'）')+'">'+c.h+'</th>').join('')
+    + '</tr></thead><tbody>'
+    + metrics.map(m=>'<tr><td>'+m[0]+'</td>'
+        + cols.map(c=>'<td class="v'+(c===best?' m-best':'')+'" title="'+esc(m[2](c))+'">'+m[1](c)+'</td>').join('')
+        + '</tr>').join('')
+    + '</tbody></table>';
+  const legend = '① 定值电价基准 ② 恒定功率型 ③ 谷电优先型（①②③ 电网口径基线）｜ ④ 跟随风光型 ⑤ 优化型·无约束下界 ⑥ 优化型·含约束';
+  const matrixBlock = '<div class="strategy-matrix-wrap">'
+    + '<div class="strategy-matrix-cap">策略对比矩阵</div>'
+    + matrix
+    + '<div class="strategy-matrix-foot">'+legend+'<br>绿色 = LCOH 最优列；每格悬停可看该格的计算口径</div>'
+    + '</div>';
+
+  const mk = a => row(a[0], a[1], a[2], a[3]);
+  const taProf = document.getElementById('pemGenProfile');
+  const profN  = taProf && taProf.value ? taProf.value.split('\n').filter(l=>l.trim()).length : 0;
+  const topRows = [
+    ['调度需求（等效满负荷小时数）', F0(N)+' h', false, '来自输入「年运行小时数 × 平均负荷率/100」；①②③ 满负荷跑这么多小时，④⑤⑥ 按可用电源与寻优结果决定出力'],
+    ['峰 / 平 / 谷电价', F2(pr[2])+' / '+F2(pr[1])+' / '+F2(pr[0])+' 元/kWh', false, '分时电价输入；24 点序列按日重复组成 8760 h 电价曲线，仅对「电网电量」计价'],
     ['时段结构（谷 / 平 / 峰）', F0(cnt[0])+' / '+F0(cnt[1])+' / '+F0(cnt[2])+' h·d⁻¹', false, '由 24 格时段选择器统计，合计 24 h·d⁻¹'],
     ['谷 / 平 / 峰 时段(h)', touRuns(slots), false, '小时区间为左闭右开，例如「0–7」表示 00:00–07:00；24 点按日重复覆盖全年'],
-    ['全年均价（恒定功率型加权电价）', F3(pMean)+' 元/kWh', false, '恒定功率型不调度，运行时段在全年均匀摊开，其加权电价即 8760 h 电价序列的算术平均'],
-    ['谷电优先加权电价', F3(pOpt)+' 元/kWh', false, '谷电优先型把全年 8760 h 按电价升序排序，取最便宜的 '+F0(N)+' 小时运行，其加权电价即该批小时的平均价；若谷电时段不足，则自动顺延到次便宜的平电'],
-    ['年耗电量（三策略相同·含衰减）', F0(kWh)+' kWh', false, '年耗电量 = 系统输入功率(按更换周期内平均单体电压复算) × 等效满负荷小时数；与在哪些小时运行无关'],
-    ['年电费 · 定值电价基准', F2(elecWan(pBase))+' 万元', false, '现状口径：单一电价 '+F2(pBase)+' 元/kWh × 年耗电量，即上方「年电费」'],
-    ['年电费 · 恒定功率型', F2(elecWan(pMean))+' 万元', false, '不分时段、不调度的基线：年耗电量 × 全年均价'],
-    ['年电费 · 谷电优先型', F2(elecWan(pOpt))+' 万元', false, '年耗电量 × 谷电优先加权电价'],
-    ['年电费较基准节省（谷电优先）', F2(elecWan(pBase)-elecWan(pOpt))+' 万元', false, '= 定值电价年电费 − 谷电优先年电费；即把「定值假设」换成「实际调度」在电费上值多少'],
-    ['LCOH · 定值电价基准', F2(lcohOf(pBase))+' 元/kg', false, '固定成本（CAPEX 摊销 + 运维 + 更换）不随策略变化，仅电费项变化，故 LCOH 差异完全由年电费差异驱动'],
-    ['LCOH · 恒定功率型', F2(lcohOf(pMean))+' 元/kg', false, '年电费按全年均价口径'],
-    ['LCOH · 谷电优先型', F2(lcohOf(pOpt))+' 元/kg', false, '年电费按谷电优先加权电价口径'],
-    ['结论 · LCOH 变化（谷电优先 − 基准）', sign(dl)+F2(Math.abs(dl))+' 元/kg（'+sign(dPct)+F1(Math.abs(dPct))+'%）', false, '负值表示 LCOH 下降，即调度优化带来的成本收益；正值表示该策略比现状口径更贵']
-  ].map(a=>row(a[0],a[1],a[2],a[3])).join('');
+    ['最小负荷（'+(ml.bad?'⚠ ':'')+ml.src+'）', F1(xmin*100)+' %（电流密度 '+F3(xmin*curve.jd)+' A/cm²）',
+      !!ml.bad, '出力下限：输入「最小负荷」非 0 时取输入值；为 0 时由「氢中氧 ≤ 目标 vol%」在 j 上二分反推——'
+              + '窜气量恒定、主气流随 j 变小，故低负荷时氢中氧升高，达到目标值的那个 j 即物理最小负荷'],
+    ['自有电源', ((document.getElementById('pemGenType')||{}).value||'pv')==='none' ? '无（仅电网）'
+      : (F0(gi('pemGenCap'))+' kWp · 容量系数 '+F1(gi('pemGenCF'))+'% · 绿电成本 '+F2(cGen)+' 元/kWh'),
+      false, '电源类型 / 装机容量 / 容量系数 / 绿电成本；曲线粘贴优先，留空则按「装机 × 8760 × 容量系数」确定性合成（固定种子）'],
+    ['电网补充', gridOn ? '允许（不足时买电）' : '禁止（纯离网）', false, '允许时：风光不足部分按分时电价买电；禁止时：可用功率不足即停机（纯离网口径）'],
+    ['年风光发电量（可利用小时）', F1(genKWh/1e4)+' 万kWh（'+F0(genHrs)+' h）', false, '= Σ 逐时风光出力；粘贴曲线时即粘贴数据之和，合成时已归一化到「装机 × 8760 × 容量系数」'],
+    ['满负荷小时耗电 / 产氢（口径锚点）', F2(pw.PsysAnnual)+' kW · '+F2(r.st.mH2kgh)+' kg/h', false, '部分负荷曲线的 x=1.0 端点，应与设计点口径一致（含更换周期内平均电压）'],
+    ['电能单耗：最小负荷 / 满负荷', F1(pemCurveAt(curve, xmin).kWhKg)+' / '+F1(pemCurveAt(curve, 1).kWhKg)+' kWh/kg', false,
+      '注意方向：本模型下低负荷的 kWh/kg 反而更低——单体电压随电流密度下降（电化学效率提高）的收益，'
+    + '大于 BOP 占比升高与法拉第效率下降的损失。低负荷真正的代价不在电耗，而在「单位时间产氢少 → 固定成本摊薄变差」'
+    + '与「氢中氧安全限值」，故最小负荷仍需受约束限制'],
+    ['调度约束', '最短运行 '+F0(Tmin)+' h · 年启停上限 '+F0(Kmax)+' 次 · 氢中氧目标 '+F2(gi('pemH2InO2Lim'))+' vol%', false,
+      '来自输入「最短运行时长 / 年启停次数上限 / 氢中氧目标」；前两项由 ⑥ 执行修复，第三项用于反推最小负荷'],
+    ['风光曲线来源', profN>0 ? ('粘贴 '+F0(profN)+' 行覆盖') : '按参数合成（固定种子，可复现）', false,
+      '粘贴框有内容时按粘贴数据（≤24 行按「日内模板」逐日重复，否则按绝对小时线性插值）；留空则按「装机 × 容量系数」确定性合成']
+  ].map(mk).join('');
+  const botRows = [
+    ['结论 · 优化型 vs 定值基准', sign(dOpt)+F2(Math.abs(dOpt))+' 元/kg（'+sign(rBase.lcoh>0?dOpt/rBase.lcoh*100:0)+F1(Math.abs(rBase.lcoh>0?dOpt/rBase.lcoh*100:0))+'%）',
+      false, '把「定值电价 + 固定运行小时」换成「按 LCOH 最小调度」之后，综合氢成本的变化'],
+    ['结论 · 优化型 vs 谷电优先', sign(dVs3)+F2(Math.abs(dVs3))+' 元/kg', false, '相对「③ 谷电优先型（满负荷·电网口径）」的增益：含引入自有电源、允许部分负荷与逐时寻优三方面的合计效果'],
+    ['结论 · 可执行性代价', sign(dCost)+F2(Math.abs(dCost))+' 元/kg', false,
+      '= 优化型（含约束） − 优化型（无约束下界）；即为了满足「最短运行时长 / 启停上限」付出的成本'],
+    ['启停次数（无约束 → 含约束）', F0(aFree.starts)+' → '+F0(aRep.starts)+' 次（上限 '+F0(Kmax)+'）', aRep.starts>Kmax,
+      '约束修复前后的年启停次数；上限来自输入「年启停次数上限」']
+  ].map(mk).join('');
+  host.innerHTML = topRows + matrixBlock + botRows;
 
   const el = document.getElementById('pemStrategySum');
-  if(el) el.textContent = '谷电优先 LCOH '+F2(lcohOf(pOpt))+' 元/kg（'+sign(dl)+F2(Math.abs(dl))+' 元/kg）';
+  if(el) el.textContent = '优化型 LCOH '+F2(rRep.lcoh)+' 元/kg（较基准 '+sign(dOpt)+F2(Math.abs(dOpt))+' 元/kg）';
 }
 
 /* ---------------- 2. 计算引擎 ---------------- */
@@ -5799,12 +6063,18 @@ function pemCellVoltageCurve(j, T, PH2, PO2){
   return { V, Vrev, etaAct, etaOhm, asr };
 }
 
-function calcPem(vcellOv){
+function calcPem(vcellOv, jOv, clampHeat){
   /* vcellOv > 0：按指定单体电压复算整条链路（用于按衰减后的平均电压计算年耗电）；
-     此时不再做衰减复算，避免递归 */
+     此时不再做衰减复算，避免递归
+     jOv > 0：按指定电流密度复算整条链路（用于「部分负荷曲线」与「最小负荷反推」）；
+     此时单体电压由极化曲线在该电流密度下求取、法拉第效率按互窜量自动反推
+     clampHeat：低负荷/吸热工况下把「热驱动流量」钳到 0（仅部分负荷曲线使用），
+     避免 Q_heat<0 时算出负流量并转成负的泵/风机功率；设计点默认不启用，口径不变 */
   const vcellOverride = vcellOv>0 ? vcellOv : 0;
+  const jOverride     = jOv>0 ? jOv : 0;
   const N=gi('pemCellCount'), A=gi('pemArea'),
-        j=gi('pemCurrentDensity'), opT=gi('pemOpTemp');
+        j = jOverride>0 ? jOverride : gi('pemCurrentDensity'),
+        opT=gi('pemOpTemp');
 
   /* ---- 单体电压：默认由极化曲线 f(j,T,P) 求取；输入非 0 时作为手动覆盖原样使用 ---- */
   const VcellIn = gi('pemCellVoltage');
@@ -5852,7 +6122,8 @@ function calcPem(vcellOv){
   const mWaterNet    = nH2*18.015;                        // g/s 反应净耗水
   const mWaterNetKgh = mWaterNet*3.6;                     // kg/h
   const dTw          = gi('pemWaterDeltaT');
-  const mHeatWater   = dTw>0 ? Qheat*1000/(cpW(opT)*dTw) : 0; // kg/s 换热需要（比热随 opT）
+  const QheatAux     = (clampHeat && Qheat<0) ? 0 : Qheat;   // 热驱动流量专用：吸热工况冷却需求为 0
+  const mHeatWater   = dTw>0 ? QheatAux*1000/(cpW(opT)*dTw) : 0; // kg/s 换热需要（比热随 opT）
   const mReactWater  = mWaterNet/1000*Math.max(1, gi('pemWaterExcess'));
   const mCirc        = Math.max(mHeatWater, mReactWater); // kg/s 实际循环
   const mCircKgh     = mCirc*3600;
@@ -5902,7 +6173,7 @@ function calcPem(vcellOv){
   const nHotCh= Math.ceil(gapN/2), nColdCh  = Math.floor(gapN/2);
   const aCh   = gi('pemHxChannelArea');
   const Tcold = (Tci+Tco)/2;                                     // 冷却水侧均温 ℃
-  const mCold = (Tco>Tci) ? Qheat*1000/(cpW(Tcold)*(Tco-Tci)) : 0;   // kg/s
+  const mCold = (Tco>Tci) ? QheatAux*1000/(cpW(Tcold)*(Tco-Tci)) : 0;   // kg/s
   const Vcold = mCold/rhoW(Tcold)*3600;                             // m³/h
   const uHot  = (nHotCh>0 && aCh>0) ? (Vcirc/3600)/(nHotCh*aCh) : 0;
   const uCold = (nColdCh>0 && aCh>0) ? (Vcold/3600)/(nColdCh*aCh) : 0;
@@ -5920,7 +6191,7 @@ function calcPem(vcellOv){
   const P_pump   = rhoW(opT)*9.81*gi('pemPumpHead')*(Vcirc/3600)/pumpEff/1000;
   const P_cpump  = rhoW(Tcold)*9.81*gi('pemCoolPumpHead')*(Vcold/3600)/cpEff/1000;
   const dTair    = Math.max(0.1, gi('pemAirTempRise'));
-  const mAir     = Qheat*1000/(CP_AIR*dTair);           // kg/s
+  const mAir     = QheatAux*1000/(CP_AIR*dTair);         // kg/s
   const Vair     = mAir/RHO_AIR*3600;                    // m³/h
   const fanEff   = Math.max(0.01, gi('pemFanEff')/100);
   const P_fan    = gi('pemFanPressure')*(Vair/3600)/fanEff/1000;
@@ -5996,6 +6267,266 @@ function calcPem(vcellOv){
         unitInvest, capexWan, discRate, lifeYr, omRate, stackCycle, stackCostR, crf,
         capexAnnual, omAnnual, stackAnnual, totalAnnual, lcoh, elecShare}
   };
+}
+
+/* ---------------- 2b. 部分负荷曲线 · 最小负荷反推 · 电源与调度 ----------------
+   ① 部分负荷曲线：在「周期内平均单体电压」口径下扫描若干负荷点，得到每小时耗电 Psys(x) 与
+      产氢 mH2(x)。低负荷时 BOP 占比升高、法拉第效率按互窜量下降，故电能单耗 kWh/kg 变差——
+      这就是「部分负荷的代价」，也是「最小负荷」存在的经济理由（安全理由见 ②）。
+   ② 最小负荷：在 j ∈ (0, j_design] 上二分，找「氢中氧 = 目标 vol%」的电流密度。氢中氧随 j
+      单调下降（窜气量恒定、主气流随 j 变小），二分必然收敛；该约束由安全边界推出，非拍脑袋。
+   ③ 风光序列：按「装机 × 容量系数」确定性合成（固定种子，保证渲染可复现），或由用户粘贴覆盖。 */
+const PEM_LOAD_PTS = [0.05, 0.15, 0.3, 0.5, 0.7, 0.85, 1.0];   // 负荷率取样点
+
+function pemLoadCurve(){
+  const jd   = Math.max(1e-6, gi('pemCurrentDensity'));
+  const base = calcPem();
+  const cv0  = pemCellVoltageCurve(jd, gi('pemOpTemp'), gi('pemH2Pressure'), gi('pemO2Pressure'));
+  /* 电压偏置 = 设计点实际采用电压 − 该 j 下的极化曲线电压（手动覆盖时不为 0），
+     再叠加更换周期内的平均升压 dvCycle/2，使部分负荷段与「年耗电」口径一致 */
+  const bias  = base.st.Vcell - (cv0.V>0 ? cv0.V : base.st.Vcell);
+  const dvInc = bias + Math.max(0, base.pw.dvCycle||0)/2;
+  const pts = PEM_LOAD_PTS.map(x=>{
+    const j  = jd*x;
+    const cv = pemCellVoltageCurve(j, gi('pemOpTemp'), gi('pemH2Pressure'), gi('pemO2Pressure'));
+    const Vc = (cv.V>0 ? cv.V : base.st.Vcell) + dvInc;
+    const r  = calcPem(Vc, j, true);        // clampHeat：低负荷吸热时不产生负流量/负泵功
+    return { x, j, Vcell:Vc, Psys:r.pw.Psys, mH2:r.st.mH2kgh,
+             kWhKg: r.st.mH2kgh>0 ? r.pw.Psys/r.st.mH2kgh : 0,
+             h2InO2:r.gs.h2InO2, etaF:r.st.etaF };
+  });
+  return { pts, jd, base };
+}
+/* 部分负荷曲线按负荷率插值（超端点取端点） */
+function pemCurveAt(c, x){
+  const p = c.pts;
+  if(!(x>0) || !p.length) return { Psys:0, mH2:0, kWhKg:0 };
+  if(x<=p[0].x) return p[0];
+  if(x>=p[p.length-1].x) return p[p.length-1];
+  let i=0; while(i<p.length-2 && x>p[i+1].x) i++;
+  const a=p[i], b=p[i+1], w=(x-a.x)/Math.max(1e-9, b.x-a.x);
+  return { Psys:a.Psys+w*(b.Psys-a.Psys), mH2:a.mH2+w*(b.mH2-a.mH2),
+           kWhKg:a.kWhKg+w*(b.kWhKg-a.kWhKg) };
+}
+/* 最小负荷（负荷率 0~1）：输入非 0 直接取输入，否则由「氢中氧 ≤ 目标 vol%」反推 */
+function pemMinLoadX(){
+  const manual = gi('pemMinLoad');
+  if(manual>0) return { x:Math.min(1, manual/100), src:'手动覆盖' };
+  const target = Math.max(0.001, gi('pemH2InO2Lim'));
+  const jd = Math.max(1e-6, gi('pemCurrentDensity'));
+  if(calcPem().gs.h2InO2 > target) return { x:1, src:'满负荷即超限', bad:true };
+  let lo = jd*1e-4, hi = jd;
+  for(let i=0;i<36;i++){
+    const mid = (lo+hi)/2;
+    if(calcPem(0, mid).gs.h2InO2 > target) lo = mid; else hi = mid;
+  }
+  return { x: Math.min(1, Math.max(0, hi/jd)), j:hi, src:'氢中氧≤'+F2(target)+' vol% 反推' };
+}
+/* 风光逐时出力（kW）：粘贴优先；否则按「装机 × 8760 × 容量系数」合成并归一化 */
+function pemGenSeries(){
+  const n = 8760, out = new Float64Array(n);
+  const raw = (document.getElementById('pemGenProfile')||{}).value || '';
+  const pts = raw.split('\n')
+                 .map(l=>l.split(/[,，\s]+/).map(s=>parseFloat(s)))
+                 .filter(a=>a.length>=2 && isFinite(a[0]) && isFinite(a[1]))
+                 .sort((a,b)=>a[0]-b[0]);
+  if(pts.length){
+    const maxH = pts[pts.length-1][0];
+    if(maxH < 24){          // 24 点以内按「日内模板」逐日重复
+      const daily = new Float64Array(24);
+      pts.forEach(a=>{ const h=Math.round(a[0]); if(h>=0 && h<24) daily[h] = Math.max(0, a[1]); });
+      for(let t=0;t<n;t++) out[t] = daily[t%24];
+      return out;
+    }
+    let k=0;                // 绝对小时口径：线性插值到 8760，末点之后保持末值
+    for(let t=0;t<n;t++){
+      while(k<pts.length-2 && t>pts[k+1][0]) k++;
+      const a=pts[k], b=pts[Math.min(pts.length-1,k+1)];
+      const w=(t-a[0])/Math.max(1e-9, b[0]-a[0]);
+      out[t] = Math.max(0, a[1]+w*(b[1]-a[1]));
+    }
+    return out;
+  }
+  const type = (document.getElementById('pemGenType')||{}).value || 'pv';
+  const cap  = Math.max(0, gi('pemGenCap'));
+  const cf   = Math.max(0, gi('pemGenCF'))/100;
+  if(type==='none' || cap<=0 || cf<=0) return out;
+  const rnd = mulberry32(20261020);
+  for(let t=0;t<n;t++){
+    const h = t%24, day = Math.floor(t/24);
+    const seas = type==='pv' ? 1 + 0.35*Math.cos(2*Math.PI*(day-172)/365)
+                             : 1 - 0.20*Math.cos(2*Math.PI*(day-15)/365);
+    let shape;
+    if(type==='pv') shape = (h>=6 && h<=18) ? Math.sin(Math.PI*(h-6)/12)*(0.75+0.5*rnd()) : 0;
+    else            shape = 0.45 + 0.35*Math.sin(2*Math.PI*(h-3)/24) + 0.25*rnd();
+    out[t] = Math.max(0, cap*shape*seas);
+  }
+  let sum=0; for(let t=0;t<n;t++) sum += out[t];
+  if(sum>0){ const k = cap*8760*cf/sum; for(let t=0;t<n;t++) out[t] *= k; }
+  return out;
+}
+/* 固定种子 PRNG（mulberry32）：保证同一输入下合成曲线每次渲染完全一致 */
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a>>>15, 1 | a);
+    t = t + Math.imul(t ^ t>>>7, 61 | t) ^ t;
+    return ((t ^ t>>>14) >>> 0) / 4294967296;
+  };
+}
+/* 单个小时在出力倍率 x 下的费用与产氢（纯离网时不允许超过可用风光） */
+function pemHourOpt(t, x, ctx){
+  if(!(x>0)) return { ok:true, cost:0, h2:0, psys:0 };
+  const c = pemCurveAt(ctx.curve, x);
+  if(!(c.Psys>0)) return { ok:false, cost:0, h2:0, psys:0 };
+  if(!ctx.gridOn && c.Psys > ctx.gen[t]+1e-9) return { ok:false, cost:0, h2:0, psys:0 };
+  const self = Math.min(ctx.gen[t], c.Psys);
+  const buy  = ctx.gridOn ? Math.max(0, c.Psys-self) : 0;
+  return { ok:true, cost: ctx.cGen*self + ctx.p[t]*buy, h2:c.mH2, psys:c.Psys };
+}
+/* 逐时出力序列 → 年度聚合 */
+function pemAggregate(x, ctx){
+  let kg=0, kWh=0, cost=0, curt=0, starts=0, eqH=0, runH=0, prev=false;
+  for(let t=0;t<8760;t++){
+    const o = pemHourOpt(t, x[t], ctx);
+    if(x[t]>0 && o.ok){
+      kg += o.h2; kWh += o.psys; cost += o.cost;
+      eqH += x[t]; runH++;
+      if(!prev) starts++;
+      prev = true;
+    } else prev = false;
+    curt += Math.max(0, ctx.gen[t]-o.psys);
+  }
+  return { kg, kWh, costWan:cost/10000, curt, starts, eqH, runH,
+           price: kWh>0 ? cost/kWh : 0 };
+}
+/* 连续运行段（x>0 的极大区间），返回 [起, 止) 列表 */
+function pemSegments(x, xmin){
+  const s=[]; let st=-1;
+  for(let t=0;t<8760;t++){
+    const on = x[t] >= Math.max(1e-9, xmin);
+    if(on && st<0) st=t;
+    if(!on && st>=0){ s.push([st,t]); st=-1; }
+  }
+  if(st>=0) s.push([st,8760]);
+  return s;
+}
+/* ② 启停次数上限：在「填谷合并」（把两段之间的谷按可行出力跑起来，两段并为一段）
+   与「整段删除」之间，每次执行「收益牺牲最小」的一项，直到运行段数 ≤ Kmax。
+   收益口径 = λ·产氢 − 电费（λ 取无约束 LCOH）。比单纯按「元/kg」排序更合理：
+   固定成本靠年产氢量摊薄，故产氢量大的段更值得保留；若某段谷的边际收益为正，
+   填谷反而是净收益，会被优先选中（这正是「少启停、连续跑」的物理直觉）。 */
+function pemCutRuns(x, ctx, kMax, lam){
+  const xOf = t => ctx.gridOn ? 1 : Math.min(1, Math.max(ctx.xmin, ctx.xForPsys(ctx.gen[t]||0)));
+  const lossOf = (s, e, mode) => {
+    let v = 0;
+    for(let t=s;t<e;t++){
+      const o = pemHourOpt(t, mode==='fill' ? xOf(t) : x[t], ctx);
+      if(!o.ok) return null;
+      v += lam*o.h2 - o.cost;
+    }
+    return -v;
+  };
+  for(let pass=0; pass<4000; pass++){
+    const segs = pemSegments(x, ctx.xmin);
+    if(segs.length <= kMax) break;
+    let best = null;
+    segs.forEach(([s,e])=>{                       // 选项①：删除一段
+      const L = lossOf(s, e, 'del');
+      if(L!=null && (!best || L<best.loss)) best = { loss:L, kind:'del', s, e };
+    });
+    for(let i=0;i+1<segs.length;i++){             // 选项②：填谷合并相邻两段
+      const gs = segs[i][1], ge = segs[i+1][0];
+      if(ge<=gs) continue;
+      const L = lossOf(gs, ge, 'fill');
+      if(L!=null && (!best || L<best.loss)) best = { loss:L, kind:'fill', s:gs, e:ge };
+    }
+    if(!best) break;
+    if(best.kind==='del'){ for(let t=best.s;t<best.e;t++) x[t]=0; }
+    else                 { for(let t=best.s;t<best.e;t++) x[t]=xOf(t); }
+  }
+}
+/* 约束修复（启发式）：① 不足 Tmin 的运行段 → 延长到 Tmin 或整段删除（取元/kg 小者）
+                     ② 运行段数 > Kmax → 填谷合并 / 整段删除（取收益牺牲小者）
+   修复结果依赖参考 LCOH λ（删段会推高 LCOH，进而改变「填谷是否划算」），
+   故外层对 λ 做不动点迭代，返回历次迭代中 LCOH 最低的一版。 */
+function pemRepair(xUnc, ctx, Tmin, Kmax, lcohRef){
+  const kMax = Math.max(1, Math.round(Kmax));
+  const perKg = (x, s, e) => { let c=0, h=0;
+    for(let t=s;t<e;t++){ const o = pemHourOpt(t, x[t], ctx); c += o.cost; h += o.h2; }
+    return h>0 ? c/h : Infinity; };
+  const build = lam => {
+    const x = Float64Array.from(xUnc);
+    /* ① 最短运行时长：不足 Tmin 的段，比「延长到 Tmin」与「整段删除」谁更划算 */
+    for(let pass=0; pass<200; pass++){
+      const segs = pemSegments(x, ctx.xmin);
+      const short = segs.find(([s,e])=>e-s < Tmin);
+      if(!short) break;
+      const [s,e] = short;
+      if(perKg(x, s, e) > lam){ for(let t=s;t<e;t++) x[t]=0; continue; }
+      let cs=s, ce=e, ok=true;
+      const xExt = t => ctx.gridOn ? 1 : Math.min(1, Math.max(ctx.xmin, ctx.xForPsys(ctx.gen[t]||0)));
+      while(ce-cs < Tmin){
+        const tL = cs-1, tR = ce;
+        const Lo = (tL>=0   && x[tL]===0) ? pemHourOpt(tL, xExt(tL), ctx) : {ok:false};
+        const Ro = (tR<8760 && x[tR]===0) ? pemHourOpt(tR, xExt(tR), ctx) : {ok:false};
+        const lv = Lo.ok ? Lo.cost/Lo.h2 : Infinity;
+        const rv = Ro.ok ? Ro.cost/Ro.h2 : Infinity;
+        if(!isFinite(lv) && !isFinite(rv)){ ok=false; break; }
+        if(lv<=rv){ x[tL]=xExt(tL); cs--; } else { x[tR]=xExt(tR); ce++; }
+      }
+      if(!ok || perKg(x, cs, ce) > lam){ for(let t=cs;t<ce;t++) x[t]=0; }
+    }
+    /* ② 启停次数上限 */
+    if(pemSegments(x, ctx.xmin).length > kMax) pemCutRuns(x, ctx, kMax, lam);
+    return x;
+  };
+  let lam = lcohRef>0 ? lcohRef : 1;
+  let x = build(lam), best = x, bestL = Infinity;
+  for(let it=0; it<8; it++){
+    const a = pemAggregate(x, ctx);
+    const L = a.kg>0 ? (ctx.fixed + a.costWan)*10000/a.kg : Infinity;
+    if(L < bestL){ bestL = L; best = x; }
+    if(!isFinite(L) || Math.abs(L-lam) < 1e-4) break;
+    lam = L; x = build(lam);
+  }
+  return best;
+}
+/* 优化型：Dinkelbach 型不动点迭代（等价于「电价阈值 p*」），逐时独立决策，
+   目标 LCOH = (固定成本 + 年电费) / 年制氢量 最小；收敛判据 λ ← (M+Σc)/Σh */
+function pemOptimize(ctx){
+  const cand = t => {
+    const list = [0, ctx.xmin];
+    const g = ctx.gen[t];
+    if(g>0){ const xg = Math.min(1, g/ctx.Pmax); if(xg>=ctx.xmin) list.push(xg); }
+    list.push(1);
+    return list;
+  };
+  const pick = lam => {
+    const x = new Float64Array(8760);
+    for(let t=0;t<8760;t++){
+      let best = 0, bestVal = 0;
+      cand(t).forEach(xx=>{
+        const o = pemHourOpt(t, xx, ctx);
+        if(!o.ok) return;
+        const v = lam*o.h2 - o.cost;
+        if(v>bestVal){ bestVal=v; best=xx; }
+      });
+      x[t] = best;
+    }
+    return x;
+  };
+  const M = ctx.fixed*10000;                       // 元/年 固定成本（与调度无关）
+  /* λ 的单位是「元/kg」（与 LCOH 同量纲），初值取①基准 LCOH；
+     判据来自 v = λ·h − c = h·(λ − 电价×电能单耗) > 0，即「电价 < LCOH/电能单耗」才值得运行 */
+  let lam = Math.max(1e-3, ctx.lam0 > 0 ? ctx.lam0 : ctx.pBase);
+  let x = pick(lam), agg = pemAggregate(x, ctx);
+  for(let i=0;i<40;i++){
+    const lamNew = agg.kg>0 ? (M + agg.costWan*10000)/agg.kg : 0;
+    if(!isFinite(lamNew) || Math.abs(lamNew-lam) < 1e-7) break;
+    lam = lamNew; x = pick(lam); agg = pemAggregate(x, ctx);
+  }
+  return { x, agg, lam };
 }
 
 /* ---------------- 3. SVG 构建工具 ---------------- */
@@ -6802,6 +7333,22 @@ function buildPemPrintLayout(){
       + (head?'<thead><tr>'+head.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead>':'')
       + '<tbody>'+rows.join('')+'</tbody></table>';
   const sec  = (t,inner,extra)=>'<section class="pdl-sec'+(extra?' '+extra:'')+'"><h3>'+esc(t)+'</h3>'+inner+'</section>';
+  /* 策略对比矩阵：从页面已渲染的矩阵表读回（保持「指标 × 策略」结构，不另维护映射） */
+  const strategyMatrixHtml = () => {
+    const tb = document.querySelector('#pem-strategy-results .strategy-matrix');
+    if(!tb) return '';
+    const head = [...tb.querySelectorAll('thead th')].map(th=>th.textContent.trim());
+    const rows = [...tb.querySelectorAll('tbody tr')].map(tr=>{
+      const td = [...tr.children].map(t=>t.textContent.trim());
+      return '<tr><th>'+esc(td[0])+'</th>'+td.slice(1).map(v=>'<td>'+esc(v)+'</td>').join('')+'</tr>';
+    });
+    const footEl = document.querySelector('#pem-strategy-results .strategy-matrix-foot');
+    const foot = footEl ? footEl.textContent.replace(/\s+/g,' ').trim() : '';
+    const mm = '<table class="pdl-tab pdl-tab-mx">'
+      + '<thead><tr>'+head.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead>'
+      + '<tbody>'+rows.join('')+'</tbody></table>';
+    return mm + (foot ? '<p class="pdl-subnote">'+esc(foot)+'</p>' : '');
+  };
 
   /* ① 题头 + 设计点摘要 */
   const sum = [
@@ -6846,10 +7393,21 @@ function buildPemPrintLayout(){
   });
   const inpHtml = sec('二、输入参数（共 '+PEM_INPUTS.length+' 项）', tab(inpRows, ['参数','当前值','步长']), 'pdl-flow');
 
-  /* ④ 计算结果：逐面板读取已渲染的行 */
+  /* ④ 计算结果：逐面板读取「已渲染的行」；运行策略面板额外附上策略对比矩阵（仅进阶版有） */
+  const stratMode = (document.getElementById('pemStrategyMode')||{}).value === 'base' ? 'base' : 'adv';
   const resHtml = PEM_PANELS.map(([t,id])=>{
     const rows = pemReadPanel(id);
-    return rows.length ? sec(t, tab(rows.map(x=>row2(x.label, x.value, x.warn?'pdl-warn':'')), ['项目','数值'])) : '';
+    let inner = rows.length ? tab(rows.map(x=>row2(x.label, x.value, x.warn?'pdl-warn':'')), ['项目','数值']) : '';
+    if(id === 'pem-strategy-results'){
+      const mx = strategyMatrixHtml();
+      if(mx) inner += '<div class="pdl-sub">策略对比矩阵（行 = 指标，列 = 策略）</div>' + mx;
+    }
+    const title = (id === 'pem-strategy-results')
+      ? (stratMode === 'base'
+          ? '七、运行策略对比 · 基础版（分时电价调度 · 8760 h 时序）'
+          : '七、运行策略对比 · 进阶版（风光 · 分时电价 · 部分负荷调度）')
+      : t;
+    return inner ? sec(title, inner) : '';
   }).join('');
 
   /* ④ 校核结论：锁卡行 + ok/warn 状态（转成「合格/超限」文字） */
@@ -6899,9 +7457,15 @@ function buildPemPrintLayout(){
     '法拉第效率（随负荷变化）：η_F = 1 − 2·i_x/j，i_x = 膜氢氧互窜电流密度、j = 电流密度；系数 2 来自氧侧回窜 O₂ 在氢侧按 2H₂+O₂→2H₂O 额外消耗 2 倍 H₂（总氢损失 = nCrossH2 + 2·nCrossO2 = 2·nCrossH2）。输入参数非 0 时手动覆盖',
     '电压衰减：年升压 = 衰减率(µV/h·节)×等效满负荷小时数/1e6；周期升压 = 年升压×更换周期；平均单体电压 = 初期电压 + 周期升压/2',
     '  年耗电量 = 系统输入功率(按平均单体电压复算整链)×等效满负荷小时数；平均电能单耗 = 年耗电量/年制氢量；设计点（电能单耗/氢气电费成本）仍按寿命初期电压',
-    '运行策略（分时电价调度 · 8760 h 时序）：三策略均满负荷运行，故年耗电量与年产氢量与策略无关，策略只改变加权电价',
-    '  恒定功率型加权电价 = 8760 h 电价序列的算术平均（运行时段全年均匀摊开）；谷电优先加权电价 = 按电价升序取最便宜 N 小时的平均价（N = 等效满负荷小时数）',
-    '  LCOH(策略) = (固定成本 + 年耗电量×加权电价/10000)×10000 / 年制氢量；固定成本 = 年CAPEX摊销 + 年运维 + 年更换摊销，不随策略变化'
+    '部分负荷曲线：负荷率 x ∈ [最小负荷, 1] 上扫描 7 点；Psys(x)、mH2(x) 以「周期内平均单体电压」为基准按电流密度 j·x 复算整链（cut-off 热驱动流量：吸热时不产生负流量/负泵功）',
+    '  最小负荷（由安全边界反推）：在 j ∈ (0, j_design] 上二分，找「氢中氧 = 目标 vol%」的 j；窜气量恒定而主气流随 j 变小 → 氢中氧随 j 单调下降，故二分必收敛。输入非 0 时手动覆盖',
+    '  注意方向：本模型下低负荷的 kWh/kg 反而更低（单体电压下降带来的电化学效率收益 > BOP 占比升高与法拉第效率下降的损失）；限制最小负荷的理由是安全与固定成本摊薄，不是电耗',
+    '电源与调度（5 条策略 · 8760 h 时序）：①②③ 为电网口径基线（不使用自有电源、满负荷，与既有结果逐位一致）；④ 跟随风光型；⑤⑥ 优化型',
+    '  单小时电费 = 自有风光电量 × 绿电成本 + 电网电量 × 该小时分时电价；风光序列 = 按「装机 × 8760 × 容量系数」确定性合成（固定种子 PRNG）或粘贴覆盖；自有风光必须单独定价（其投资不在「单位投资」口径内）',
+    '  ④ 跟随风光型：x = Psys⁻¹(可用风光出力)，低于最小负荷即停机、不买电，多余风光计入弃电',
+    '  ⑤ 优化型（无约束下界）：逐时判据「电价 < LCOH ÷ 电能单耗 则运行」，等价于电价阈值不动点 p* = LCOH(p*) ÷ 电能单耗，用 Dinkelbach 迭代求解，目标为 LCOH 最小（允许年产氢量变化）',
+    '  ⑥ 优化型（含约束）：在⑤上做启发式修复——不足「最短运行时长」的段，在延长/删除间取元/kg 小者；段数超「年启停上限」时，在「填谷合并」与「整段删除」间取收益牺牲小者（收益口径 λ·产氢 − 电费），并对 λ 做不动点迭代取 LCOH 最低解。启发式，不保证全局最优',
+    '  LCOH(策略) = (固定成本 + 年电费 × 10000) / 年制氢量；固定成本 = 年CAPEX摊销 + 年运维 + 年更换摊销，不随调度变化'
   ].join('\n');
   const fmHtml = sec('十、关键公式与常数', '<pre class="pdl-pre">'+esc(formulas)+'</pre>');
 
