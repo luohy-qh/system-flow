@@ -5,16 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>燃料电池混合动力系统&amp;PEM电解槽 设计与仿真平台</title>
 <style>
-  /* ==========================================================================
-     【本版本特有】隐藏四个板块的「使用说明」——是隐藏，不是删除。
-     下面 4 个说明弹窗与 4 个「?」按钮在 HTML 与 JS 中仍然完整保留，
-     只是不显示（不影响任何计算、仿真与导出逻辑；导出的 PDF 本来也不含它们）。
-     若要恢复：删掉下面这一条规则即可，其余代码无需改动。
-     注：图签内的「版本升级说明」弹窗（#pemVerOverlay）不属于使用说明，保持可用。
-     ========================================================================== */
-  #pfdHelpOverlay, #hybridHelpOverlay, #simHelpOverlay, #pemHelpOverlay,
-  #pfdHelpBtn,     #hybridHelpBtn,     #simHelpBtn,     #pemHelpBtn { display: none !important; }
-
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
@@ -527,7 +517,7 @@
   .hybrid-layout > .hybrid-side { grid-area: side; margin-bottom: 0; }
   .hybrid-layout > .vehicle-schematic { grid-area: schematic; margin-bottom: 0; }
   .hybrid-layout > .hybrid-results-block {
-    grid-area: results; margin-bottom: 0;
+    grid-area: results; margin: -50px 0 0 0;
     background: none; border: none; border-radius: 0; padding: 0;
   }
   /* 左栏参数：每个参数一行显示，标签在左、输入框在右 */
@@ -1398,9 +1388,39 @@ BOP  ：空压机 22.61 + 泵 1.097 + 风扇 3.571 + 氢循环泵 0.210 = 27.49 
     </div>
     <div class="sim-help-body" id="pemVerBody">
 
-      <blockquote>本流程图当前版本为 <strong>V2.1</strong>。V1.0 是「设计点计算器」：由电化学一路推到设备选型与安全校核；V2.0 把它扩展为「成本与运行决策工具」（先能算钱 = LCOH，再能定策略 = 分时电价调度）；<strong>V2.1 再把运行策略升级为「风光 + 部分负荷 + 优化调度」，并把结果收敛为策略对比矩阵</strong>——V2.0 的三策略完整保留为「策略版本 = 基础版」。</blockquote>
+      <blockquote>本流程图当前版本为 <strong>V2.2</strong>。V1.0 是「设计点计算器」：由电化学一路推到设备选型与安全校核；V2.0 把它扩展为「成本与运行决策工具」（先能算钱 = LCOH，再能定策略 = 分时电价调度）；V2.1 把运行策略升级为「风光 + 部分负荷 + 优化调度」，并把结果收敛为策略对比矩阵；<strong>V2.2 把设备选型口径改为「周期末单体电压」，年耗电与 LCOH 仍按「周期平均电压」</strong>——三套电压口径彻底分离。</blockquote>
 
-      <h4>V2.1 · 重要更新（当前版本 · 2026-10-20）</h4>
+      <h4>V2.2 · 重要更新（当前版本 · 2026-10-20）</h4>
+
+      <h5>1. 三套电压口径分离</h5>
+      <p>原先只有「设计点（寿命初期）」与「年运行（周期平均）」两套；设备选型沿用了设计点，导致全寿命末期实际废热与辅机负荷被低估。本版新增<strong>选型口径</strong>：</p>
+      <table>
+        <tr><th>口径</th><th>默认单体电压</th><th>用于</th></tr>
+        <tr><td>设计点 · BOL</td><td>1.852 V</td><td>电化学效率、极化曲线、系统效率、电能单耗、反应产热气泡</td></tr>
+        <tr><td><strong>选型点 · EOL</strong></td><td><strong>2.012 V</strong></td><td><strong>换热器面积与板片、纯水/冷却水流量、泵、风机、系统输入容量、CAPEX</strong></td></tr>
+        <tr><td>年运行 · 平均</td><td>1.932 V</td><td>年耗电量、年电费、平均电能单耗、LCOH 的电费项</td></tr>
+      </table>
+      <p>默认工况实测：直流功率 740.8 → <strong>804.8 kW</strong>（+8.6 %），废热 148.4 → <strong>212.4 kW</strong>（+43.1 %，废热按 <code>(V−1.481)/V</code> 增长，比电压本身更快），换热器由 2 片增至 <strong>26 片</strong>（实际面积 2.00 m²），系统输入 796.2 → <strong>868.3 kW</strong>（+9.1 %）。</p>
+
+      <h5>2. 为什么选型用周期末，而年耗电用平均</h5>
+      <ul>
+        <li><strong>选型</strong>要覆盖最恶劣工况：电压最高时同样电流下直流功率与废热最大，冷却水流量、泵与风机功耗同步抬升。按初期选型会导致末期换热面积不足、冷却水温超限。</li>
+        <li><strong>年耗电</strong>是全年积分：按周期末算会系统性高估电费，按线性衰减取中点（平均电压）才是无偏估计。</li>
+        <li>两者由同一 <code>calcPem</code> 全链在不同电压下求得，<code>Q → 流量 → 泵/风机 → Psys</code> 的传导保持一致，不做比例缩放。</li>
+      </ul>
+
+      <h5>3. 经济性影响</h5>
+      <p>总投资改按<strong>周期末选型容量</strong>（868.3 kW）计，年电费仍按平均电压（3,329.1 MWh）。LCOH 由 40.44 升至 <strong>42.57 元/kg</strong>（+2.13，+5.3 %）——这是把「末期容量」计入投资后的正确值，此前低估了约 5 %。</p>
+      <pre>五策略 LCOH（元/kg）：① 42.57 ② 46.93 ③ 37.14 ④ 58.15 ⑤ 26.76 ⑥ 26.80</pre>
+
+      <h5>4. 界面与文档</h5>
+      <ul>
+        <li>流程图「系统功率汇总」改为「<strong>周期末选型</strong>」，同时列出周期末与初期单体电压；电堆气泡的「反应产热」仍为寿命初期口径并在悬停中注明。</li>
+        <li>换热器、水泵、冷却塔、电源·能效面板的悬停口径统一标注 BOL / EOL / 平均。</li>
+        <li>设计文档摘要改为「单体电压（BOL / EOL）」「电解槽直流功率（周期末）」「选型系统输入功率」，经济性表新增「选型系统输入功率（按周期末单体电压）」。</li>
+      </ul>
+
+      <h4>V2.1 · 重要更新（2026-10-20）</h4>
 
       <h5>1. 策略版本切换：基础版 / 进阶版</h5>
       <p>策略面板顶部新增「策略版本」下拉框，两版<strong>共享同一面板、同一份代码</strong>：</p>
@@ -1421,33 +1441,39 @@ BOP  ：空压机 22.61 + 泵 1.097 + 风扇 3.571 + 氢循环泵 0.210 = 27.49 
       <pre>负荷率 x ∈ [最小负荷, 1] 上扫描 7 点
   Psys(x)、mH2(x) ← 以「更换周期内平均单体电压」为基准、按电流密度 j·x 复算整链
   最小负荷(%)：输入非 0 时取输入；为 0 时在 j ∈ (0, j_design] 上二分，
-               找「氢中氧 = 目标 vol%」的 j_min（窜气量恒定、主气流随 j 变小
-               → 氢中氧随 j 单调下降，故二分必收敛）→ 最小负荷率 = j_min / j_design</pre>
+               找「氧中氢 = 目标 vol%」的 j_min（窜气量恒定、主气流随 j 变小
+               → 氧中氢随 j 单调下降，故二分必收敛）→ 最小负荷率 = j_min / j_design</pre>
       <ul>
-        <li>默认工况（i_x = 2 mA/cm²、j = 2.0 A/cm²、氢中氧目标 2.0 vol%）→ <strong>最小负荷 9.8 %</strong>（j = 0.196 A/cm²）。交叉校验：把「电流密度」手动设为 0.196，气系统面板「氢中氧」恰为 <code>2.000 vol%</code>。</li>
+        <li>默认工况（i_x = 2 mA/cm²、j = 2.0 A/cm²、氧中氢目标 2.0 vol%）→ <strong>最小负荷 9.8 %</strong>（j = 0.196 A/cm²）。交叉校验：把「电流密度」手动设为 0.196，气系统面板「氧中氢」恰为 <code>2.000 vol%</code>。</li>
         <li>目标越严、最小负荷越高：3.0 vol% → 6.5 %；2.0 vol% → 9.8 %；1.0 vol% → 19.8 %。</li>
-        <li><strong>一个反直觉的实测结论</strong>：本模型下低负荷的 kWh/kg <strong>反而更低</strong>（最小负荷处 46.3、满负荷 55.4 kWh/kg）——单体电压随电流密度下降带来的电化学效率收益，大于 BOP 占比升高与法拉第效率下降的损失。因此限制最小负荷的理由是<strong>安全</strong>（氢中氧 ≤ 2 vol%）与<strong>固定成本摊薄</strong>（单位时间产氢少），而不是电耗。</li>
+        <li><strong>一个反直觉的实测结论</strong>：本模型下低负荷的 kWh/kg <strong>反而更低</strong>（最小负荷处 47.3、满负荷 56.6 kWh/kg，产品氢口径）——单体电压随电流密度下降带来的电化学效率收益，大于 BOP 占比升高与法拉第效率下降的损失。因此限制最小负荷的理由是<strong>安全</strong>（氧中氢 ≤ 2 vol%）与<strong>固定成本摊薄</strong>（单位时间产氢少），而不是电耗。</li>
       </ul>
 
       <h5>4. 新增两条策略：跟随风光型 / 优化型</h5>
       <ul>
-        <li><strong>④ 跟随风光型</strong>：<code>x = Psys⁻¹(可用风光出力)</code>，低于最小负荷即停机；<strong>不买电</strong>，多余风光计入弃电。默认工况它比 ③ 更贵（58.9 vs 37.4 元/kg）——只跟随风光又不买电时，年产氢量只有 ③ 的 54 %，固定成本摊不薄，这是<strong>正确结果</strong>而非算错。</li>
+        <li><strong>④ 跟随风光型</strong>：<code>x = Psys⁻¹(可用风光出力)</code>，低于最小负荷即停机；<strong>不买电</strong>，多余风光计入弃电。默认工况它比 ③ 更贵（V2.2 口径 58.2 vs 37.1 元/kg）——只跟随风光又不买电时，年产品氢量只有 ③ 的 54 %，固定成本摊不薄，这是<strong>正确结果</strong>而非算错。</li>
         <li><strong>⑤ 优化型 · 无约束下界</strong>：以 <strong>LCOH 最小</strong>为目标逐时寻优，允许年产氢量变化。判据来自「多运行一小时的边际成本 &lt; 当前 LCOH 则摊薄固定成本更划算」，即 <code>电价 &lt; LCOH ÷ 电能单耗</code>，等价于把电价阈值解成不动点 <code>p* = LCOH(p*) ÷ 电能单耗</code>，用 Dinkelbach 迭代求解。故它总是「多跑便宜的电源」。此列不含启停约束，作为收益上界看。</li>
         <li><strong>⑥ 优化型 · 含约束</strong>：在 ⑤ 上做<strong>启发式</strong>可执行性修复（不保证全局最优）——不足「最短运行时长」的运行段，在「延长到 Tmin」与「整段删除」间取代价小者；运行段数超过「年启停上限」时，在「<strong>填谷合并</strong>」与「整段删除」间取收益牺牲小者（收益口径 <code>λ·产氢 − 电费</code>，故产氢量大的段更值得保留）。启停上限收得很紧时，⑥ 的年产氢量反而<strong>高于</strong> ⑤（把零碎运行并成连续运行），这正是「少启停、连续跑」的物理直觉。</li>
       </ul>
 
       <h5>5. 调度约束（可执行性）</h5>
-      <p>新增「最短运行时长(h)」「年启停次数上限(次)」「最小负荷(%)」「氢中氧目标(vol%)」四项输入（默认 2 h / 365 次 / 0(=反推) / 2.0）。不设启停与时长约束，优化器会给出天天频繁启停、实际做不到的方案。</p>
+      <p>新增「最短运行时长(h)」「年启停次数上限(次)」「最小负荷(%)」「氧中氢目标(vol%)」四项输入（默认 2 h / 365 次 / 0(=反推) / 2.0）。不设启停与时长约束，优化器会给出天天频繁启停、实际做不到的方案。</p>
 
       <h5>6. 结果呈现：策略对比矩阵</h5>
       <p>把原先「年电费 · X / LCOH · X」那几行重复表述收敛为<strong>一张矩阵</strong>（行 = 指标，列 = 策略，每格悬停给出该格的计算口径）：年制氢量 / 年耗电量 / 加权电价 / 年电费 / 弃电 / 弃电率 / 启停次数 / 运行小时 / LCOH / ΔLCOH；底部保留工况上下文行与结论行。</p>
       <p><strong>为什么必须给出「年制氢量」列</strong>：④⑤⑥ 的年产氢量由资源与策略共同决定，与 ①②③ 不同，LCOH 的分母随之改变——只看 LCOH 不看产氢量会误读。</p>
-      <p><strong>默认工况实测</strong>：① 42.7 / ② 47.0 / ③ 37.4 / ④ 58.9 / ⑤ 26.8 / ⑥ 26.9 元·kg⁻¹；⑤⑥ 年产氢量 111 t（①②③ 为 60 t）。<strong>优化型比定值电价基准低 15.9 元/kg（−37 %）</strong>。</p>
+      <p><strong>V2.1 口径实测</strong>（CAPEX 尚按寿命初期容量计）：① 40.4 / ② 44.8 / ③ 35.0 / ④ 54.2 / ⑤ 25.6 / ⑥ 25.7 元·kg⁻¹；⑤⑥ 年产品氢约 110 t（①②③ 为 59 t）。<strong>V2.2 改按周期末选型容量后为 ① 42.6 / ② 46.9 / ③ 37.1 / ④ 58.2 / ⑤ 26.8 / ⑥ 26.8</strong>，优化型仍比基准低约 15.8 元/kg（−37 %）。</p>
 
       <h5>7. 其他改动</h5>
       <ul>
         <li>参数导出 / 导入扩展到 <code>textarea</code>：粘贴的风光曲线（以及整车仿真页的「自定义折线」）现在会随参数快照一起导出与导入，不再丢失。</li>
         <li>导出设计文档（PDF）第七章按「策略版本」给出标题，进阶版附上「策略对比矩阵」。</li>
+        <li><strong>术语纠正</strong>：「氧中氢 / 氢中氧」按标准命名纠正（原两者标签互换）。安全阈值 2 %/4 % 挂在<strong>氧气侧含氢（氧中氢）</strong>上，最小负荷反推也用它；氢气侧含氧（氢中氧）是纯化前粗氢的膜完整性指标，与产品氢的氧杂质（ppm 级）不可混淆。</li>
+        <li><strong>电堆更换摊销按项目寿命封顶</strong>：<code>nRepl = ceil(寿命/更换周期) − 1</code>，默认 15 年 / 8 年 → 1 次。旧口径按 15/8 = 1.875 次摊提会高估更换成本，把 LCOH 从 42.73 修正为 39.63 元/kg。</li>
+        <li>离网优化候选点改用「反查部分负荷曲线」而非线性 <code>g/Pmax</code>；手动最小负荷低于安全下限时面板标红并给出安全值。</li>
+        <li><strong>产品氢口径贯穿经济性</strong>：LCOH 与电能单耗的分母统一改为<strong>纯化后的产品氢</strong>（粗氢 × 纯化回收率，默认 98 %），不再用纯化前粗氢；年产品氢量、电费成本、单耗同步换算。LCOH 由 39.63 修正为 <strong>40.44 元/kg</strong>（分母缩小 2 %）。</li>
+        <li><strong>负热钳位</strong>：换热器面积、冷却水流量、冷却塔风机与冷却水泵一律按 <code>max(0, Qheat)</code> 计算。单体电压低于 1.481 V 的吸热工况不再产生负流量、负泵功与负换热面积（此前会把系统输入功率算小）；电堆气泡仍显示<strong>有符号</strong>的反应产热并标注「吸热，需外部加热」。</li>
+        <li><strong>年耗电量口径统一</strong>：设计点年量与部分负荷逐时量均按<strong>系统输入功率</strong>（含整流器 + BOP 辅电）统计，不再与电堆直流功率混用；策略矩阵的「耗电量」列与 LCOH 电费项使用同一口径。</li>
         <li><strong>尚未建模（后续版本）</strong>：分季节电价、风光曲线按季节与年型细分、热待机（低负荷保温功耗）、储氢缓冲（产氢与售氢解耦）、爬坡约束。</li>
       </ul>
 
@@ -1459,14 +1485,15 @@ BOP  ：空压机 22.61 + 泵 1.097 + 风扇 3.571 + 氢循环泵 0.210 = 27.49 
 CRF           = i(1+i)^n / [(1+i)^n − 1]                     i = 折现率，n = 项目寿命
 年CAPEX摊销   = 总投资 × CRF                                 → 万元/年
 年运维        = 总投资 × 年运维费率                            → 万元/年
-年更换摊销    = 总投资 × 电堆更换成本占比 / 电堆更换周期          → 万元/年
+年更换摊销    = 总投资 × 电堆更换成本占比 × 更换次数 ÷ 项目寿命  → 万元/年
+更换次数      = ceil(项目寿命 / 电堆更换周期) − 1                   按寿命封顶
 年总成本      = 年CAPEX摊销 + 年运维 + 年更换摊销 + 年电费        → 万元/年
-LCOH          = 年总成本(万元) × 10000 / 年制氢量(kg)           → 元/kg</pre>
+LCOH          = 年总成本(万元) × 10000 / 年产品氢量(kg)        → 元/kg</pre>
       <ul>
         <li>新增 7 项输入（参数栏底部的虚线框）：单位投资、折现率、项目寿命、年运维费率、电压衰减率、电堆更换周期、电堆更换成本。</li>
-        <li><strong>已含电堆更换</strong>：PEM 电堆寿命通常短于项目寿命，按「更换成本占初投资 ÷ 更换周期」逐年摊提，不建模会系统性低估。</li>
+        <li><strong>已含电堆更换</strong>：PEM 电堆寿命通常短于项目寿命，按「更换成本占初投资 × 更换次数 ÷ 项目寿命」摊提，且<strong>更换次数按项目寿命封顶</strong>（<code>ceil(寿命/更换周期) − 1</code>，默认 15 年 / 8 年 → 1 次）。不建模会系统性低估；而不封顶（按 15/8 = 1.875 次摊）则会系统性高估。</li>
         <li><strong>口径提示</strong>：LCOH 的固定成本（CAPEX / 运维 / 更换）靠年制氢量摊薄，利用率越高越低；与「氢气电费成本」口径不同，不可混用。</li>
-        <li>默认工况：LCOH ≈ <strong>42.7 元/kg</strong>（电费占比约 39 %）。</li>
+        <li>默认工况：LCOH ≈ <strong>39.6 元/kg</strong>（电费占比约 42 %）。</li>
       </ul>
 
       <h5>2. 运行策略 · 分时电价调度（8760 h 时序）</h5>
@@ -1479,13 +1506,13 @@ LCOH          = 年总成本(万元) × 10000 / 年制氢量(kg)           → �
 LCOH(策略) = (固定成本 + 年耗电量 × 加权电价 / 10000) × 10000 / 年制氢量</pre>
       <ul>
         <li>新增可折叠面板「运行策略（分时电价调度）」：谷 / 平 / 峰电价 + 24 格时段选择器（点击切换）+ 15 行对比结果；面板标题栏常显结论，折叠状态也能看到。</li>
-        <li><strong>默认工况</strong>：全年均价 0.377、谷电优先 0.204 元/kWh；年电费由 99.9 万元降到 67.9 万元，<strong>LCOH 由 42.7 降到 37.4 元/kg（−5.3 元/kg，−12.5 %）</strong>。</li>
+        <li><strong>默认工况</strong>：全年均价 0.377、谷电优先 0.204 元/kWh；年电费由 99.9 万元降到 67.9 万元，<strong>LCOH 由 39.6 降到 34.3 元/kg（−5.3 元/kg，−13.4 %）</strong>。</li>
         <li>三策略均按满负荷运行，故年耗电量与年产氢量完全相同，差异只来自加权电价——这是一个干净的对照，不被其他变量混淆。</li>
-        <li>尚未建模：分季节电价、风光出力曲线（跟随型策略）、最小负荷（建议由「氢中氧 ≤ 2 vol%」反推而非拍一个百分比）、启停次数与最短运行 / 停机时长、热待机、储氢缓冲，以及以 LCOH 最小为目标的逐时优化调度。<strong>其中除分季节电价、热待机、储氢缓冲与爬坡约束外，均已在 V2.1 实现</strong>（本版三策略保留为「策略版本 = 基础版」）。</li>
+        <li>尚未建模：分季节电价、风光出力曲线（跟随型策略）、最小负荷（建议由「氧中氢 ≤ 2 vol%」反推而非拍一个百分比）、启停次数与最短运行 / 停机时长、热待机、储氢缓冲，以及以 LCOH 最小为目标的逐时优化调度。<strong>其中除分季节电价、热待机、储氢缓冲与爬坡约束外，均已在 V2.1 实现</strong>（本版三策略保留为「策略版本 = 基础版」）。</li>
       </ul>
 
       <h5>3. 法拉第效率随负荷变化（修正模型内部矛盾）</h5>
-      <p>原先把 η_F 固定为 98 %，与「恒定窜气量」的互窜模型自相矛盾：低负荷时主气流变小、窜气占比上升（氢中氧浓度显著升高），而 η_F 却一动不动。现改为<strong>由互窜量反推</strong>：<code>η_F = 1 − 2·i_x/j</code>，系数 2 来自氧侧回窜的 O₂ 在氢侧按 <code>2H₂+O₂→2H₂O</code> 额外消耗 2 倍 H₂。默认工况 η_F = 99.8 %；电流密度降到 0.2 A/cm² 时 98 %、0.04 A/cm² 时 90 %。气系统面板新增「法拉第效率」行。</p>
+      <p>原先把 η_F 固定为 98 %，与「恒定窜气量」的互窜模型自相矛盾：低负荷时主气流变小、窜气占比上升（氧中氢浓度显著升高），而 η_F 却一动不动。现改为<strong>由互窜量反推</strong>：<code>η_F = 1 − 2·i_x/j</code>，系数 2 来自氧侧回窜的 O₂ 在氢侧按 <code>2H₂+O₂→2H₂O</code> 额外消耗 2 倍 H₂。默认工况 η_F = 99.8 %；电流密度降到 0.2 A/cm² 时 98 %、0.04 A/cm² 时 90 %。气系统面板新增「法拉第效率」行。</p>
 
       <h5>4. 电压衰减与电堆更换</h5>
       <p>新增「电压衰减率(µV/h·节)」，默认 5（PEM 文献典型 2~20 µV/h）。年耗电按<strong>更换周期内平均单体电压</strong>把整条链路（直流功率 → 废热 → 循环水量 → 泵 / 风机 → 系统输入功率）复算一遍，而不是按电压比例缩放——废热对电压的敏感度远高于线性。设计点（选型、极化曲线、系统效率、气泡）仍按寿命初期电压，年度量与 LCOH 采用含衰减的平均口径。</p>
@@ -1544,7 +1571,7 @@ m_H2  = n_H2 × 2.016                  产氢质量流量（g/s）；×3.6 得 k
 V_H2  = n_H2 × 22.414 × 3.6           产氢体积流量（Nm³/h）
 V_O2  = n_O2 × 22.414 × 3.6           产氧体积流量（Nm³/h）</pre>
       <p>反应为 <code>阳极 2H₂O → O₂ + 4H⁺ + 4e⁻</code>、<code>阴极 2H⁺ + 2e⁻ → H₂</code>。每生成 1 mol H₂ 需 2 mol 电子、消耗 1 mol 水，并生成 0.5 mol O₂。<code>F = 96485 C/mol</code>。</p>
-      <p><strong>法拉第效率 η_F 由互窜量反推（随负荷变化）</strong>：<code>η_F = 1 − 2·i_x/j</code>，其中 <code>i_x</code> 取输入参数「膜氢氧互窜电流密度」、<code>j</code> 为「电流密度」。系数 2 的来由：氧侧回窜的 O₂ 在氢侧按 <code>2H₂+O₂→2H₂O</code> 额外消耗 2 倍 H₂，故总氢损失 = <code>n窜,H₂ + 2·n窜,O₂ = 2·n窜,H₂</code>。负荷越低 → <code>j</code> 越小 → <code>i_x/j</code> 越大 → η_F 越低，即低负荷下的额外电耗与「氢中氧浓度」升高同源。输入参数「法拉第效率」非 0 时按输入值手动覆盖。</p>
+      <p><strong>法拉第效率 η_F 由互窜量反推（随负荷变化）</strong>：<code>η_F = 1 − 2·i_x/j</code>，其中 <code>i_x</code> 取输入参数「膜氢氧互窜电流密度」、<code>j</code> 为「电流密度」。系数 2 的来由：氧侧回窜的 O₂ 在氢侧按 <code>2H₂+O₂→2H₂O</code> 额外消耗 2 倍 H₂，故总氢损失 = <code>n窜,H₂ + 2·n窜,O₂ = 2·n窜,H₂</code>。负荷越低 → <code>j</code> 越小 → <code>i_x/j</code> 越大 → η_F 越低，即低负荷下的额外电耗与「氧中氢浓度」升高同源。输入参数「法拉第效率」非 0 时按输入值手动覆盖。</p>
       <blockquote>默认工况（i_x = 2 mA/cm²、j = 2.0 A/cm²）η_F = 99.8 %；电流密度降至 0.2 A/cm²（约 10 % 负荷）时 η_F = 98 %，降至 0.04 A/cm² 时 η_F = 90 %。此前把 η_F 固定为 98 % 与「恒定窜气量」的互窜模型自相矛盾——负荷越低、窜气占产气比例越大。</blockquote>
 
       <h5>2.3 效率与热中性电压</h5>
@@ -1635,33 +1662,35 @@ u      = (V / 3600) / (n_ch × A_ch)               推荐 0.3~1.0 m/s</pre>
       <pre>系统输入功率 = 电源输入功率 + 辅机合计
 η_sys(HHV)  = P_H2_HHV / 系统输入功率 × 100 %
 η_sys(LHV)  = P_H2_LHV / 系统输入功率 × 100 %
-电能单耗     = 系统输入功率 / 产氢质量流量(kg/h)     → kWh/kgH₂
-电能单耗     = 系统输入功率 / 产氢体积流量(Nm³/h)    → kWh/Nm³
+电能单耗     = 系统输入功率 / 产品氢质量流量(kg/h)     → kWh/kgH₂
+电能单耗     = 系统输入功率 / 产品氢体积流量(Nm³/h)    → kWh/Nm³
 
+产品氢流量 = 实际产氢 × 纯化回收率（分母为出厂产品氢，不含纯化损失）
 理论最低电耗：LHV 33.33 kWh/kg、HHV 39.41 kWh/kg</pre>
       <blockquote>注意区分三组效率：<code>η_HHV / η_LHV</code> 是<strong>电化学效率</strong>（只看电堆本体），<code>η_sys</code> 是<strong>系统效率</strong>（含电源与辅机损耗）。工程报价与可研一般看系统效率与电能单耗；行业典型 PEM 系统电耗为 4.5~5.5 kWh/Nm³。</blockquote>
 
-      <h5>6.4 年运行核算（年制氢量 · 年耗电量 · 年电费）</h5>
+      <h5>6.4 年运行核算（年产品氢量 · 年耗电量 · 年电费）</h5>
       <pre>等效满负荷小时数 = 年运行小时数 × 平均负荷率/100          把运行平均出力折算为满负荷小时
-年制氢量(kg)     = 产氢质量流量(kg/h) × 等效满负荷小时数
-年制氢量(Nm³)    = 产氢体积流量(Nm³/h) × 等效满负荷小时数
-年耗电量(kWh)    = 系统输入功率(kW) × 等效满负荷小时数     系统输入功率按「更换周期内平均单体电压」复算（含衰减）
-氢气电费成本     = 电能单耗(kWh/kg) × 电价(元/kWh)          → 元/kg（设计点·寿命初期口径）
-平均氢气电费成本 = 年电费 / 年制氢量 = 平均电能单耗 × 电价    → 元/kg（含衰减）
+年产品氢量(kg)   = 产品氢质量流量(kg/h) × 等效满负荷小时数
+年产品氢量(Nm³)  = 产品氢体积流量(Nm³/h) × 等效满负荷小时数
+年耗电量(kWh)    = 系统输入功率(kW) × 等效满负荷小时数     系统输入含整流 + BOP 辅电（非电堆直流功率），并按「更换周期内平均单体电压」复算（含衰减）
+氢气电费成本     = 电能单耗(kWh/kg产品氢) × 电价(元/kWh)     → 元/kg（设计点·寿命初期口径）
+平均氢气电费成本 = 年电费 / 年产品氢量 = 平均电能单耗 × 电价    → 元/kg（含衰减）
 年电费(万元)     = 年耗电量(kWh) × 电价(元/kWh) / 10000</pre>
-      <blockquote>「平均负荷率」是本页年量核算的关键入口：它与「年运行小时数」相乘得到等效满负荷小时数，再乘以满负荷工况下的产氢流量与系统输入功率，得到年制氢量与年耗电量；「电价」仅用于折算<strong>氢气电费成本</strong>与<strong>年电费</strong>（不含设备折旧与运维）。注意此刻存在两套电压口径：<strong>设计点</strong>（电能单耗、氢气电费成本）取寿命初期单体电压；<strong>年平均</strong>（年耗电量、年电费、平均电能单耗、平均氢气电费成本）取更换周期内平均单体电压，因而后者必然更高。</blockquote>
+      <blockquote>「平均负荷率」是本页年量核算的关键入口：它与「年运行小时数」相乘得到等效满负荷小时数，再乘以满负荷工况下的产品氢流量与系统输入功率，得到年产品氢量与年耗电量。<strong>口径约定</strong>：① 产氢量与电能单耗的分母统一为<strong>纯化后的产品氢</strong>（粗氢 × 纯化回收率），纯化损失不摊入分母；② 年耗电量按<strong>系统输入功率</strong>统计（含整流器与 BOP 辅电），与部分负荷曲线的逐时 Psys 完全同口径。<strong>三套电压口径</strong>：<strong>设计点（寿命初期）</strong>用于电化学、系统效率与电能单耗；<strong>选型点（周期末）</strong>用于换热器、泵、风机、系统输入容量与 CAPEX；<strong>年平均（周期平均）</strong>用于年耗电量、年电费、平均单耗与 LCOH 的电费项。</blockquote>
 
       <h5>6.5 综合氢成本 LCOH（平准化制氢成本）</h5>
-      <pre>总投资        = 系统输入功率(kW) × 单位投资(元/kW) / 10000        → 万元
+      <pre>总投资        = 系统输入功率(周期末选型, kW) × 单位投资(元/kW) / 10000   → 万元
 CRF           = i(1+i)^n / [(1+i)^n − 1]                     i = 折现率，n = 项目寿命
 年CAPEX摊销   = 总投资 × CRF                                 → 万元/年
 年运维        = 总投资 × 年运维费率                            → 万元/年
-年更换摊销    = 总投资 × 电堆更换成本占比 / 电堆更换周期          → 万元/年
+年更换摊销    = 总投资 × 电堆更换成本占比 × 更换次数 ÷ 项目寿命  → 万元/年
+更换次数      = ceil(项目寿命 / 电堆更换周期) − 1                   按寿命封顶
 年总成本      = 年CAPEX摊销 + 年运维 + 年更换摊销 + 年电费        → 万元/年
-LCOH          = 年总成本(万元) × 10000 / 年制氢量(kg)           → 元/kg</pre>
+LCOH          = 年总成本(万元) × 10000 / 年产品氢量(kg)        → 元/kg</pre>
       <blockquote>
-        <strong>假设清单</strong>（界面与导出文档均按此口径估算）：投资按「单位投资(元/kW) × 系统输入功率」计，非设备清单报价；<strong>已含电堆更换</strong>（PEM 电堆寿命通常短于项目寿命，不建模会系统性低估成本）；未计人工、土地、并网、水费与融资成本外的税费。<br>
-        <strong>与「氢气电费成本」的口径区别</strong>：<code>氢气电费成本 = 电能单耗 × 电价</code> 为<strong>设计点（寿命初期）</strong>口径、与运行小时数无关；而 LCOH 的电费项取<strong>含电压衰减的年平均「平均氢气电费成本」</strong>（见 §6.6），其固定成本（CAPEX/运维/更换）又要靠年制氢量摊薄，因此 <strong>利用率越高、LCOH 越低</strong>，低利用率工况下 LCOH 会显著高于电费成本。<br>
+        <strong>假设清单</strong>（界面与导出文档均按此口径估算）：投资按「单位投资(元/kW) × 系统输入功率」计，非设备清单报价；<strong>已含电堆更换</strong>（PEM 电堆寿命通常短于项目寿命，不建模会系统性低估成本）；未计人工、土地、并网、水费与融资成本外的税费。LCOH 的分母为<strong>纯化后的产品氢</strong>，与电能单耗的分母严格一致；纯化损失只体现在分母变小，而不额外单列损失成本。<br>
+        <strong>与「氢气电费成本」的口径区别</strong>：<code>氢气电费成本 = 电能单耗 × 电价</code> 为<strong>设计点（寿命初期）</strong>口径、与运行小时数无关；而 LCOH 的电费项取<strong>含电压衰减的年平均「平均氢气电费成本」</strong>（见 §6.6），其固定成本（CAPEX/运维/更换）又要靠年产品氢量摊薄，因此 <strong>利用率越高、LCOH 越低</strong>，低利用率工况下 LCOH 会显著高于电费成本。<br>
         <strong>敏感性提示</strong>：LCOH 对折现率、项目寿命、单位投资三项极为敏感，改动任一项前请确认口径一致（默认 8% / 15 年 / 10000 元·kW⁻¹）。
       </blockquote>
 
@@ -1670,12 +1699,14 @@ LCOH          = 年总成本(万元) × 10000 / 年制氢量(kg)           → �
 周期内电压上升    = 年升压 × 电堆更换周期                      仅计入运行小时（线性衰减假设）
 周期末单体电压    = 寿命初期单体电压 + 周期内电压上升
 平均单体电压      = 寿命初期单体电压 + 周期内电压上升 / 2        线性衰减取中点
-年耗电量          = 系统输入功率(按平均单体电压复算整链) × 等效满负荷小时数
-年更换摊销(万元/年)= 总投资 × 电堆更换成本占比 / 电堆更换周期</pre>
+选型功率          = 系统输入功率(按周期末单体电压复算整链，含 BOP)  换热器/泵/风机/容量与 CAPEX
+年耗电量          = 系统输入功率(按平均单体电压复算整链，含 BOP) × 等效满负荷小时数
+年更换摊销(万元/年)= 总投资 × 电堆更换成本占比 × 更换次数 ÷ 项目寿命
+更换次数          = ceil(项目寿命 / 更换周期) − 1         按寿命封顶，只有落在项目期内的更换才计入</pre>
       <blockquote>
-        <strong>两件事都进 LCOH</strong>：① 电耗逐年增长——本页用「更换周期内平均单体电压」把整条链路（直流功率 → 废热 → 循环水量 → 泵/风机 → 系统输入功率）复算一遍，而不是简单按电压比例缩放，因为废热与辅机功耗对电压的敏感度远高于线性；② 每 N 年一笔更换费——按「更换成本占初投资 ÷ 更换周期」逐年摊提。<br>
+        <strong>两件事都进 LCOH</strong>：① 电耗逐年增长——本页用「更换周期内平均单体电压」把整条链路（直流功率 → 废热 → 循环水量 → 泵/风机 → 系统输入功率）复算一遍，而不是简单按电压比例缩放，因为废热与辅机功耗对电压的敏感度远高于线性；② 每 N 年一笔更换费——按「更换成本占初投资 × 更换次数 ÷ 项目寿命」摊提，更换次数按项目寿命封顶。<br>
         <strong>参数口径</strong>：衰减率默认 5 µV/(h·节)，PEM 文献典型 2~20 µV/h；5 µV/h 在 1.85 V 下约合 0.27 %/1000 h。4000 h/年 × 8 年周期 → 累计升压约 0.16 V/节，末期单体电压约 2.01 V。<br>
-        <strong>设计点仍取寿命初期电压</strong>：设备选型与极化曲线、系统效率、气泡数值都按新电堆（BOL）呈现；只有年度量与 LCOH 采用含衰减的平均口径。
+        <strong>三套电压口径</strong>：<strong>设计点（BOL，1.852 V）</strong>用于电化学、极化曲线、系统效率与电能单耗；<strong>选型点（EOL，2.012 V）</strong>用于换热器面积与板片、冷却水/纯水流量、泵、风机、系统输入容量与 CAPEX——必须覆盖最恶劣工况；<strong>年平均（1.932 V）</strong>用于年耗电量、年电费、平均单耗与 LCOH 的电费项。三者由同一全链在不同电压下求得，不做比例缩放。
       </blockquote>
 
       <h5>6.7 运行策略（风光·分时电价·部分负荷调度 · 8760 h 时序）</h5>
@@ -1686,8 +1717,9 @@ LCOH          = 年总成本(万元) × 10000 / 年制氢量(kg)           → �
 
 部分负荷曲线：x ∈ [最小负荷, 1] 上扫描 7 点
   Psys(x)、mH2(x) ← 以「周期内平均单体电压」为基准、按电流密度 j·x 复算整链
-  最小负荷(%)：输入非 0 取输入；为 0 时在 j∈(0, j_design] 上二分，找「氢中氧 = 目标 vol%」的 j
-               （窜气量恒定、主气流随 j 变小 → 氢中氧随 j 单调下降，二分必收敛）
+                    Psys 为系统输入（含整流 + BOP）；mH2 为产品氢（纯化后）
+  最小负荷(%)：输入非 0 取输入；为 0 时在 j∈(0, j_design] 上二分，找「氧中氢 = 目标 vol%」的 j
+               （窜气量恒定、主气流随 j 变小 → 氧中氢随 j 单调下降，二分必收敛）
 
 ① 定值电价基准（电网口径）  年电费 = 年耗电量 × 电价输入值
 ② 恒定功率型（电网口径）    加权电价 = 8760 h 电价序列的算术平均
@@ -1697,14 +1729,14 @@ LCOH          = 年总成本(万元) × 10000 / 年制氢量(kg)           → �
 ⑥ 优化型 · 含约束           在⑤上做可执行性修复（最短运行时长 / 年启停上限）
 
 单小时电费 = 自有风光电量 × 绿电成本 + 电网电量 × 该小时电价
-LCOH(策略) = (固定成本 + 年电费) × 10000 / 年制氢量     固定成本不随策略变化</pre>
+LCOH(策略) = (固定成本 + 年电费) × 10000 / 年产品氢量     固定成本不随策略变化</pre>
       <blockquote>
         <strong>两个版本共享同一面板</strong>：面板顶部「策略版本」可切换——<strong>基础版</strong>只做分时电价调度（①②③ 三条策略、满负荷、不使用自有电源，即加入风光之前的原口径）；<strong>进阶版</strong>在基础版之上再加自有电源、部分负荷与优化调度。<strong>两版的 ①②③ 数值完全相同</strong>，可直接对照；基础版隐藏「自有电源」与「调度约束」两组输入。<br>
         <strong>自有电源为什么要单独定价</strong>：光伏/风电自身的投资<strong>不在</strong>「单位投资(元/kW)」口径内（那只是制氢系统），故以「绿电成本(元/kWh)」单独计价。若按 0 元/kWh 计，优化器会无限多用风光来摊薄固定成本，LCOH 会被压到不真实的低位；做一体化经济性时把该值设为其自身 LCOE 即可。<br>
         <strong>①②③ 是电网口径基线</strong>：它们不使用自有电源、满负荷运行，与既有结果逐位一致，专门用来做对照；④⑤⑥ 才使用「自有电源 + 电网」。因此矩阵必须给出「年制氢量」列——④⑤⑥ 的年产氢量由资源与策略决定，与 ①②③ 不同，LCOH 的分母也就不同。<br>
         <strong>优化型的目标是 LCOH 最小</strong>：判据源自 <code>多运行一小时的边际成本 &lt; 当前 LCOH 则摊薄固定成本更划算</code>，即 <code>电价 &lt; LCOH ÷ 电能单耗</code>。等价于把电价阈值 <code>p*</code> 解成不动点 <code>p* = LCOH(p*) ÷ 电能单耗</code>，故它总是「多跑便宜的电源」。<strong>⑤ 是无约束下界</strong>（作收益上界看），<strong>⑥ 才是可执行结果</strong>。<br>
         <strong>约束修复是启发式，不保证全局最优</strong>：不足「最短运行时长」的运行段在「延长」与「删除」间取代价小者；运行段数超过「年启停次数上限」时，在「<strong>填谷合并</strong>（把两段之间的谷按可行出力跑起来，两段并为一段）」与「整段删除」之间取收益牺牲小者——收益口径为 <code>λ·产氢 − 电费</code>，因此大产氢量的段更值得保留。当启停上限收得很紧时，你会看到 ⑥ 的年产氢量反而<strong>高于</strong> ⑤（填谷把零碎运行并成连续运行），这正是「少启停、连续跑」的物理直觉。<br>
-        <strong>低负荷的代价方向（易误判）</strong>：本模型下低负荷的 kWh/kg <strong>反而更低</strong>——单体电压随电流密度下降带来的电化学效率收益，大于 BOP 占比升高与法拉第效率下降的损失。因此限制最小负荷的理由不是电耗，而是<strong>安全</strong>（氢中氧 ≤ 2 vol%）与<strong>固定成本摊薄</strong>（单位时间产氢少）。<br>
+        <strong>低负荷的代价方向（易误判）</strong>：本模型下低负荷的 kWh/kg <strong>反而更低</strong>——单体电压随电流密度下降带来的电化学效率收益，大于 BOP 占比升高与法拉第效率下降的损失。因此限制最小负荷的理由不是电耗，而是<strong>安全</strong>（氧中氢 ≤ 2 vol%）与<strong>固定成本摊薄</strong>（单位时间产氢少）。<br>
         <strong>尚未建模（后续版本）</strong>：分季节电价、风光曲线按季节/年型细分、热待机（低负荷保温功耗）、储氢缓冲（产氢与售氢解耦）、爬坡约束。
       </blockquote>
 
@@ -1712,8 +1744,8 @@ LCOH(策略) = (固定成本 + 年电费) × 10000 / 年制氢量     固定成�
       <table>
         <tr><th>校核项</th><th>判据</th><th>超限后果 / 措施</th></tr>
         <tr><td>氢氧压差</td><td>|P_H2 − P_O2| ≤ 限值（默认 0.3 bar）</td><td>膜击穿、氢氧互窜 → 双侧等压运行 + 三重保护</td></tr>
-        <tr><td>氢中氧</td><td>≥2 vol% 报警；≥4 vol% 联锁</td><td>4 vol% 为爆炸下限，须立即切断电源并吹扫置换</td></tr>
-        <tr><td>氧中氢</td><td>≤2 vol%</td><td>判断质子交换膜是否泄漏，超限停车</td></tr>
+        <tr><td>氧中氢</td><td>≥2 vol% 报警；≥4 vol% 联锁</td><td>氧气侧含氢。4 vol% 为氢的爆炸下限，须立即切断电源并吹扫置换</td></tr>
+        <tr><td>氢中氧</td><td>≥2 vol% 报警</td><td>氢气侧含氧（纯化前粗氢），判断质子交换膜是否泄漏，超限停车；产品氢的氧杂质要求为 ppm 级，两者不可混淆</td></tr>
         <tr><td>电解槽温度</td><td>≤85 ℃（推荐 60~80 ℃）</td><td>加速膜降解与催化剂（Ir）溶解</td></tr>
         <tr><td>纯水电阻率</td><td>≥18.2 MΩ·cm（25 ℃）</td><td>金属离子毒化膜与催化剂，电压升高</td></tr>
         <tr><td>换热器流速</td><td>0.3~1.0 m/s</td><td>过低易结垢，过高压降与冲刷腐蚀大</td></tr>
@@ -1943,6 +1975,7 @@ LCOH(策略) = (固定成本 + 年电费) × 10000 / 年制氢量     固定成�
     <div class="hybrid-input-grid">
       <div class="hybrid-input-group"><label for="vehicleMass">满载质量(Kg):</label><input type="number" id="vehicleMass" value="6350" step="10"></div>
       <div class="hybrid-input-group"><label for="range">续驶里程(Km):</label><input type="number" id="range" value="400" step="10"></div>
+      <div class="hybrid-input-group"><label for="rangeAvgSpeed">续驶平均车速(km/h):</label><input type="number" id="rangeAvgSpeed" value="90" step="5"></div>
       <div class="hybrid-input-group"><label for="rollingResistance">滚动阻力系数𝑓:</label><input type="number" id="rollingResistance" value="0.013" step="0.001"></div>
       <div class="hybrid-input-group"><label for="dragCoefficient">空气阻力系数Cd:</label><input type="number" id="dragCoefficient" value="0.56" step="0.01"></div>
       <div class="hybrid-input-group"><label for="maxSpeed">最高车速(km/h):</label><input type="number" id="maxSpeed" value="100" step="5"></div>
@@ -1951,18 +1984,21 @@ LCOH(策略) = (固定成本 + 年电费) × 10000 / 年制氢量     固定成�
       <div class="hybrid-input-group"><label for="accelerationEndSpeed">加速末车速(km/h):</label><input type="number" id="accelerationEndSpeed" value="50" step="5"></div>
       <div class="hybrid-input-group"><label for="accelerationTime">加速时间(s):</label><input type="number" id="accelerationTime" value="15" step="1"></div>
       <div class="hybrid-input-group"><label for="frontalArea">迎风面积(m2):</label><input type="number" id="frontalArea" value="5.55" step="0.01"></div>
-      <div class="hybrid-input-group"><label for="powertrainEfficiency">整车动力传动系统效率η:</label><input type="number" id="powertrainEfficiency" value="0.93" step="0.01"></div>
+      <div class="hybrid-input-group"><label for="powertrainEfficiency">整车动力传动系统效率η（电池母线→车轮）:</label><input type="number" id="powertrainEfficiency" value="0.93" step="0.01"></div>
       <div class="hybrid-input-group"><label for="rotatingMassCoefficient">汽车旋转质量换算系数δ:</label><input type="number" id="rotatingMassCoefficient" value="1.02" step="0.01"></div>
       <div class="hybrid-input-group"><label for="finalDriveRatio">主减速比iο:</label><input type="number" id="finalDriveRatio" value="6" step="0.01"></div>
       <div class="hybrid-input-group"><label for="lowGearRatio">变速器低档传动比ig:</label><input type="number" id="lowGearRatio" value="1.4" step="0.01"></div>
       <div class="hybrid-input-group"><label for="highGearRatio">变速器高档传动比ig:</label><input type="number" id="highGearRatio" value="0.783" step="0.001"></div>
       <div class="hybrid-input-group"><label for="tireRadius">驱动轮胎半径(m):</label><input type="number" id="tireRadius" value="0.385" step="0.001"></div>
       <div class="hybrid-input-group"><label for="accessoryPower">整车附件功率(kW):</label><input type="number" id="accessoryPower" value="4" step="0.1"></div>
-      <div class="hybrid-input-group"><label for="motorEfficiency">驱动电机及控制器效率η:</label><input type="number" id="motorEfficiency" value="0.93" step="0.01"></div>
+      <div class="hybrid-input-group"><label for="motorEfficiency">驱动电机及控制器效率η（仅电机选型参考）:</label><input type="number" id="motorEfficiency" value="0.93" step="0.01"></div>
       <div class="hybrid-input-group"><label for="batteryEfficiency">动力电池效率η:</label><input type="number" id="batteryEfficiency" value="0.85" step="0.01"></div>
       <div class="hybrid-input-group"><label for="hydrogenBottlePressure">氢气瓶压力(MPa):</label><input type="number" id="hydrogenBottlePressure" value="35" step="1"></div>
       <div class="hybrid-input-group"><label for="hydrogenBottleVolume">氢气瓶容积(L):</label><input type="number" id="hydrogenBottleVolume" value="40" step="1"></div>
+      <div class="hybrid-input-group"><label for="h2Usable">储氢可用系数(%):</label><input type="number" id="h2Usable" value="95" step="1"></div>
+      <div class="hybrid-input-group"><label for="h2Zfactor">氢气压缩因子 Z:</label><input type="number" id="h2Zfactor" value="1.2" step="0.01"></div>
       <div class="hybrid-input-group"><label for="fuelCellVoltage">燃料电池单体电压(V):</label><input type="number" id="fuelCellVoltage" value="0.62" step="0.001"></div>
+      <div class="hybrid-input-group"><label for="bopShare">系统BOP功耗占比(%):</label><input type="number" id="bopShare" value="18.3" step="0.5"></div>
       <div class="hybrid-input-group"><label for="hydrogenPrice">氢气价格(元/kg):</label><input type="number" id="hydrogenPrice" value="30" step="0.1"></div>
     </div>
   </div>
@@ -1985,16 +2021,20 @@ LCOH(策略) = (固定成本 + 年电费) × 10000 / 年制氢量     固定成�
         <div class="hybrid-result-item" title="电机额定转速(r/min) = 最高车速×主减速比×变速器高档传动比/0.3768/驱动轮胎半径"><span>电机额定转速(r/min)：</span><span id="motorRatedRPM"></span></div>
       </div>
       <div class="hybrid-result-section">
-        <div class="hybrid-result-item" title="燃料电池额定功率(kW) = 电机额定功率 + 整车附件功率"><span>燃料电池额定功率(kW)：</span><span id="fuelCellRequiredPower"></span></div>
-        <div class="hybrid-result-item" title="额定工况PEM氢耗(g/s) = 燃料电池所需功率×1000/燃料电池单体电压/96485/(氢气利用率/100)"><span>额定工况PEM氢耗(g/s)：</span><span id="ratedConditionHydrogenConsumption"></span></div>
-        <div class="hybrid-result-item" title="PEM所需氢气质量(Kg) = 续驶里程/最高车速×3600×额定工况氢耗/1000"><span>PEM所需氢气质量(Kg)：</span><span id="requiredHydrogenMass"></span></div>
-        <div class="hybrid-result-item" title="单瓶存储氢气质量(Kg) = 氢气瓶压力×1000×氢气瓶容积/8.314/298×2.016/1000"><span>单瓶存储氢气质量(Kg)：</span><span id="singleBottleHydrogenMass"></span></div>
-        <div class="hybrid-result-item" title="所需氢瓶数量(n) = PEM所需氢气质量/单瓶存储氢气质量"><span>所需氢瓶数量(n)：</span><span id="requiredBottleCount"></span></div>
+        <div class="hybrid-result-item" title="燃料电池额定功率(kW) = 电机额定功率 + 整车附件功率；口径为「电池母线→车轮」的系统净输出（不除电机效率，与第 3 页一致）"><span>燃料电池额定功率(kW)：</span><span id="fuelCellRequiredPower"></span></div>
+        <div class="hybrid-result-item" title="燃料电池电堆功率(kW) = 燃料电池额定功率 ÷ (1 − 系统BOP功耗占比)；即扣除空压机等 BOP 前的电堆毛功率"><span>燃料电池电堆功率(kW)：</span><span id="stackPowerRequired"></span></div>
+        <div class="hybrid-result-item" title="额定工况PEM氢耗(g/s) = 燃料电池额定功率 ÷ (系统净效率 × 241.92 kJ/mol) × 2.016 ÷ (氢气利用率/100)；系统净效率 = (单体电压/1.254) × (1 − BOP占比)"><span>额定工况PEM氢耗(g/s)：</span><span id="ratedConditionHydrogenConsumption"></span></div>
+        <div class="hybrid-result-item" title="PEM所需氢气质量(Kg) = 续驶里程/续驶平均车速×3600×续驶氢耗/1000"><span>PEM所需氢气质量(Kg)：</span><span id="requiredHydrogenMass"></span></div>
+        <div class="hybrid-result-item" title="单瓶可用储氢质量(Kg) = 瓶压×1000×容积/8.314/298×2.016/1000 ÷ Z × 储氢可用系数"><span>单瓶可用储氢质量(Kg)：</span><span id="singleBottleHydrogenMass"></span></div>
+        <div class="hybrid-result-item" title="所需氢瓶数量(n) = PEM所需氢气质量/单瓶可用储氢质量"><span>所需氢瓶数量(n)：</span><span id="requiredBottleCount"></span></div>
       </div>
       <div class="hybrid-result-section">
-        <div class="hybrid-result-item" title="动力电池所需功率(kW) = (电机峰值功率/驱动电机及控制器效率 - 燃料电池所需功率)/动力电池效率"><span>动力电池所需功率(kW)：</span><span id="batteryRequiredPower"></span></div>
-        <div class="hybrid-result-item" title="额定百公里氢耗(kg/100km) = 额定工况PEM氢耗 × 100 / 最高车速 × 3600 / 1000"><span>额定百公里氢耗(kg/100km)：</span><span id="rated100kmHydrogenConsumption"></span></div>
-        <div class="hybrid-result-item" title="额定百公里氢气价格(元/100km) = 额定百公里氢耗 × 氢气价格"><span>额定百公里氢气价格(元/100km)：</span><span id="rated100kmHydrogenPrice"></span></div>
+        <div class="hybrid-result-item" title="动力电池所需功率(kW) = (电机峰值功率 - 燃料电池额定功率) / 动力电池效率；电机峰值功率已是母线口径，不再除电机效率"><span>动力电池所需功率(kW)：</span><span id="batteryRequiredPower"></span></div>
+        <div class="hybrid-result-item" title="混合度 = 燃料电池额定功率 / (动力电池所需功率 + 燃料电池额定功率)；反映燃料电池在总匹配功率中的占比，其余为电池占比"><span>混合度(%)：</span><span id="hybridDegree"></span></div>
+        <div class="hybrid-result-item" title="额定百公里氢耗(kg/100km) = 额定工况氢耗 × 100 / 最高车速 × 3600 / 1000"><span>额定百公里氢耗(kg/100km)：</span><span id="ratedH2Per100km"></span></div>
+        <div class="hybrid-result-item" title="额定百公里氢气价格(元/100km) = 额定百公里氢耗 × 氢气价格"><span>额定百公里氢气价格(元/100km)：</span><span id="ratedH2PricePer100km"></span></div>
+        <div class="hybrid-result-item" title="续驶百公里氢耗(kg/100km) = 续驶氢耗 × 100 / 续驶平均车速 × 3600 / 1000"><span>续驶百公里氢耗(kg/100km)：</span><span id="rated100kmHydrogenConsumption"></span></div>
+        <div class="hybrid-result-item" title="续驶百公里氢气价格(元/100km) = 续驶百公里氢耗 × 氢气价格"><span>续驶百公里氢气价格(元/100km)：</span><span id="rated100kmHydrogenPrice"></span></div>
       </div>
     </div>
   </div>
@@ -2035,11 +2075,13 @@ LCOH(策略) = (固定成本 + 年电费) × 10000 / 年制氢量     固定成�
       ├─ 工况 B 最大爬坡 ──► Pmax2
       └─ 工况 C 最大加速 ──► Pmax3
 ② 电机功率/转速 = max(Pmax1, Pmax2, Pmax3) 与 最高车速档位转速
-      └─► ③ 燃料电池额定功率 = 电机额定功率 + 附件功率
-              ├─► ④ 动力电池功率 = (电机峰值功率/电机效率 − 燃料电池功率)/电池效率
-              └─► ⑤ 额定氢耗 → 续驶里程所需氢量 → 单瓶储氢 → 瓶数
+      └─► ③ 燃料电池额定功率 = 电机额定功率 + 附件功率（系统净输出）
+              ├─► ③b 电堆功率 = 净输出 ÷ (1 − BOP功耗占比)
+              ├─► ④ 动力电池功率 = (电机峰值功率 − 燃料电池净输出)/电池效率
+              └─► ⑤ 续驶工况氢耗 → 续驶里程所需氢量 → 单瓶可用储氢 → 瓶数
                       └─► ⑥ 百公里氢耗 → 百公里氢气成本</pre>
-      <blockquote>本页通过 <code>get('hydrogenUtilization')</code> 读取<strong>「燃料电池系统设计」页的氢气利用率</strong>（默认 98.5%）参与额定氢耗；源码虽读隐藏元素 <code>#stackPower</code>，但<strong>该值未参与任何计算</strong>——燃料电池额定功率仅由“电机额定功率 + 附件功率”给出。</blockquote>
+      <blockquote>本页通过 <code>get('hydrogenUtilization')</code> 读取<strong>「燃料电池系统设计」页的氢气利用率</strong>（默认 98.5%）参与额定氢耗；源码虽读隐藏元素 <code>#stackPower</code>，但<strong>该值未参与任何计算</strong>——燃料电池额定功率仅由“电机额定功率 + 附件功率”给出。<br>
+      <strong>效率链口径（B 方案）</strong>：<code>整车动力传动系统效率η</code> 定义为<strong>电池母线→车轮</strong>（含电机与传动），因此 Pmax1/2/3 与电机功率都是母线电功率，与第 3 页仿真的 <code>pNeed</code> 完全同口径；电池侧不再重复除电机效率。<code>驱动电机及控制器效率</code> 仅作电机选型参考，不参与功率链。</blockquote>
 
       <h4>02 整车纵向动力学（驱动力与需求功率）</h4>
       <pre>坡度角        gr = atan(坡度%/100)                       （rad）
@@ -2066,66 +2108,93 @@ Pmax3_最大加速功率 = roadLoad(v = 加速末车速, a = 加速末车速/加
       <p><code>0.3768 ≈ 60/(2π)</code> 是 km/h → r/min 的换算常数。峰值转速取低档传动比（默认 1.4）、额定转速取高档（0.783）；默认参数下 5790 / 3238 r/min，峰值 &gt; 额定。</p>
 
       <h4>05 燃料电池与动力电池匹配</h4>
-      <pre>燃料电池额定功率 = 电机额定功率 + 整车附件功率                     （kW）
-动力电池所需功率 = (电机峰值功率 / 电机及控制器效率 − 燃料电池额定功率) / 动力电池效率   （kW）</pre>
-      <blockquote><b>混合度</b> = <code>电池功率 / (电池功率 + 燃料电池功率)</code>。默认燃料电池 72.06 kW、电池 50.75 kW → 混合度约 <strong>41%</strong>（中度混合）。燃料电池按额定工况配置、电池承担峰值差额；电池功率可为负（燃料电池已够峰值需求时），本页不做下限截断。</blockquote>
+      <pre>系统净效率 η_sys  = (V_cell / 1.254) × (1 − BOP功耗占比)              默认 (0.62/1.254)×0.817 ≈ 40.4 %
+燃料电池额定功率 P_FC = 电机额定功率 + 整车附件功率                    （kW，系统净输出/母线）
+燃料电池电堆功率 P_st = P_FC ÷ (1 − BOP功耗占比)                       （kW，毛功率）
+动力电池所需功率 P_bat = (电机峰值功率 − P_FC) / 动力电池效率            （kW，电池内部）
+混合度          = 燃料电池额定功率 / (动力电池所需功率 + 燃料电池额定功率)    （燃料电池占比）</pre>
+      <blockquote><b>混合度</b> = <code>燃料电池额定功率 / (动力电池所需功率 + 燃料电池额定功率)</code>，反映燃料电池在总匹配功率中的占比。默认 <code>72.06/(41.27+72.06) = 63.6 %</code>，即电池占比 36.4 %。燃料电池按额定工况配置、电池承担峰值差额；电池功率可为负（燃料电池已够峰值需求时），本页不做下限截断。<br>
+      <strong>为什么电池不再除电机效率</strong>：<code>电机峰值功率</code> 由 <code>v·F/整车传动效率</code> 得到，已经是母线电功率；再除一次电机效率属重复计入（旧口径把电池从 35.08 放大到 50.75 kW）。<br>
+      <strong>BOP 占比</strong>：默认 18.3 % 取自「燃料电池系统设计」页设计点（电堆 49.4 %、辅机占电堆功率 18.3 %、净效率 40.3 %）。改第 1 页电堆参数后应同步此项。</blockquote>
 
       <h4>06 氢耗 · 储氢 · 续驶里程</h4>
-      <pre>额定工况氢耗 n_H2 = 燃料电池额定功率 × 1000 / 燃料电池单体电压 / 96485 / (氢气利用率/100)   （g/s）
-所需氢气质量 = 续驶里程 / 最高车速 × 3600 × 额定工况氢耗 / 1000                              （kg）
-单瓶储氢质量 = 氢气瓶压力(MPa) × 1000 × 氢气瓶容积(L) / 8.314 / 298 × 2.016 / 1000          （kg）
-所需氢瓶数量 = 所需氢气质量 / max(0.1, 单瓶储氢质量)</pre>
-      <h5>6.1 额定氢耗</h5>
-      <p>由 <code>P = V_cell·I</code> 与法拉第定律 <code>n = I/(2F)</code> 反推：<code>n = P/(V_cell·2F)/η_H2</code>，其中 V_cell 为<strong>燃料电池单体电压</strong>（额定工况，默认 0.62 V）。</p>
-      <h5>6.2 续驶里程所需氢量</h5>
-      <p>按“最高车速等速巡航”简化：<code>续驶里程/最高车速×3600</code> 得时间(s)（默认 400/100×3600 = 14400 s = 4 h），再乘额定氢耗得总氢量。</p>
-      <h5>6.3 单瓶储氢与瓶数</h5>
-      <p>按理想气体 <code>n = pV/(R·T)</code>：p = 瓶压(MPa)×1000 kPa、V = 容积(L)、R = 8.314 J/(mol·K)、T = 298 K（25 ℃）；默认 35 MPa / 40 L 下单瓶约 1.139 kg。</p>
-      <blockquote>单瓶储氢按<strong>理想气体</strong>估算，<strong>未引入高压压缩因子修正</strong>（35 MPa、25 ℃ 下氢气已明显偏离理想气体），工程选瓶应按制造商标定的真实储氢密度复核。</blockquote>
+      <pre>系统净效率 η_sys = (V_cell/1.254) × (1 − BOP占比)                        默认 40.4 %
+额定工况氢耗 ṁ_H2 = P_FC / (η_sys × 241.92 kJ/mol) × 2.016 / (氢气利用率/100)   （g/s）
+续驶工况氢耗 ṁ_r  = P_avg / (η_sys × 241.92 kJ/mol) × 2.016 / (氢气利用率/100)  （g/s，P_avg 为续驶工况平均需求功率）
+所需氢气质量 = 续驶里程 / 续驶平均车速 × 3600 × 续驶工况氢耗 / 1000                  （kg）
+单瓶理想储氢 = 瓶压(MPa) × 1000 × 容积(L) / 8.314 / 298 × 2.016 / 1000             （kg）
+单瓶可用储氢 = 单瓶理想储氢 × 储氢可用系数                                          （kg）
+所需氢瓶数量 = 所需氢气质量 / max(0.1, 单瓶可用储氢)</pre>
+      <h5>6.1 氢耗口径</h5>
+      <p>燃料电池额定功率是<strong>系统净输出</strong>（母线），因此氢耗必须按<strong>系统净效率</strong>反推：<code>氢耗功率 LHV = P_FC/η_sys</code>，再除以 241.92 kJ/mol 得摩尔流量、乘 2.016 得 g/s、除氢气利用率得实际供给量。</p>
+      <p><code>η_sys = (V_cell/1.254) × (1 − BOP占比)</code>：电堆效率由单体电压给出，BOP 占比默认 18.3 %（空压机为主），对应系统净效率 40.4 %。旧口径只用电堆效率 49.4 %、<strong>漏掉 BOP</strong>，氢耗低估约 22 %。BOP 占比与单体电压都是输入，可直接做敏感性分析。</p>
+      <h5>6.2 续驶工况</h5>
+      <p>按输入的<strong>续驶平均车速</strong>（默认 90 km/h）等速行驶估算：</p>
+      <pre>续驶需求功率 P_range = v_avg·F(v_avg)/η + P_aux                （kW）
+续驶氢耗 ṁ_range     = P_range / (η_sys × 241.92) × 2.016 / η_H2   （g/s）
+续驶时间             = 续驶里程 / v_avg × 3600                    （s）</pre>
+      <p>这样避免把额定（最高车速 100 km/h）的氢耗直接外推到 90 km/h 的续驶工况；若要改回最高车速口径，把续驶平均车速设为最高车速即可。</p>
+      <p>结果面板同时给出两组百公里氢耗：<strong>额定百公里氢耗</strong>（按最高车速/额定工况）与<strong>续驶百公里氢耗</strong>（按续驶平均车速），两者工作点不同、不可混用。</p>
+      <h5>6.3 单瓶可用储氢与瓶数</h5>
+      <p>先按理想气体 <code>n = pV/(R·T)</code> 得标称储量（默认 35 MPa / 40 L → 1.139 kg），再 <code>÷ Z</code> 修正高压实际气体偏离（默认 Z = 1.2，35 MPa/25 ℃ 下约 −17 %），最后乘<strong>储氢可用系数</strong>（默认 95 %，覆盖瓶内残余不可取出部分）。</p>
 
       <h4>07 氢经济性（百公里氢耗与成本）</h4>
       <pre>额定百公里氢耗 = 额定工况氢耗 × 100 / 最高车速 × 3600 / 1000        （kg/100km）
-额定百公里氢气价格 = 额定百公里氢耗 × 氢气价格                      （元/100km）</pre>
-      <p>按最高车速等速行驶折算，默认约 4.40 kg/100km（重型客车水平），氢气价格默认 30 元/kg。</p>
+额定百公里氢气价格 = 额定百公里氢耗 × 氢气价格                      （元/100km）
+续驶百公里氢耗 = 续驶氢耗 × 100 / 续驶平均车速 × 3600 / 1000        （kg/100km）
+续驶百公里氢气价格 = 续驶百公里氢耗 × 氢气价格                      （元/100km）</pre>
+      <p>两组分别对应两个工作点：<strong>额定</strong>（最高车速 100 km/h）默认 5.4329 kg/100km、162.99 元；<strong>续驶</strong>（90 km/h）默认 <strong>4.8377 kg/100km</strong>、145.13 元。氢气价格默认 30 元/kg。</p>
 
       <h4>08 默认工况逐值验算</h4>
-      <p>按默认参数（6350 kg、400 km、Cd 0.56、100 km/h、爬坡 30%@15 km/h、加速 50 km/h@15 s、传动/电机/电池效率 0.93/0.93/0.85、氢瓶 35 MPa/40 L、V_cell 0.62 V、氢价 30 元/kg、η_H2 98.5%）代入：</p>
+      <p>按默认参数（6350 kg、400 km、Cd 0.56、最高车速 100 km/h、续驶平均车速 90 km/h、爬坡 30%@15 km/h、加速 50 km/h@15 s、传动/电池效率 0.93/0.85、BOP 18.3 %、储氢 35 MPa/40 L/Z 1.2/可用系数 95 %、V_cell 0.62 V、氢价 30 元/kg、η_H2 98.5%）代入：</p>
       <pre>最大爬坡角 θ = atan(30/100)×180/π = 16.70°；加速阶段加速度 = 50/15/3.6 = 0.926 m/s²
 A 最高车速：F_A = 808.99 + 1469.50                 = 2278.49 N → Pmax1 = 68.06 kW
 B 最大爬坡：F_B = 774.88 + 17879.55 + 33.06       = 18687.49 N → Pmax2 = 83.73 kW
 C 最大加速：F_C = 808.99 + 367.38 + 5997.23       = 7173.60 N → Pmax3 = 107.13 kW
 电机峰值功率 = max(68.06, 83.73, 107.13) = 107.13 kW；电机额定功率 = Pmax1 = 68.06 kW
 电机转速：峰值 5790 / 额定 3238 r/min
-燃料电池额定功率 = 68.06 + 4 = 72.06 kW
-动力电池所需功率 = (107.13/0.93 − 72.06)/0.85 = 50.75 kW；混合度 = 41.3 %
-额定工况氢耗 = 72.06×1000/0.62/96485/(98.5/100) = 1.2229 g/s
-续驶时间 = 400/100×3600 = 14400 s → 所需氢气质量 = 17.609 kg
-单瓶储氢 = 35×1000×40/8.314/298×2.016/1000 = 1.139 kg → 所需氢瓶 = 15.46 瓶（向上取 16 瓶）
-百公里氢耗 = 4.4023 kg/100km → 百公里氢价 = 132.07 元/100km</pre>
+燃料电池额定功率 = 68.06 + 4 = 72.06 kW（系统净输出）
+系统净效率 = (0.62/1.254) × (1 − 0.183) = 0.4944 × 0.817 = 40.39 %
+燃料电池电堆功率 = 72.06 / 0.817 = 88.20 kW
+动力电池所需功率 = (107.13 − 72.06)/0.85 = 41.27 kW
+混合度 = 72.06/(41.27 + 72.06) = 63.6 %（电池占比 36.4 %）
+额定工况氢耗 = 72.06/(0.4039×241.92)×2.016/(98.5/100) = 1.5092 g/s
+续驶工况（90 km/h）：F = 808.99 + 1190.63 = 1999.62 N → P = 53.74 + 4 = 57.74 kW
+续驶氢耗 = 57.74/(0.4039×241.92)×2.016/0.985 = 1.2094 g/s
+续驶时间 = 400/90×3600 = 16 000 s → 所需氢气质量 = 19.351 kg
+单瓶理想储氢 = 35×1000×40/8.314/298×2.016/1000 = 1.139 kg
+单瓶可用储氢 = 1.139/1.2×0.95 = 0.902 kg → 所需氢瓶 = 19.351/0.902 = 21.46 瓶（取整 22 瓶）
+额定百公里氢耗 = 1.5092×360/100 = 5.4329 kg/100km → 额定百公里氢价 = 162.99 元/100km
+续驶百公里氢耗 = 1.2094×360/90 = 4.8377 kg/100km → 续驶百公里氢价 = 145.13 元/100km</pre>
 
       <h4>09 参数敏感性分析</h4>
       <p>满载质量是整车动力性匹配最敏感的单一变量（滚动、坡道、加速三项阻力均与质量成正比）：</p>
       <table>
         <tr><th>满载质量 (kg)</th><th>Pmax1 (kW)</th><th>Pmax2 (kW)</th><th>Pmax3 (kW)</th><th>电机峰值 (kW)</th><th>燃料电池 (kW)</th><th>电池 (kW)</th><th>额定氢耗 (g/s)</th><th>百公里氢耗 (kg/100km)</th><th>百公里氢价 (元)</th></tr>
-        <tr><td>5000</td><td>62.92</td><td>65.96</td><td>85.52</td><td>85.52</td><td>66.92</td><td>29.46</td><td>1.1357</td><td>4.088</td><td>122.65</td></tr>
-        <tr><td>6350 <em>（默认）</em></td><td>68.06</td><td>83.73</td><td>107.13</td><td>107.13</td><td>72.06</td><td>50.75</td><td>1.2229</td><td>4.402</td><td>132.07</td></tr>
-        <tr><td>7000</td><td>70.53</td><td>92.29</td><td>117.54</td><td>117.54</td><td>74.53</td><td>61.01</td><td>1.2648</td><td>4.553</td><td>136.60</td></tr>
-        <tr><td>8000</td><td>74.33</td><td>105.45</td><td>133.54</td><td>133.54</td><td>78.33</td><td>76.78</td><td>1.3294</td><td>4.786</td><td>143.57</td></tr>
+        <tr><td>5000</td><td>62.92</td><td>65.96</td><td>85.52</td><td>85.52</td><td>66.92</td><td>21.88</td><td>1.4016</td><td>4.450</td><td>133.51</td></tr>
+        <tr><td>6350 <em>（默认）</em></td><td>68.06</td><td>83.73</td><td>107.13</td><td>107.13</td><td>72.06</td><td>41.27</td><td>1.5092</td><td>4.838</td><td>145.13</td></tr>
+        <tr><td>7000</td><td>70.53</td><td>92.29</td><td>117.54</td><td>117.54</td><td>74.53</td><td>50.60</td><td>1.5610</td><td>5.024</td><td>150.72</td></tr>
+        <tr><td>8000</td><td>74.33</td><td>105.45</td><td>133.54</td><td>133.54</td><td>78.33</td><td>64.95</td><td>1.6407</td><td>5.311</td><td>159.33</td></tr>
       </table>
-      <blockquote><b>读表要点</b>：加速工况恒为主导（<code>Pmax3 &gt; Pmax2 &gt; Pmax1</code>），电机峰值由加速决定；电池功率增幅最大（50.75 → 76.78 kW，峰值差额全部由电池承担）；质量 5000 → 8000 kg 使百公里氢耗 4.09 → 4.79 kg/100km（约 +17%）、百公里氢价 122.7 → 143.6 元。</blockquote>
+      <blockquote><b>读表要点</b>：加速工况恒为主导（<code>Pmax3 &gt; Pmax2 &gt; Pmax1</code>），电机峰值由加速决定；电池功率增幅最大（21.88 → 64.95 kW，峰值差额全部由电池承担）；质量 5000 → 8000 kg 使额定百公里氢耗 4.45 → 5.31 kg/100km（约 +19%）、百公里氢价 133.5 → 159.3 元。表中「额定氢耗」按最高车速工况、百公里氢耗按续驶平均车速 90 km/h，两者不是同一工作点。</blockquote>
 
       <h4>10 安全 · 校核与边界（含计算口径说明）</h4>
       <table>
         <tr><th>类型</th><th>项目</th><th>页面处理 / 说明</th></tr>
-        <tr><td>源码限幅</td><td>传动 / 电机 / 电池效率</td><td>均取 <code>max(0.1, 输入值)</code>，防止效率为 0 时功率发散</td></tr>
-        <tr><td>源码限幅</td><td>驱动轮胎半径 / 单瓶储氢质量</td><td><code>max(0.1, …)</code>，防止转速与瓶数除零</td></tr>
+        <tr><td>计算口径</td><td>效率链（B 方案）</td><td>整车传动效率 = 电池母线→车轮（含电机与传动），Pmax1/2/3 与电机功率均为母线口径；电池功率不再除电机效率；电机效率仅作选型参考</td></tr>
+        <tr><td>计算口径</td><td>系统净效率</td><td>η_sys = (V_cell/1.254) × (1 − BOP占比)，BOP 默认 18.3 % → 40.4 %；<code>燃料电池单体电压</code> 同时决定电堆效率与电堆功率</td></tr>
+        <tr><td>计算口径</td><td>续驶工况</td><td>按输入「续驶平均车速」（默认 90 km/h）等速行驶：<code>P = v·F(v)/η + P_aux</code>，避免把额定（最高车速）氢耗外推到续驶工况</td></tr>
+        <tr><td>计算口径</td><td>储氢（Z + 可用系数)</td><td>单瓶可用储氢 = 理想气体储量 ÷ Z × 可用系数；Z 默认 1.2（35 MPa/25 ℃ 下实际气体偏离约 −17 %），可用系数默认 95 %（瓶内残余不可取出）</td></tr>
+        <tr><td>计算口径</td><td>混合度</td><td><code>燃料电池额定功率 / (动力电池所需功率 + 燃料电池额定功率)</code>，即燃料电池占比；默认 63.6 %（电池 36.4 %）</td></tr>
+        <tr><td>源码限幅</td><td>传动 / 电池效率</td><td>均取 <code>max(0.1, 输入值)</code>，防止效率为 0 时功率发散</td></tr>
+        <tr><td>源码限幅</td><td>驱动轮胎半径 / 单瓶可用储氢</td><td><code>max(0.1, …)</code>，防止转速与瓶数除零</td></tr>
         <tr><td>计算口径</td><td>加速阶段加速度</td><td>由 <code>加速末车速/加速时间/3.6</code> 直接换算（默认 0.926 m/s²），与用于 Pmax3 的加速度同值</td></tr>
         <tr><td>计算口径</td><td>电机峰值/额定转速</td><td>峰值取低档 1.4（5790 r/min）、额定取高档 0.783（3238 r/min），峰值 &gt; 额定</td></tr>
         <tr><td>未使用</td><td>#stackPower</td><td>源码读取电堆功率但未参与计算；本页仅用第一页的氢气利用率</td></tr>
         <tr><td>无下限</td><td>动力电池功率</td><td>可为负（燃料电池已够峰值需求时），页面不做截断</td></tr>
-        <tr><td>工程建议</td><td>Cd / 迎风面积 / 储氢</td><td>默认 0.56 / 5.55 m² 决定高速巡航功率；储氢 35 MPa / 40 L，瓶数需按真实密度复核</td></tr>
+        <tr><td>工程建议</td><td>Cd / 迎风面积 / 储氢</td><td>默认 0.56 / 5.55 m² 决定巡航功率；储氢 35 MPa / 40 L、可用系数 85 %，选瓶仍应按制造商标定值复核</td></tr>
       </table>
-      <blockquote>续驶氢量按“最高车速等速巡航”简化，实际起停 / 爬坡 / 空调附件会显著高于该值，选瓶应留裕量；单瓶储氢按理想气体估算，需按厂商标定复核。</blockquote>
+      <blockquote>续驶工况的平均功率只统计<strong>正功率</strong>，不含制动回馈、电池充放电损耗与冷启动；实际道路氢耗会高于本页稳态估算，选瓶应留裕量。第 3 页逐秒仿真可给出含上述效应的动态结果。</blockquote>
 
       <h4>11 符号与常数</h4>
       <table>
@@ -2135,8 +2204,13 @@ C 最大加速：F_C = 808.99 + 367.38 + 5997.23       = 7173.60 N → Pmax3 = 1
         <tr><td>3600</td><td>车速换算常数</td><td>s/h（km/h → 每秒行驶距离）</td></tr>
         <tr><td>0.3768</td><td>转速换算常数</td><td>≈ 60/(2π)，用于 km/h → r/min</td></tr>
         <tr><td>R / T / M_H2</td><td>气体常数 / 储氢折算计温 / 氢摩尔质量</td><td>8.314 J/(mol·K) / 298 K / 2.016 g/mol</td></tr>
-        <tr><td>96485</td><td>法拉第常数（额定氢耗式）</td><td>C/mol</td></tr>
-        <tr><td>0.93 / 0.93 / 0.85</td><td>默认传动 / 电机 / 电池效率</td><td>—</td></tr>
+        <tr><td>η_sys</td><td>燃料电池系统净效率（氢耗口径）</td><td>= (V_cell/1.254) × (1 − BOP占比)；默认 40.4 %</td></tr>
+        <tr><td>BOP占比</td><td>辅机功耗占电堆功率比（输入）</td><td>默认 18.3 %（空压机为主）</td></tr>
+        <tr><td>k_st</td><td>储氢可用系数（输入）</td><td>默认 95 %（瓶内可取出比例）</td></tr>
+        <tr><td>Z</td><td>氢气压缩因子（输入）</td><td>默认 1.2（35 MPa / 25 ℃）</td></tr>
+        <tr><td>241.92</td><td>氢低热值摩尔能量（系统净效率口径）</td><td>kJ/mol</td></tr>
+        <tr><td>1.254</td><td>LHV 热中性电压（电堆效率 = V_cell/1.254）</td><td>V</td></tr>
+        <tr><td>0.93 / 0.85</td><td>默认整车传动（母线→车轮）/ 电池效率</td><td>—（电机效率仅作选型参考）</td></tr>
         <tr><td>η_H2</td><td>氢气利用率（取自第一页）</td><td>98.5%</td></tr>
       </table>
 
@@ -3888,17 +3962,19 @@ function calculateHybridSystem(){
   const highGearRatio = get('highGearRatio') || 0;
   const tireRadius = get('tireRadius') || 0;
   const accessoryPower = get('accessoryPower') || 0;
-  const motorEfficiency = get('motorEfficiency') || 0;
   const batteryEfficiency = get('batteryEfficiency') || 0;
   const hydrogenBottlePressure = get('hydrogenBottlePressure') || 0;
   const hydrogenBottleVolume = get('hydrogenBottleVolume') || 0;
+  const h2Usable = Math.min(100, Math.max(1, get('h2Usable') || 95))/100;   // 储氢可用系数（瓶内可取出比例）
+  const h2Z = Math.max(0.5, get('h2Zfactor') || 1.2);                       // 氢气压缩因子 Z
+  const bopShare = Math.min(60, Math.max(0, get('bopShare') || 0))/100;     // 系统 BOP 占电堆功率比
+  const rangeSpeed = Math.max(1, get('rangeAvgSpeed') || 90);               // 续驶平均车速
 
   // 从 PFD 页获取电堆功率与氢气利用率
   const stackPower = getText('stackPower') || 0;
   const hydrogenUtilization = get('hydrogenUtilization') || 98.5;
 
   const safePowertrainEfficiency = Math.max(0.1, powertrainEfficiency);
-  const safeMotorEfficiency = Math.max(0.1, motorEfficiency);
   const safeBatteryEfficiency = Math.max(0.1, batteryEfficiency);
   const safeTireRadius = Math.max(0.1, tireRadius);
 
@@ -3919,22 +3995,52 @@ function calculateHybridSystem(){
   const motorPeakRPM = (maxSpeed * finalDriveRatio * lowGearRatio) / (0.3768 * safeTireRadius);
   const motorRatedRPM = (maxSpeed * finalDriveRatio * highGearRatio) / (0.3768 * safeTireRadius);
 
-  // 燃料电池所需功率 = 电机额定功率 + 附件功率（同时取电堆计算功率的较大值作为约束参考）
+  // 燃料电池所需功率 = 电机额定功率 + 附件功率（母线口径：vehicleRoadLoad 已含整车传动效率）
   const fuelCellRequiredPower = motorRatedPower + accessoryPower;
 
-  const batteryRequiredPower = (motorPeakPower / safeMotorEfficiency - fuelCellRequiredPower) / safeBatteryEfficiency;
+  /* 口径统一（B 方案）：motorPeakPower / motorRatedPower 均由 vehicleRoadLoad() 除以
+     powertrainEfficiency 得到，已经是「电池母线→车轮」口径，因此电池侧不再重复除电机效率；
+     电池功率 = 母线峰值差额 ÷ 电池效率（得到电池内部功率）。第 3 页仿真同样是母线口径。 */
+  const batteryBusPower = motorPeakPower - fuelCellRequiredPower;
+  const batteryRequiredPower = batteryBusPower / safeBatteryEfficiency;
 
   const fuelCellVoltage = get('fuelCellVoltage') || 0.62;
-  const ratedConditionHydrogenConsumption = fuelCellRequiredPower * 1000 / fuelCellVoltage / 96485 / (hydrogenUtilization / 100);
 
-  const requiredHydrogenMass = range / maxSpeed * 3600 * ratedConditionHydrogenConsumption / 1000;
-  const singleBottleHydrogenMass = hydrogenBottlePressure * 1000 * hydrogenBottleVolume / 8.314 / 298 * 2.016 / 1000;
+  /* 系统净效率 = 电堆效率 × (1 − BOP占比)，电堆效率 = V_cell/1.254。
+     BOP 占比默认 18.3 %（第 1 页设计点：电堆 49.4 % → 系统净效率 40.3 %）。 */
+  const stackEfficiency = fuelCellVoltage>0 ? fuelCellVoltage/1.254 : 0;
+  const systemNetEfficiency = stackEfficiency*(1-bopShare);
+  const stackPowerRequired = fuelCellRequiredPower/Math.max(1e-6, 1-bopShare);
+
+  const ratedConditionHydrogenConsumption = systemNetEfficiency>0
+      ? fuelCellRequiredPower/(systemNetEfficiency*H2_LHV_KJ_PER_MOL)*2.016/(hydrogenUtilization/100)
+      : 0;
+
+  /* ---- 续驶工况：按「续驶平均车速」等速估算 ----
+     续驶氢耗 = 该车速下的平均需求功率 / 系统净效率换算；不再沿用最高车速的额定氢耗，
+     否则会把额定（100 km/h）氢耗套到 90 km/h 的续驶工况上。 */
+  const roadLoadAt = v => vehicleRoadLoad(roadCfg, v, 0, 0).power + accessoryPower;
+  const rangePower = roadLoadAt(rangeSpeed);
+  const rangeHydrogenConsumption = systemNetEfficiency>0
+      ? rangePower/(systemNetEfficiency*H2_LHV_KJ_PER_MOL)*2.016/(hydrogenUtilization/100) : 0;
+
+  const requiredHydrogenMass = range / rangeSpeed * 3600 * rangeHydrogenConsumption / 1000;
+  /* 单瓶可用储氢 = 理想气体储量 ÷ Z × 可用系数
+     （Z 覆盖 35 MPa 下实际气体偏离，可用系数覆盖瓶内残余不可取出部分） */
+  const singleBottleIdealMass = hydrogenBottlePressure * 1000 * hydrogenBottleVolume / 8.314 / 298 * 2.016 / 1000;
+  const singleBottleHydrogenMass = singleBottleIdealMass/h2Z*h2Usable;
   const safeSingleBottleHydrogenMass = Math.max(0.1, singleBottleHydrogenMass);
   const requiredBottleCount = requiredHydrogenMass / safeSingleBottleHydrogenMass;
 
   const hydrogenPrice = get('hydrogenPrice') || 30;
-  const rated100kmHydrogenConsumption = ratedConditionHydrogenConsumption * 100 / maxSpeed * 3600 / 1000;
+  const rated100kmHydrogenConsumption = rangeHydrogenConsumption * 100 / rangeSpeed * 3600 / 1000;
   const rated100kmHydrogenPrice = rated100kmHydrogenConsumption * hydrogenPrice;
+  /* 额定（最高车速）工况的百公里氢耗，与续驶工况分开列出 */
+  const ratedH2Per100km = ratedConditionHydrogenConsumption * 100 / Math.max(1,maxSpeed) * 3600 / 1000;
+  const ratedH2PricePer100km = ratedH2Per100km * hydrogenPrice;
+  /* 混合度 = 燃料电池功率 / (动力电池功率 + 燃料电池功率)，反映燃料电池占比 */
+  const hybridDegree = (fuelCellRequiredPower+batteryRequiredPower)>0
+      ? fuelCellRequiredPower/(fuelCellRequiredPower+batteryRequiredPower)*100 : 0;
 
   const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
   set('maxClimbingAngle', maxClimbingAngle.toFixed(2));
@@ -3947,11 +4053,16 @@ function calculateHybridSystem(){
   set('motorPeakRPM', motorPeakRPM.toFixed(0));
   set('motorRatedRPM', motorRatedRPM.toFixed(0));
   set('fuelCellRequiredPower', fuelCellRequiredPower.toFixed(2));
+  set('stackPowerRequired', stackPowerRequired.toFixed(2));
+  set('rangeAvgSpeedUsed', rangeSpeed.toFixed(1));
   set('ratedConditionHydrogenConsumption', ratedConditionHydrogenConsumption.toFixed(4));
   set('requiredHydrogenMass', requiredHydrogenMass.toFixed(3));
   set('singleBottleHydrogenMass', singleBottleHydrogenMass.toFixed(3));
   set('requiredBottleCount', requiredBottleCount.toFixed(2));
+  set('hybridDegree', hybridDegree.toFixed(1));
   set('batteryRequiredPower', batteryRequiredPower.toFixed(2));
+  set('ratedH2Per100km', ratedH2Per100km.toFixed(4));
+  set('ratedH2PricePer100km', ratedH2PricePer100km.toFixed(2));
   set('rated100kmHydrogenConsumption', rated100kmHydrogenConsumption.toFixed(4));
   set('rated100kmHydrogenPrice', rated100kmHydrogenPrice.toFixed(2));
 }
@@ -4040,10 +4151,12 @@ const hybridInputIds = ['vehicleMass','range','rollingResistance','dragCoefficie
   'maxGradeability','gradeabilitySpeed','accelerationEndSpeed','accelerationTime','frontalArea',
   'powertrainEfficiency','rotatingMassCoefficient','finalDriveRatio','lowGearRatio','highGearRatio',
   'tireRadius','accessoryPower','motorEfficiency','batteryEfficiency','hydrogenBottlePressure',
-  'hydrogenBottleVolume','fuelCellVoltage','hydrogenPrice'];
+  'hydrogenBottleVolume','h2Usable','h2Zfactor','bopShare','fuelCellVoltage','hydrogenPrice','rangeAvgSpeed'];
 hybridInputIds.forEach(id=>{
   const el = document.getElementById(id);
-  if(el) el.addEventListener('input', calculateHybridSystem);
+  if(!el) return;
+  el.addEventListener('input', calculateHybridSystem);
+  if(el.tagName === 'SELECT') el.addEventListener('change', calculateHybridSystem);
 });
 
 /* ========== 参数导出 / 导入 ========== */
@@ -5418,10 +5531,13 @@ setupParamIO({
     const sum = [
       ['电机峰值功率',         val('motorPeakPower')+' kW'],
       ['电机额定功率',         val('motorRatedPower')+' kW'],
-      ['燃料电池额定功率',      val('fuelCellRequiredPower')+' kW'],
-      ['动力电池需求功率',      val('batteryRequiredPower')+' kW'],
+      ['燃料电池额定功率',      val('fuelCellRequiredPower')+' kW（系统净输出）'],
+      ['燃料电池电堆功率',      val('stackPowerRequired')+' kW'],
+      ['动力电池需求功率',      val('batteryRequiredPower')+' kW（电池内部）'],
+      ['混合度（燃料电池占比）', val('hybridDegree')+' %'],
       ['所需氢瓶数',           val('requiredBottleCount')+' 瓶'],
-      ['额定百公里氢耗 / 成本', val('rated100kmHydrogenConsumption')+' kg/100km · '+val('rated100kmHydrogenPrice')+' 元/100km']
+      ['额定百公里氢耗 / 成本', val('ratedH2Per100km')+' kg/100km · '+val('ratedH2PricePer100km')+' 元/100km'],
+      ['续驶百公里氢耗 / 成本', val('rated100kmHydrogenConsumption')+' kg/100km · '+val('rated100kmHydrogenPrice')+' 元/100km']
     ];
     const headHtml = '<div class="pdl-head">'
       + '<div class="pdl-title"><h1>混合动力系统匹配 · 设计文档</h1>'
@@ -5464,7 +5580,7 @@ setupParamIO({
       const t = it.getAttribute('title');
       if(t) fLines.push(t.replace(/\s+/g,' ').trim());
     });
-    fLines.push('常数：g = 9.8 m/s²；F = 96485 C/mol；H₂ 摩尔质量 2.016 g/mol；理想气体常数 R = 8.314 J/(mol·K)、储氢按 298 K 计；空气阻力项系数 21.15（Cd·A·v²/21.15）；电机转速换算系数 0.3768；驱动轮胎半径取自输入参数');
+    fLines.push('常数：g = 9.8 m/s²；H₂ 摩尔质量 2.016 g/mol；理想气体常数 R = 8.314 J/(mol·K)、储氢按 298 K 计；空气阻力项系数 21.15（Cd·A·v²/21.15）；电机转速换算系数 0.3768；传动效率为「电池母线→车轮」口径；系统净效率 η_sys = (V_cell/1.254) × (1 − BOP占比)；氢 LHV 摩尔能量 241.92 kJ/mol；单瓶可用储氢 = 理想气体储量 ÷ Z × 储氢可用系数；驱动轮胎半径取自输入参数');
     const fmHtml = sec('五、关键公式与常数', '<pre class="pdl-pre">'+esc(fLines.join('\n'))+'</pre>');
 
     /* ⑤ 页脚（本页无流程图，故不附流程示意图） */
@@ -5829,8 +5945,8 @@ function touRuns(slots){
     +     '<div class="input-group"><label for="pemGenProfile">风光曲线粘贴（每行「小时,出力kW」；留空=按上方参数合成）</label>'
     +       '<textarea id="pemGenProfile" class="sim-textarea" rows="3" placeholder="0,0&#10;6,100&#10;12,900&#10;18,0"></textarea></div>'
     +     '<div class="input-sect"><div class="sect-cap">调度约束（可执行性）</div>'
-    +       '<div class="input-group"><label for="pemMinLoad">最小负荷(%)，0=按氢中氧反推</label><input type="number" id="pemMinLoad" value="0" step="1"></div>'
-    +       '<div class="input-group"><label for="pemH2InO2Lim">氢中氧目标(vol%)</label><input type="number" id="pemH2InO2Lim" value="2" step="0.1"></div>'
+    +       '<div class="input-group"><label for="pemMinLoad">最小负荷(%)，0=按氧中氢反推</label><input type="number" id="pemMinLoad" value="0" step="1"></div>'
+    +       '<div class="input-group"><label for="pemH2InO2Lim">氧中氢目标(vol%)</label><input type="number" id="pemH2InO2Lim" value="2" step="0.1"></div>'
     +       '<div class="input-group"><label for="pemMinRun">最短运行时长(h)</label><input type="number" id="pemMinRun" value="2" step="1"></div>'
     +       '<div class="input-group"><label for="pemMaxStarts">年启停次数上限(次)</label><input type="number" id="pemMaxStarts" value="365" step="10"></div>'
     +     '</div>'
@@ -5935,8 +6051,8 @@ function renderStrategy(){
   const Tmin  = Math.max(1, Math.round(gi('pemMinRun')));
   const Kmax  = Math.max(1, Math.round(gi('pemMaxStarts')));
   /* 出力 → 满发电量所需的负荷率（反查部分负荷曲线），供「跟随风光」与优化型取候选档 */
-  const NG=200, gP=new Float64Array(NG+1), gH=new Float64Array(NG+1);
-  for(let i=0;i<=NG;i++){ const c=pemCurveAt(curve, i/NG); gP[i]=c.Psys; gH[i]=c.mH2; }
+  const NG=200, gP=new Float64Array(NG+1);
+  for(let i=0;i<=NG;i++){ gP[i]=pemCurveAt(curve, i/NG).Psys; }
   const xForPsys = ps => {
     if(!(ps>0)) return 0;
     let i=0; while(i<NG && gP[i+1]<ps) i++;
@@ -5999,9 +6115,9 @@ function renderStrategy(){
   /* ---- 矩阵：行 = 指标（值 + 悬停口径），列 = 策略 ---- */
   const metrics = [
     ['年制氢量(t)',   c => c.kg>0 ? F1(c.kg/1000) : '—',
-      c => '年制氢量 = Σ 逐时产氢。（'+c.h+'）'+c.tip],
+      c => '年产品氢量 = Σ 逐时产品氢（纯化后）。（'+c.h+'）'+c.tip],
     ['耗电量(万kWh)', c => F1(c.kWht/1e4),
-      c => '年耗电量 = Σ 逐时系统输入功率（含电压衰减口径）。（'+c.h+'）'+c.tip],
+      c => '年耗电量 = Σ 逐时系统输入功率（含整流与 BOP 辅电，非电堆直流功率；含电压衰减口径）。（'+c.h+'）'+c.tip],
     ['电价(元/kWh)', c => F3(c.price),
       c => '加权电价 = 年电费 ÷ 年耗电量；自有风光按「绿电成本」计价、电网按分时电价计价。（'+c.h+'）'+c.tip],
     ['电费(万元)',   c => F1(c.costWan),
@@ -6015,7 +6131,7 @@ function renderStrategy(){
     ['运行小时(h)',    c => F0(c.runH),
       c => '有效运行小时 = 出力 > 0 的小时数（与「等效满负荷小时」不同：部分负荷下运行更久但等效小时不变）。（'+c.h+'）'+c.tip],
     ['LCOH(元/kg)',    c => c.lcoh>0 ? F2(c.lcoh) : '—',
-      c => 'LCOH = (固定成本 + 年电费)×10000 ÷ 年制氢量；固定成本 = CAPEX 摊销 + 运维 + 电堆更换摊销，与调度无关。（'+c.h+'）'+c.tip],
+      c => 'LCOH = (固定成本 + 年电费)×10000 ÷ 年产品氢量（纯化后）；固定成本 = CAPEX 摊销 + 运维 + 电堆更换摊销，与调度无关。（'+c.h+'）'+c.tip],
     ['ΔLCOH vs ①', c => (c.lcoh>0 && rBase.lcoh>0) ? sign(c.lcoh-rBase.lcoh)+F1(Math.abs(c.lcoh-rBase.lcoh)) : '—',
       c => '相对「① 定值电价基准」的 LCOH 变化，单位 元/kg；负值 = 比现状更省。（'+c.h+'）'+c.tip]
   ];
@@ -6041,21 +6157,23 @@ function renderStrategy(){
     ['峰 / 平 / 谷电价', F2(pr[2])+' / '+F2(pr[1])+' / '+F2(pr[0])+' 元/kWh', false, '分时电价输入；24 点序列按日重复组成 8760 h 电价曲线，仅对「电网电量」计价'],
     ['时段结构（谷 / 平 / 峰）', F0(cnt[0])+' / '+F0(cnt[1])+' / '+F0(cnt[2])+' h·d⁻¹', false, '由 24 格时段选择器统计，合计 24 h·d⁻¹'],
     ['谷 / 平 / 峰 时段(h)', touRuns(slots), false, '小时区间为左闭右开，例如「0–7」表示 00:00–07:00；24 点按日重复覆盖全年'],
-    ['最小负荷（'+(ml.bad?'⚠ ':'')+ml.src+'）', F1(xmin*100)+' %（电流密度 '+F3(xmin*curve.jd)+' A/cm²）',
-      !!ml.bad, '出力下限：输入「最小负荷」非 0 时取输入值；为 0 时由「氢中氧 ≤ 目标 vol%」在 j 上二分反推——'
-              + '窜气量恒定、主气流随 j 变小，故低负荷时氢中氧升高，达到目标值的那个 j 即物理最小负荷'],
+    ['最小负荷（'+(ml.bad?'⚠ ':'')+ml.src+'）', F1(xmin*100)+' %（电流密度 '+F3(xmin*curve.jd)+' A/cm²）'
+      + (ml.bad && ml.safeX!=null ? ' · 安全下限 '+F1(ml.safeX*100)+' %' : ''),
+      !!ml.bad, '出力下限：输入「最小负荷」非 0 时取输入值；为 0 时由「氧中氢 ≤ 目标 vol%」在 j 上二分反推——'
+              + '窜气量恒定、主气流随 j 变小，故低负荷时氧中氢升高，达到目标值的那个 j 即物理最小负荷。'
+              + '若手动值低于安全下限，本行会标红并给出安全值（仍按手动值计算，便于对照，但该工况会越过氧中氢安全限值）'],
     ['自有电源', ((document.getElementById('pemGenType')||{}).value||'pv')==='none' ? '无（仅电网）'
       : (F0(gi('pemGenCap'))+' kWp · 容量系数 '+F1(gi('pemGenCF'))+'% · 绿电成本 '+F2(cGen)+' 元/kWh'),
       false, '电源类型 / 装机容量 / 容量系数 / 绿电成本；曲线粘贴优先，留空则按「装机 × 8760 × 容量系数」确定性合成（固定种子）'],
     ['电网补充', gridOn ? '允许（不足时买电）' : '禁止（纯离网）', false, '允许时：风光不足部分按分时电价买电；禁止时：可用功率不足即停机（纯离网口径）'],
     ['年风光发电量（可利用小时）', F1(genKWh/1e4)+' 万kWh（'+F0(genHrs)+' h）', false, '= Σ 逐时风光出力；粘贴曲线时即粘贴数据之和，合成时已归一化到「装机 × 8760 × 容量系数」'],
-    ['满负荷小时耗电 / 产氢（口径锚点）', F2(pw.PsysAnnual)+' kW · '+F2(r.st.mH2kgh)+' kg/h', false, '部分负荷曲线的 x=1.0 端点，应与设计点口径一致（含更换周期内平均电压）'],
+    ['满负荷小时耗电 / 产氢（口径锚点）', F2(pw.PsysAnnual)+' kW · '+F2(r.pw.mH2ProKgh)+' kg/h', false, '部分负荷曲线的 x=1.0 端点，应与设计点口径一致（含更换周期内平均电压）；产氢为产品氢（纯化后）'],
     ['电能单耗：最小负荷 / 满负荷', F1(pemCurveAt(curve, xmin).kWhKg)+' / '+F1(pemCurveAt(curve, 1).kWhKg)+' kWh/kg', false,
       '注意方向：本模型下低负荷的 kWh/kg 反而更低——单体电压随电流密度下降（电化学效率提高）的收益，'
     + '大于 BOP 占比升高与法拉第效率下降的损失。低负荷真正的代价不在电耗，而在「单位时间产氢少 → 固定成本摊薄变差」'
-    + '与「氢中氧安全限值」，故最小负荷仍需受约束限制'],
-    ['调度约束', '最短运行 '+F0(Tmin)+' h · 年启停上限 '+F0(Kmax)+' 次 · 氢中氧目标 '+F2(gi('pemH2InO2Lim'))+' vol%', false,
-      '来自输入「最短运行时长 / 年启停次数上限 / 氢中氧目标」；前两项由 ⑥ 执行修复，第三项用于反推最小负荷'],
+    + '与「氧中氢安全限值」，故最小负荷仍需受约束限制'],
+    ['调度约束', '最短运行 '+F0(Tmin)+' h · 年启停上限 '+F0(Kmax)+' 次 · 氧中氢目标 '+F2(gi('pemH2InO2Lim'))+' vol%', false,
+      '来自输入「最短运行时长 / 年启停次数上限 / 氧中氢目标」；前两项由 ⑥ 执行修复，第三项用于反推最小负荷'],
     ['风光曲线来源', profN>0 ? ('粘贴 '+F0(profN)+' 行覆盖') : '按参数合成（固定种子，可复现）', false,
       '粘贴框有内容时按粘贴数据（≤24 行按「日内模板」逐日重复，否则按绝对小时线性插值）；留空则按「装机 × 容量系数」确定性合成']
   ].map(mk).join('');
@@ -6114,7 +6232,7 @@ function pemCellVoltageCurve(j, T, PH2, PO2){
   return { V, Vrev, etaAct, etaOhm, asr };
 }
 
-function calcPem(vcellOv, jOv, clampHeat){
+function calcPem(vcellOv, jOv){
   /* vcellOv > 0：按指定单体电压复算整条链路（用于按衰减后的平均电压计算年耗电）；
      此时不再做衰减复算，避免递归
      jOv > 0：按指定电流密度复算整条链路（用于「部分负荷曲线」与「最小负荷反推」）；
@@ -6145,7 +6263,7 @@ function calcPem(vcellOv, jOv, clampHeat){
   /* ---- 法拉第效率：由互窜量反推 η_F = 1 − 2·nCrossH2/nH2th = 1 − 2·i_x/j ----
      系数 2 的来由：氧侧回窜的 O₂ 在氢侧按 2H₂+O₂→2H₂O 额外消耗 2 倍 H₂，
      故总氢损失 = nCrossH2 + 2·nCrossO2 = 2·nCrossH2。
-     负荷越低 → j 越小 → i_x/j 越大 → η_F 越低，低负荷的额外电耗与氢中氧安全风险口径一致。
+     负荷越低 → j 越小 → i_x/j 越大 → η_F 越低，低负荷的额外电耗与氧中氢安全风险口径一致。
      输入参数「法拉第效率」非 0 时按输入值手动覆盖。 */
   const etaFIn = gi('pemFaradayEff');
   const etaFCr = j>0 ? Math.max(0, 1-2*icex/j)*100 : 0;                  // % 由互窜反推
@@ -6161,7 +6279,11 @@ function calcPem(vcellOv, jOv, clampHeat){
   const nO2     = nH2th/2;                   // 理论产氧 mol/s
   const etaHHV  = Vcell>0 ? VTHN/Vcell*100 : 0;
   const etaLHV  = Vcell>0 ? VLHV/Vcell*100 : 0;
-  const Qheat   = Vcell>0 ? Pstack*(Vcell-VTHN)/Vcell : 0;                  // kW 废热
+  /* 热平衡有符号计算：>0 放热、<0 吸热（需外部加热）。冷却水/风机/换热器只按「需带走的热量」
+     计算，故对 Qheat 钳位到 0：否则吸热工况会出现负流量、负泵功、负风机功耗与负换热面积，
+     把系统输入功率与换热面积都算小。 */
+  const QheatRaw= Vcell>0 ? Pstack*(Vcell-VTHN)/Vcell : 0;                  // kW 有符号热负荷
+  const Qheat   = Math.max(0, QheatRaw);                                    // kW 需带走的热量（已钳位）
   const PH2_HHV = Vcell>0 ? Pstack*(VTHN/Vcell)*(etaF/100) : 0;             // kW
   const PH2_LHV = Vcell>0 ? Pstack*(VLHV/Vcell)*(etaF/100) : 0;
   const mH2     = nH2*2.016;                 // g/s
@@ -6173,7 +6295,7 @@ function calcPem(vcellOv, jOv, clampHeat){
   const mWaterNet    = nH2*18.015;                        // g/s 反应净耗水
   const mWaterNetKgh = mWaterNet*3.6;                     // kg/h
   const dTw          = gi('pemWaterDeltaT');
-  const QheatAux     = (clampHeat && Qheat<0) ? 0 : Qheat;   // 热驱动流量专用：吸热工况冷却需求为 0
+  const QheatAux     = Qheat;                                // 已钳位：吸热工况冷却需求为 0
   const mHeatWater   = dTw>0 ? QheatAux*1000/(cpW(opT)*dTw) : 0; // kg/s 换热需要（比热随 opT）
   const mReactWater  = mWaterNet/1000*Math.max(1, gi('pemWaterExcess'));
   const mCirc        = Math.max(mHeatWater, mReactWater); // kg/s 实际循环
@@ -6187,6 +6309,7 @@ function calcPem(vcellOv, jOv, clampHeat){
   const sepEff    = gi('pemSepEff')/100;
   const vH2Pro    = vH2*purifRec;
   const vH2Loss   = vH2 - vH2Pro;
+  const mH2ProKgh = mH2kgh*purifRec;      // kg/h 产品氢（纯化后，经济性与单耗的分母）
   const PH2b      = gi('pemH2Pressure'), PO2b = gi('pemO2Pressure');
   const dP        = Math.abs(PH2b-PO2b);
   const dpLim     = gi('pemDpLimit');
@@ -6251,16 +6374,18 @@ function calcPem(vcellOv, jOv, clampHeat){
   const Psys     = Prect + bopTotal;
   const etaSysHHV= Psys>0 ? PH2_HHV/Psys*100 : 0;
   const etaSysLHV= Psys>0 ? PH2_LHV/Psys*100 : 0;
-  const kWhKg    = mH2kgh>0 ? Psys/mH2kgh : 0;
-  const kWhNm3   = vH2>0 ? Psys/vH2 : 0;
+  /* 电能单耗按「产品氢」（纯化后）计：电耗发生在全流程，而交付的是产品氢，
+     纯化损失不应被摊到未交付的粗氢上，否则 LCOH 与单耗的分母口径不一致。 */
+  const kWhKg    = mH2ProKgh>0 ? Psys/mH2ProKgh : 0;
+  const kWhNm3   = vH2Pro>0 ? Psys/vH2Pro : 0;
 
   /* ---- 年运行核算 ----
      等效满负荷小时数 = 年运行小时数 × 平均负荷率/100（把运行期间的平均出力折算为满负荷小时数） */
   const annualH   = Math.max(0, gi('pemAnnualHours'));       // h
   const useFactor = Math.max(0, gi('pemUseFactor'))/100;
   const eqFullH   = annualH*useFactor;                       // h 等效满负荷小时数
-  const aH2Kg     = mH2kgh*eqFullH;                          // kg 年制氢量（质量）
-  const aH2Nm3    = vH2*eqFullH;                             // Nm³ 年制氢量（体积）
+  const aH2Kg     = mH2ProKgh*eqFullH;                       // kg 年产品氢量（纯化后）
+  const aH2Nm3    = vH2Pro*eqFullH;                          // Nm³ 年产品氢量（纯化后）
 
   /* ---- 电压衰减与电堆更换 ----
      单体电压随运行单调上升：年升压 = 衰减率(µV/h·节) × 等效满负荷小时数；
@@ -6272,11 +6397,26 @@ function calcPem(vcellOv, jOv, clampHeat){
   const dvCycle    = dvPerYear*stackCycle;                   // V/节 更换周期内电压上升
   const VcellEnd   = Vcell + dvCycle;                        // V/节 周期末单体电压
   const VcellAvg   = Vcell + dvCycle/2;                      // V/节 周期内平均单体电压
+  /* ---- 三套电压口径 ----
+     ① 设计点（寿命初期 BOL）：电化学、极化曲线、系统效率、电能单耗与「反应产热」气泡；
+     ② 选型点（周期末 EOL）：换热器面积/板片、冷却水与纯水流量、泵、风机、系统输入功率与 CAPEX
+        ——设备容量必须覆盖最恶劣工况（电压最高 → 废热最大 → 辅机最重）；
+     ③ 年运行（周期平均）：年耗电量、年电费、平均单耗与 LCOH 的电费项。
+     三套均由同一 calcPem 全链在不同电压下求得，Q→流量→泵/风机→Psys 的传导完全一致。 */
+  const hxSnap = {Qheat, QheatRaw, Thi, Tho, Tci, Tco, dt1, dt2, cross, lmtd, K, Acalc, Aneed, Nplate,
+                  Agot, nHotCh, nColdCh, uHot, uCold, ReHot, ReCold, dpHot, dpCold, Vcirc, Vcold, mCold};
+  const wtSnap = {mWaterNetKgh, mHeatWater: mHeatWater*3600, mCircKgh, Vcirc, circRatio, roFeedKgh, dTw};
+  const pwSnap = {I, Vstack, Pstack, Prect, P_pump, P_cpump, P_fan, P_purif, bopTotal, Psys, Vair};
   let   PsysAnnual = Psys;                                   // kW 年运行平均系统输入功率
+  let   siz = null;                                          // 选型（周期末）全链结果
   if(vcellOverride<=0 && dvCycle>0){
-    const rAvg = calcPem(VcellAvg);                          // 以平均电压复算全链（内层不再复算衰减）
+    siz = calcPem(VcellEnd);                                 // 选型工况：周期末单体电压
+    const rAvg = calcPem(VcellAvg);                          // 年运行工况：周期平均单体电压
     PsysAnnual = rAvg.pw.Psys;
   }
+  const PsysSel = siz ? siz.pw.Psys : Psys;                  // kW 选型系统输入功率（额定）
+  const hxSel   = siz ? siz.hx   : hxSnap;
+  const pwSel   = siz ? siz.pw   : pwSnap;
   const aKWh      = PsysAnnual*eqFullH;                      // kWh 年耗电量（含衰减）
   const avgKWhKg  = aH2Kg>0 ? aKWh/aH2Kg : 0;                // kWh/kg 平均电能单耗（含衰减）
   const price     = Math.max(0, gi('pemPowerPrice'));        // 元/kWh 电价
@@ -6287,7 +6427,7 @@ function calcPem(vcellOv, jOv, clampHeat){
   /* ---- 综合氢成本 LCOH ----
      投资口径 = 系统输入功率(kW) × 单位投资(元/kW)；固定资产成本按资本回收系数 CRF 年金化 */
   const unitInvest = Math.max(0, gi('pemUnitInvest'));       // 元/kW
-  const capexWan   = Psys*unitInvest/10000;                  // 万元 总投资
+  const capexWan   = PsysSel*unitInvest/10000;               // 万元 总投资（按周期末选型容量）
   const discRate   = Math.max(0, gi('pemDiscount'))/100;     // 折现率
   const lifeYr     = Math.max(1, gi('pemLife'));             // 项目寿命（年）
   const omRate     = Math.max(0, gi('pemOmRate'))/100;       // 年运维费率（占初投资）
@@ -6297,26 +6437,33 @@ function calcPem(vcellOv, jOv, clampHeat){
       : 1/lifeYr;                                            // 资本回收系数
   const capexAnnual= capexWan*crf;                           // 万元/年 年CAPEX摊销
   const omAnnual   = capexWan*omRate;                        // 万元/年 年运维
-  const stackAnnual= capexWan*stackCostR/stackCycle;         // 万元/年 电堆更换摊销
+  /* 电堆更换必须按项目寿命封顶：首次更换发生在第 stackCycle 年，第 k 次在第 k·stackCycle 年，
+     只有落在项目期内的更换才计入投资 → nRepl = ceil(life / cycle) − 1
+     （默认 15 年 / 8 年 → 1 次；旧口径按 15/8 = 1.875 次摊提，会系统性高估） */
+  const nRepl      = Math.max(0, Math.ceil(lifeYr/stackCycle)-1);
+  const stackAnnual= capexWan*stackCostR*nRepl/lifeYr;       // 万元/年 电堆更换摊销（按寿命封顶）
   const totalAnnual= capexAnnual+omAnnual+stackAnnual+aCostWan;  // 万元/年 年总成本
   const lcoh       = aH2Kg>0 ? totalAnnual*10000/aH2Kg : 0;  // 元/kg 综合氢成本
   const elecShare  = totalAnnual>0 ? aCostWan/totalAnnual*100 : 0;  // % 电费占比
 
   return {
-    st:{I, Vstack, Pstack, nH2th, nH2, nO2, etaHHV, etaLHV, Qheat, PH2_HHV, PH2_LHV,
+    st:{I, Vstack, Pstack, nH2th, nH2, nO2, etaHHV, etaLHV, Qheat:QheatRaw, QheatDis:Qheat,
+        PH2_HHV, PH2_LHV,
         mH2kgh, vH2, vO2, Vcell, N, etaF, vEtaF,
         Vrev:polV.Vrev, etaAct:polV.etaAct, etaOhm:polV.etaOhm, asr:polV.asr, vSource},
-    wt:{mWaterNetKgh, mHeatWater: mHeatWater*3600, mCircKgh, Vcirc, circRatio, roFeedKgh, dTw},
+    wt: siz ? siz.wt : wtSnap,
     gs:{vH2Pro, vH2Loss, PH2b, PO2b, dP, dpLim, h2WaterKgh, o2WaterKgh, liqRecover, sepEff, purifRec,
         pSat, h2VapR, o2VapR, h2InO2, o2InH2},
-    hx:{Qheat, Thi, Tho, Tci, Tco, dt1, dt2, cross, lmtd, K, Acalc, Aneed, Nplate, Agot,
-        nHotCh, nColdCh, uHot, uCold, ReHot, ReCold, dpHot, dpCold, Vcirc, Vcold, mCold},
-    pw:{I, Vstack, Pstack, Prect, P_pump, P_cpump, P_fan, P_purif, bopTotal, Psys,
-        etaSysHHV, etaSysLHV, kWhKg, kWhNm3, Vair,
+    hx: hxSel,
+    pw:{I: pwSel.I, Vstack: pwSel.Vstack, Pstack: pwSel.Pstack, Prect: pwSel.Prect,
+        P_pump: pwSel.P_pump, P_cpump: pwSel.P_cpump, P_fan: pwSel.P_fan, P_purif: pwSel.P_purif,
+        bopTotal: pwSel.bopTotal, Psys: pwSel.Psys, Vair: pwSel.Vair,
+        PstackBol: Pstack, PsysBol: Psys, PsysSel, VcellSel: VcellEnd, VcellBol: Vcell,
+        etaSysHHV, etaSysLHV, kWhKg, kWhNm3, mH2ProKgh, vH2Pro,
         eqFullH, aH2Kg, aH2Nm3, aKWh, h2CostKg, aCostWan,
         degRate, dvPerYear, dvCycle, VcellEnd, VcellAvg, PsysAnnual, avgKWhKg, avgCostKg,
         unitInvest, capexWan, discRate, lifeYr, omRate, stackCycle, stackCostR, crf,
-        capexAnnual, omAnnual, stackAnnual, totalAnnual, lcoh, elecShare}
+        capexAnnual, omAnnual, stackAnnual, totalAnnual, lcoh, elecShare, nRepl}
   };
 }
 
@@ -6324,7 +6471,7 @@ function calcPem(vcellOv, jOv, clampHeat){
    ① 部分负荷曲线：在「周期内平均单体电压」口径下扫描若干负荷点，得到每小时耗电 Psys(x) 与
       产氢 mH2(x)。低负荷时 BOP 占比升高、法拉第效率按互窜量下降，故电能单耗 kWh/kg 变差——
       这就是「部分负荷的代价」，也是「最小负荷」存在的经济理由（安全理由见 ②）。
-   ② 最小负荷：在 j ∈ (0, j_design] 上二分，找「氢中氧 = 目标 vol%」的电流密度。氢中氧随 j
+   ② 最小负荷：在 j ∈ (0, j_design] 上二分，找「氧中氢 = 目标 vol%」的电流密度。氧中氢随 j
       单调下降（窜气量恒定、主气流随 j 变小），二分必然收敛；该约束由安全边界推出，非拍脑袋。
    ③ 风光序列：按「装机 × 容量系数」确定性合成（固定种子，保证渲染可复现），或由用户粘贴覆盖。 */
 const PEM_LOAD_PTS = [0.05, 0.15, 0.3, 0.5, 0.7, 0.85, 1.0];   // 负荷率取样点
@@ -6341,9 +6488,10 @@ function pemLoadCurve(){
     const j  = jd*x;
     const cv = pemCellVoltageCurve(j, gi('pemOpTemp'), gi('pemH2Pressure'), gi('pemO2Pressure'));
     const Vc = (cv.V>0 ? cv.V : base.st.Vcell) + dvInc;
-    const r  = calcPem(Vc, j, true);        // clampHeat：低负荷吸热时不产生负流量/负泵功
-    return { x, j, Vcell:Vc, Psys:r.pw.Psys, mH2:r.st.mH2kgh,
-             kWhKg: r.st.mH2kgh>0 ? r.pw.Psys/r.st.mH2kgh : 0,
+    const r  = calcPem(Vc, j);
+    const mPro = r.st.mH2kgh*gi('pemPurifRecovery')/100;   // 产品氢（纯化后）
+    return { x, j, Vcell:Vc, Psys:r.pw.Psys, mH2:r.st.mH2kgh, mH2Pro:mPro,
+             kWhKg: mPro>0 ? r.pw.Psys/mPro : 0,
              h2InO2:r.gs.h2InO2, etaF:r.st.etaF };
   });
   return { pts, jd, base };
@@ -6351,27 +6499,39 @@ function pemLoadCurve(){
 /* 部分负荷曲线按负荷率插值（超端点取端点） */
 function pemCurveAt(c, x){
   const p = c.pts;
-  if(!(x>0) || !p.length) return { Psys:0, mH2:0, kWhKg:0 };
+  if(!(x>0) || !p.length) return { Psys:0, mH2:0, mH2Pro:0, kWhKg:0 };
   if(x<=p[0].x) return p[0];
   if(x>=p[p.length-1].x) return p[p.length-1];
   let i=0; while(i<p.length-2 && x>p[i+1].x) i++;
   const a=p[i], b=p[i+1], w=(x-a.x)/Math.max(1e-9, b.x-a.x);
   return { Psys:a.Psys+w*(b.Psys-a.Psys), mH2:a.mH2+w*(b.mH2-a.mH2),
+           mH2Pro:a.mH2Pro+w*(b.mH2Pro-a.mH2Pro),
            kWhKg:a.kWhKg+w*(b.kWhKg-a.kWhKg) };
 }
-/* 最小负荷（负荷率 0~1）：输入非 0 直接取输入，否则由「氢中氧 ≤ 目标 vol%」反推 */
+/* 最小负荷（负荷率 0~1）：先由「氧中氢 ≤ 目标 vol%」算出安全下限；
+   输入非 0 时取输入值，但若低于安全下限则标 bad，由面板给出警告 */
 function pemMinLoadX(){
   const manual = gi('pemMinLoad');
-  if(manual>0) return { x:Math.min(1, manual/100), src:'手动覆盖' };
   const target = Math.max(0.001, gi('pemH2InO2Lim'));
   const jd = Math.max(1e-6, gi('pemCurrentDensity'));
-  if(calcPem().gs.h2InO2 > target) return { x:1, src:'满负荷即超限', bad:true };
+  if(calcPem().gs.h2InO2 > target){          // 满负荷就已超限：无可用运行区间
+    if(manual>0) return { x:Math.min(1,manual/100), safeX:1, src:'满负荷即超限（手动覆盖）', bad:true };
+    return { x:1, safeX:1, src:'满负荷即超限', bad:true };
+  }
   let lo = jd*1e-4, hi = jd;
   for(let i=0;i<36;i++){
     const mid = (lo+hi)/2;
     if(calcPem(0, mid).gs.h2InO2 > target) lo = mid; else hi = mid;
   }
-  return { x: Math.min(1, Math.max(0, hi/jd)), j:hi, src:'氢中氧≤'+F2(target)+' vol% 反推' };
+  const safeX = Math.min(1, Math.max(0, hi/jd));
+  if(manual>0){
+    const mx = Math.min(1, manual/100);
+    const below = mx < safeX - 1e-9;
+    return { x:mx, j:hi, safeX,
+             src: below ? ('手动 '+F1(manual)+'% 低于安全值') : '手动覆盖',
+             bad: below };
+  }
+  return { x: safeX, j:hi, safeX, src:'氧中氢≤'+F2(target)+' vol% 反推' };
 }
 /* 风光逐时出力（kW）：粘贴优先；否则按「装机 × 8760 × 容量系数」合成并归一化 */
 function pemGenSeries(){
@@ -6425,7 +6585,8 @@ function mulberry32(a){
     return ((t ^ t>>>14) >>> 0) / 4294967296;
   };
 }
-/* 单个小时在出力倍率 x 下的费用与产氢（纯离网时不允许超过可用风光） */
+/* 单个小时在出力倍率 x 下的费用与产氢（纯离网时不允许超过可用风光）
+   h2 为「产品氢」：与 LCOH、电能单耗的分母口径一致 */
 function pemHourOpt(t, x, ctx){
   if(!(x>0)) return { ok:true, cost:0, h2:0, psys:0 };
   const c = pemCurveAt(ctx.curve, x);
@@ -6433,9 +6594,11 @@ function pemHourOpt(t, x, ctx){
   if(!ctx.gridOn && c.Psys > ctx.gen[t]+1e-9) return { ok:false, cost:0, h2:0, psys:0 };
   const self = Math.min(ctx.gen[t], c.Psys);
   const buy  = ctx.gridOn ? Math.max(0, c.Psys-self) : 0;
-  return { ok:true, cost: ctx.cGen*self + ctx.p[t]*buy, h2:c.mH2, psys:c.Psys };
+  return { ok:true, cost: ctx.cGen*self + ctx.p[t]*buy, h2:c.mH2Pro, psys:c.Psys };
 }
-/* 逐时出力序列 → 年度聚合 */
+/* 逐时出力序列 → 年度聚合
+   kg  = Σ 产品氢（纯化后）
+   kWh = Σ 系统输入功率（含整流 + BOP 辅电，非电堆直流功率）——用户确认的年度电量口径 */
 function pemAggregate(x, ctx){
   let kg=0, kWh=0, cost=0, curt=0, starts=0, eqH=0, runH=0, prev=false;
   for(let t=0;t<8760;t++){
@@ -6549,7 +6712,9 @@ function pemOptimize(ctx){
   const cand = t => {
     const list = [0, ctx.xmin];
     const g = ctx.gen[t];
-    if(g>0){ const xg = Math.min(1, g/ctx.Pmax); if(xg>=ctx.xmin) list.push(xg); }
+    /* 用「反查部分负荷曲线」而非线性 g/Pmax：Psys(x) 的 BOP 底使 Psys(x) > x·Pmax，
+       线性近似会把该候选点判为不可行（纯离网时尤其明显），从而丢掉部分负荷解 */
+    if(g>0){ const xg = Math.min(1, ctx.xForPsys(g)); if(xg>=ctx.xmin) list.push(xg); }
     list.push(1);
     return list;
   };
@@ -6874,7 +7039,7 @@ function pemSet(id, lines, tips, lhIn){
     + '<div class="tb-name">PEM电解槽系统流程图</div>'
     + '<div class="tb-sub">PFD · PEM Water Electrolysis</div>'
     + '<div class="tb-line"></div>'
-    + '<div class="tb-row"><span>版本</span><span>V2.1</span></div>'
+    + '<div class="tb-row"><span>版本</span><span>V2.2</span></div>'
     + '<div class="tb-row"><span>日期</span><span>2026-10-20</span></div>'
     + '<button type="button" class="tb-ver" data-pemver="1" title="查看版本升级内容" aria-label="查看版本升级内容">?</button>'
     + '</div>';
@@ -6961,11 +7126,11 @@ function renderPem(){
     `电能单耗:<strong>${F2(pw.kWhKg)}</strong>kWh/kg`,
     `电能单耗:<strong>${F2(pw.kWhNm3)}</strong>kWh/Nm³`
   ],[
-    '辅机合计(kW) = 纯水循环泵 + 冷却水泵 + 冷却塔风机 + 纯化加热；各设备自身参数见其对应气泡',
-    '系统输入功率(kW) = 制氢电源输入功率 + 辅机合计',
-    '系统效率(HHV)(%) = 产品氢 HHV 功率 / 系统输入功率 × 100',
-    '电能单耗(kWh/kgH₂) = 系统输入功率 / 产氢质量流量(kg/h)',
-    '电能单耗(kWh/Nm³) = 系统输入功率 / 产氢体积流量(Nm³/h)；行业典型 4.5~5.5'
+    '辅机合计(kW) = 纯水循环泵 + 冷却水泵 + 冷却塔风机 + 纯化加热；按周期末单体电压（最恶劣工况）选型',
+    '系统输入功率(kW) = 制氢电源输入功率 + 辅机合计；此处为周期末选型容量，年耗电另按周期平均电压计算',
+    '系统效率(HHV)(%) = 产品氢 HHV 功率 / 系统输入功率 × 100；按寿命初期口径',
+    '电能单耗(kWh/kgH₂) = 系统输入功率 / 产品氢质量流量(kg/h)；分母为纯化后的产品氢，分子为寿命初期口径',
+    '电能单耗(kWh/Nm³) = 系统输入功率 / 产品氢流量(Nm³/h)；行业典型 4.5~5.5'
   ]);
   pemSet('water', [
     `反应净耗水:<strong>${F1(wt.mWaterNetKgh)}</strong>kg/h`,
@@ -6996,26 +7161,26 @@ function renderPem(){
   pemSet('h2', [
     `实际产氢:<strong>${F1(st.vH2)}</strong>Nm³/h`,
     `产氢质量:<strong>${F1(st.mH2kgh)}</strong>kg/h`,
-    `产品氢:<strong>${F1(gs.vH2Pro)}</strong>Nm³/h`,
+    `产品氢:<strong>${F1(gs.vH2Pro)}</strong>Nm³/h（${F1(pw.mH2ProKgh)} kg/h）`,
     `纯化损失:<strong>${F2(gs.vH2Loss)}</strong>Nm³/h`,
     `氢侧压力:<strong>${F1(gs.PH2b)}</strong>bar`,
     `纯度:<strong>${F0(gi('pemH2Purity'))}</strong>%`
   ],[
     '实际产氢(Nm³/h) = 理论产氢(mol/s) × 法拉第效率 × 22.414 × 3.6',
     '产氢质量(kg/h) = 实际产氢(mol/s) × 2.016 × 3.6',
-    '产品氢流量(Nm³/h) = 实际产氢 × 纯化回收率',
+    '产品氢流量(Nm³/h) = 实际产氢 × 纯化回收率；产品氢质量(kg/h) = 产氢质量 × 纯化回收率，是电能单耗与 LCOH 的分母',
     '纯化损失(Nm³/h) = 实际产氢 − 产品氢；含脱氧消耗与干燥再生吹扫损失',
     '氢气侧绝对压力(bar) = 输入参数「氢气侧压力」；高压产氢可直接对接储氢，省去压缩机',
     '产品氢纯度(%) = 输入参数「产品氢纯度」'
   ]);
   pemSet('hx', [
-    `热负荷:<strong>${F1(hx.Qheat)}</strong>kW`,
+    `热负荷:<strong>${F1(hx.Qheat)}</strong>kW` + (hx.QheatRaw<0 ? `（吸热 ${F1(-hx.QheatRaw)} kW，需外部加热）` : ''),
     `LMTD:<strong>${F1(hx.lmtd)}</strong>℃`,
     `计算面积:<strong>${F2(hx.Acalc)}</strong>m²`,
     `板片数:<strong>${F0(hx.Nplate)}</strong>片`,
     `热侧压降:<strong>${F2(hx.dpHot/1000)}</strong>kPa`
   ],[
-    `热负荷(kW) = 直流功率 × (单体电压 − 热中性电压1.481)/单体电压；单体电压高于1.481V即持续放热`,
+    `热负荷(kW) = 直流功率 × (单体电压 − 热中性电压1.481)/单体电压；按「周期末单体电压」选型计算（电压最高 → 废热最大 → 面积与流量最保守）。已钳位到 0：吸热工况（单体电压低于1.481V）不产生负流量与负泵功，另在括号内标出吸热量`,
     '对数平均温差(℃)：逆流布置，端差取 (纯水进口−冷却水出口) 与 (纯水出口−冷却水进口)',
     '计算面积(m²) = 热负荷×1000/(传热系数K × LMTD)',
     '板片数(片) = 计算面积×(1+裕度)/单板面积 + 1，向上取整并取偶数',
@@ -7063,14 +7228,14 @@ function renderPem(){
     `直流电压:<strong>${F0(st.Vstack)}</strong>V`,
     `直流功率:<strong>${F1(st.Pstack)}</strong>kW`,
     `电堆效率(HHV):<strong>≈${F1(st.etaHHV)}</strong>%`,
-    `反应产热:<strong>${F1(st.Qheat)}</strong>kW`
+    `反应产热:<strong>${F1(st.Qheat)}</strong>kW` + (st.Qheat<0 ? '（吸热，需外部加热）' : '')
   ],[
     '单体电压(V) = V_rev + η_act + η_ohm，由电流密度 j、温度 T 与氢氧压力解算；来源为极化曲线时由曲线求取，输入值非 0 时为手动覆盖',
     '电解槽节数 = 输入参数「电解槽节数」（单体串联数）；电压逐节累加、各节电流相同',
     '直流电压(V) = 单体电压(V) × 电解槽节数',
-    '直流功率(kW) = 直流电流(A) × 直流电压(V) / 1000',
+    '直流功率(kW) = 直流电流(A) × 直流电压(V) / 1000；此处为寿命初期（BOL）值，设备选型用的周期末（EOL）值见「系统功率汇总」',
     '电堆效率(HHV)(%) = HHV热中性电压1.481V / 单体电压 × 100；基于高热值口径',
-    '反应产热(kW) = 直流功率 × (单体电压 − 热中性电压1.481)/单体电压；单体电压高于1.481V即持续放热'
+    '反应产热(kW) = 直流功率 × (单体电压 − 热中性电压1.481)/单体电压；单体电压高于1.481V即持续放热，低于1.481V为吸热（需外部加热）。此处为寿命初期口径；换热器与辅机按周期末选型值计算'
   ], 14);
 
   /* --- 计算面板 --- */
@@ -7091,10 +7256,11 @@ function renderPem(){
   document.getElementById('pem-gas-results').innerHTML = [
     ['理论产氢(mol/s)',    F3(st.nH2th), false, '理论产氢 = 电流(A)×节数/(2×96485)；法拉第定律'],
     ['实际产氢(mol/s)',    F3(st.nH2),   false, '实际产氢 = 理论产氢 × 法拉第效率'],
-    ['法拉第效率(%)',      F2(st.etaF)+'（'+st.vEtaF+'）', false, '法拉第效率 η_F = 1 − 2·i_x/j（由互窜量反推）：i_x = 膜氢氧互窜电流密度、j = 电流密度。负荷越低 → i_x/j 越大 → η_F 越低（窜气占比上升），与「氢中氧浓度」同步恶化；输入参数「法拉第效率」非 0 时为手动覆盖'],
+    ['法拉第效率(%)',      F2(st.etaF)+'（'+st.vEtaF+'）', false, '法拉第效率 η_F = 1 − 2·i_x/j（由互窜量反推）：i_x = 膜氢氧互窜电流密度、j = 电流密度。负荷越低 → i_x/j 越大 → η_F 越低（窜气占比上升），与「氧中氢浓度」同步恶化；输入参数「法拉第效率」非 0 时为手动覆盖'],
     ['产氢流量(Nm³/h)',    F1(st.vH2),  false, '产氢流量 = 实际产氢(mol/s)×22.414×3.6'],
     ['产氢质量(kg/h)',     F1(st.mH2kgh), false, '产氢质量 = 实际产氢(mol/s)×2.016×3.6'],
-    ['产品氢流量(Nm³/h)',  F1(gs.vH2Pro), false, '产品氢 = 产氢流量 × 纯化回收率'],
+    ['产品氢流量(Nm³/h)',  F1(gs.vH2Pro), false, '产品氢 = 产氢流量 × 纯化回收率；其质量流量 = 产氢质量 × 纯化回收率，是电能单耗与 LCOH 的分母'],
+    ['产品氢质量(kg/h)',   F2(pw.mH2ProKgh), false, '产品氢质量 = 产氢质量(kg/h) × 氢气纯化回收率；经济性核算按交付的产品氢计，纯化损失不摊入分母'],
     ['纯化损失(Nm³/h)',    F2(gs.vH2Loss), false, '纯化损失 = 产氢流量 − 产品氢流量'],
     ['产品氢纯度(%)',      F0(gi('pemH2Purity'))+' (≥99.999 目标)', false, '纯化后产品氢纯度目标（脱氧 + 干燥后）'],
     ['理论产氧(Nm³/h)',    F1(st.vO2),   false, '理论产氧 = 理论产氢/2 × 22.414 × 3.6；阳极 OER 反应'],
@@ -7107,12 +7273,12 @@ function renderPem(){
     ['氧侧压力(bar)',      F1(gs.PO2b),  false, '氧气侧绝对压力 = 输入参数「氧气侧压力」'],
     ['氢氧压差(bar)',      F2(gs.dP)+' / 限值 '+F2(gs.dpLim), gs.dP>gs.dpLim, '氢氧压差 = |氢侧压力 − 氧侧压力|；超限将导致膜击穿、氢氧互窜'],
     ['压差校核',           gs.dP>gs.dpLim?'超限 ✗ 需调整压力或加装差压联锁':'合格 ✓', gs.dP>gs.dpLim, '设计要求 |P_H₂ − P_O₂| ≤ 氢氧压差限值，并设置软件+硬件+机械三重保护'],
-    ['氢中氧浓度(vol%)',   F3(gs.h2InO2)+' (报警 2 / 联锁 4)', gs.h2InO2>=2, '氢中氧浓度 = 膜氢氧互窜量/(产氧量+互窜量)×100；互窜量由输入「膜氢氧互窜电流密度」决定：≥2 vol% 报警、≥4 vol%（爆炸下限）立即联锁停车'],
-    ['氧中氢浓度(vol%)',   F3(gs.o2InH2)+' (报警 2)',          gs.o2InH2>=2, '氧中氢浓度 = 膜氧窜氢量/(产氢量+互窜量)×100；≥2 vol% 报警并停车，判断膜是否泄漏']
+    ['氧中氢浓度(vol%)',   F3(gs.h2InO2)+' (报警 2 / 联锁 4)', gs.h2InO2>=2, '氧中氢浓度（氧气侧含氢）= 膜氢氧互窜量/(产氧量+互窜量)×100；互窜量由输入「膜氢氧互窜电流密度」决定：≥2 vol% 报警、≥4 vol%（氢的爆炸下限）立即联锁停车'],
+    ['氢中氧浓度(vol%)',   F3(gs.o2InH2)+' (报警 2)',          gs.o2InH2>=2, '氢中氧浓度（氢气侧含氧，纯化前粗氢）= 膜氧窜氢量/(产氢量+互窜量)×100；≥2 vol% 报警并停车，用于判断膜是否泄漏。注意这是膜完整性指标，不是产品氢的氧杂质（产品氢要求 ppm 级）']
   ].map(a=>row(a[0],a[1],a[2],a[3])).join('');
 
   document.getElementById('pem-hx-results').innerHTML = [
-    ['热负荷 Q(kW)',        F1(hx.Qheat), false, '热负荷 = 直流功率 × (单体电压 − 1.481)/单体电压；1.481V 为 HHV 热中性电压'],
+    ['热负荷 Q(kW)',        F1(hx.Qheat), false, '热负荷 = 直流功率 × (单体电压 − 1.481)/单体电压；按「周期末单体电压」选型计算。1.481V 为 HHV 热中性电压。已钳位到 0：吸热工况（单体电压<1.481V）不产生负流量/负泵功/负面积，吸热量见电堆气泡'],
     ['热侧(纯水)进口(℃)',  F1(hx.Thi),   false, '纯水进口温度 = 电解槽工作温度'],
     ['热侧(纯水)出口(℃)',  F1(hx.Tho),   false, '纯水出口温度 = 工作温度 − 纯水侧温差'],
     ['冷侧(冷却水)进口(℃)',F1(hx.Tci),   false, '冷却水进口温度 = 输入参数「冷却水进口温度」'],
@@ -7142,34 +7308,35 @@ function renderPem(){
     ['单体电压('+st.vSource+')(V)', F3(st.Vcell), false, '单体电压 = V_rev + η_act + η_ohm，由电流密度 j、温度 T 与氢氧压力解算；若输入「单体电压」非 0 则直接采用该值（手动覆盖，不再走曲线）'],
     ['系统电化学效率 (HHV)(%)', F1(etaHHVv(r)), false, '基于高热值：效率 = 1.481V/单体电压；1.481V 为水的 HHV 热中性电压'],
     ['系统电化学效率 (LHV)(%)', F2(st.etaLHV), false, '基于低热值：效率 = 1.254V/单体电压'],
-    ['电解槽直流功率(kW)',   F1(st.Pstack), false, '直流功率 = 直流电流 × 直流电压 / 1000'],
+    ['电解槽直流功率(kW)',   F1(pw.Pstack), false, '直流功率 = 直流电流 × 直流电压 / 1000；按周期末单体电压计算（选型），寿命初期为 '+F1(st.Pstack)+' kW'],
     ['制氢电源输入功率(kW)', F1(pw.Prect),  false, '电源输入 = 直流功率 / 制氢电源效率'],
     ['纯水循环泵(kW)',       F2(pw.P_pump), false, '泵功率 = ρgH·Q/η'],
     ['冷却水泵(kW)',         F2(pw.P_cpump),false, '泵功率 = ρgH·Q/η'],
     ['冷却塔风机(kW)',       F2(pw.P_fan),  false, '风机 = 全压 × 风量 / 效率；风量由废热与空气温升求得'],
     ['纯化加热(kW)',         F2(pw.P_purif),false, '纯化加热 = 直流功率 × 纯化加热占比'],
     ['辅机合计(kW)',         F2(pw.bopTotal), false, '辅机合计 = 纯水循环泵 + 冷却水泵 + 通风机 + 纯化加热'],
-    ['系统输入功率(kW)',     F1(pw.Psys),   false, '系统输入 = 制氢电源输入 + 辅机合计'],
-    ['系统效率 (HHV)(%)',    F1(pw.etaSysHHV), false, '系统效率 = 产品氢 HHV 功率 / 系统输入功率'],
-    ['系统效率 (LHV)(%)',    F1(pw.etaSysLHV), false, '系统效率 = 产品氢 LHV 功率 / 系统输入功率'],
-    ['电能单耗(kWh/kgH₂)',   F2(pw.kWhKg),  false, '电能单耗 = 系统输入功率 / 产氢质量流量(kg/h)'],
-    ['电能单耗(kWh/Nm³)',    F2(pw.kWhNm3), false, '电能单耗 = 系统输入功率 / 产氢流量(Nm³/h)；行业典型 4.5~5.5'],
-    ['平均电能单耗(kWh/kg)', F2(pw.avgKWhKg), false, '平均电能单耗 = 年耗电量 / 年制氢量；按电堆更换周期内平均单体电压复算，已含电压衰减，故高于寿命初期电能单耗。用于与 LCOH 的电费项对照'],
-    ['平均氢气电费成本(元/kg)', F2(pw.avgCostKg), false, '平均氢气电费成本 = 年电费 / 年制氢量 = 平均电能单耗 × 电价；已含电压衰减。在电费固定成本口径下，它与 LCOH 的电费部分一致，而「氢气电费成本」为寿命初期口径'],
+    ['系统输入功率(kW)',     F1(pw.Psys),   false, '系统输入 = 制氢电源输入 + 辅机合计；按周期末单体电压选型（额定容量）'],
+    ['系统效率 (HHV)(%)',    F1(pw.etaSysHHV), false, '系统效率 = 产品氢 HHV 功率 / 系统输入功率（按寿命初期口径）'],
+    ['系统效率 (LHV)(%)',    F1(pw.etaSysLHV), false, '系统效率 = 产品氢 LHV 功率 / 系统输入功率（按寿命初期口径）'],
+    ['电能单耗(kWh/kgH₂)',   F2(pw.kWhKg),  false, '电能单耗 = 系统输入功率(寿命初期) / 产品氢质量流量(kg/h)；分母为纯化后的产品氢，与 LCOH 分母一致'],
+    ['电能单耗(kWh/Nm³)',    F2(pw.kWhNm3), false, '电能单耗 = 系统输入功率(寿命初期) / 产品氢流量(Nm³/h)；行业典型 4.5~5.5'],
+    ['平均电能单耗(kWh/kg)', F2(pw.avgKWhKg), false, '平均电能单耗 = 年耗电量 / 年产品氢量；年耗电量为系统输入（含整流与 BOP 辅电），按电堆更换周期内平均单体电压复算，已含电压衰减'],
+    ['平均氢气电费成本(元/kg)', F2(pw.avgCostKg), false, '平均氢气电费成本 = 年电费 / 年产品氢量 = 平均电能单耗 × 电价；已含电压衰减。在电费固定成本口径下，它与 LCOH 的电费部分一致，而「氢气电费成本」为寿命初期口径'],
     ['等效满负荷小时数(h)',  F0(pw.eqFullH), false, '等效满负荷小时数 = 年运行小时数 × 平均负荷率/100；把变负荷运行折算为满负荷小时数，供下述年量核算'],
     ['电压衰减率(µV/h·节)',  F1(pw.degRate), false, '电压衰减率 = 输入参数「电压衰减率」。5 µV/(h·节) 在 1.85 V 下约合 0.27 %/1000 h；PEM 文献典型 2~20 µV/h'],
     ['更换周期内电压上升(V/节)', F3(pw.dvCycle), false, '电压上升 = 衰减率(µV/h·节) × 等效满负荷小时数 × 更换周期 / 1e6；按线性衰减假设，仅计入运行小时'],
     ['周期末单体电压(V)',    F3(pw.VcellEnd), false, '周期末单体电压 = 寿命初期单体电压 + 更换周期内电压上升；用于核对是否已到电堆寿命末期判据'],
     ['衰减后平均单体电压(V)',F3(pw.VcellAvg), false, '周期内平均单体电压 = 寿命初期单体电压 + 周期内电压上升/2；年耗电按此电压复算整条链路'],
-    ['年制氢量(kg)',         F0(pw.aH2Kg),  false, '年制氢量(kg) = 产氢质量流量(kg/h) × 等效满负荷小时数'],
-    ['年制氢量(Nm³)',        F0(pw.aH2Nm3), false, '年制氢量(Nm³) = 产氢体积流量(Nm³/h) × 等效满负荷小时数'],
-    ['年耗电量(kWh)',        F0(pw.aKWh),   false, '年耗电量(kWh) = 系统输入功率(kW) × 等效满负荷小时数；此处的系统输入功率按「更换周期内平均单体电压」复算，已含电压衰减（对应年运行平均功率 '+F1(pw.PsysAnnual)+' kW）'],
+    ['年制氢量(kg)',         F0(pw.aH2Kg),  false, '年产品氢量(kg) = 产品氢质量流量(kg/h) × 等效满负荷小时数（纯化后口径）'],
+    ['年制氢量(Nm³)',        F0(pw.aH2Nm3), false, '年产品氢量(Nm³) = 产品氢体积流量(Nm³/h) × 等效满负荷小时数'],
+    ['年耗电量(kWh)',        F0(pw.aKWh),   false, '年耗电量(kWh) = 系统输入功率(kW) × 等效满负荷小时数；系统输入含整流与 BOP 辅电（非电堆直流功率），并按「更换周期内平均单体电压」复算、已含电压衰减（对应年运行平均功率 '+F1(pw.PsysAnnual)+' kW）'],
     ['氢气电费成本(元/kg)',  F2(pw.h2CostKg), false, '氢气电费成本(元/kg) = 电能单耗(kWh/kg) × 电价(元/kWh)；设计点（寿命初期）口径，与运行小时数无关、不含设备折旧与运维；含衰减的年平均口径见「平均氢气电费成本」'],
     ['年电费(万元)',         F2(pw.aCostWan), false, '年电费(万元) = 年耗电量(kWh) × 电价(元/kWh) / 10000；年耗电量已按平均单体电压计入电压衰减'],
-    ['年CAPEX摊销(万元/年)', F1(pw.capexAnnual), false, '年CAPEX摊销 = 总投资 × CRF；总投资(万元) = 系统输入功率(kW) × 单位投资(元/kW) / 10000；CRF = i(1+i)^n/[(1+i)^n−1]，i 为折现率、n 为项目寿命'],
-    ['年运维与更换(万元/年)',F1(pw.omAnnual+pw.stackAnnual), false, '年运维 = 总投资 × 年运维费率；年更换摊销 = 总投资 × 电堆更换成本占比 / 电堆更换周期'],
+    ['年CAPEX摊销(万元/年)', F1(pw.capexAnnual), false, '年CAPEX摊销 = 总投资 × CRF；总投资(万元) = 周期末选型系统输入功率('+F1(pw.PsysSel)+' kW) × 单位投资(元/kW) / 10000；CRF = i(1+i)^n/[(1+i)^n−1]，i 为折现率、n 为项目寿命'],
+    ['年运维与更换(万元/年)',F1(pw.omAnnual+pw.stackAnnual), false, '年运维 = 总投资 × 年运维费率；年更换摊销 = 总投资 × 电堆更换成本占比 × 更换次数 ÷ 项目寿命，'
+      +'更换次数按寿命封顶：nRepl = ceil(项目寿命/更换周期) − 1（默认 '+F0(pw.nRepl)+' 次）'],
     ['年总成本(万元/年)',    F1(pw.totalAnnual), false, '年总成本 = 年CAPEX摊销 + 年运维 + 电堆更换摊销 + 年电费（不含人工与并网等其他费用）'],
-    ['综合氢成本 LCOH(元/kg)', F2(pw.lcoh), false, 'LCOH = 年总成本(万元) × 10000 / 年制氢量(kg)；随利用率变化：固定成本靠年制氢量摊薄，故 LCOH 不等同于与运行小时无关的「氢气电费成本」'],
+    ['综合氢成本 LCOH(元/kg)', F2(pw.lcoh), false, 'LCOH = 年总成本(万元) × 10000 / 年产品氢量(kg)；随利用率变化：固定成本靠年产品氢量摊薄，故 LCOH 不等同于与运行小时无关的「氢气电费成本」'],
     ['电费占比(%)',          F1(pw.elecShare), false, '电费占比 = 年电费 / 年总成本 × 100；衡量电价对综合氢成本的敏感度'],
     ['理论最低电耗(kWh/kg)', F1(LHV_KWH_KG)+' (LHV) / '+F1(HHV_KWH_KG)+' (HHV)', false, '氢的 LHV=33.33 kWh/kg、HHV=39.41 kWh/kg，为电耗理论下限'],
     ['冷却塔空气流量(m³/h)', F0(pw.Vair),   false, '空气流量 = 废热×3600/(空气定压比热 × 空气温升)/空气密度'],
@@ -7193,12 +7360,13 @@ function renderTables(){
     /* foreignObject 内 SVG <title> 无效，故此处用 HTML title 属性（悬停显示公式） */
     const ta = tip => ' title="'+esc(tip)+'"';
     t.innerHTML =
-      '<div class="pfd-pow-head">系统功率汇总</div>'
-      + '<div class="pfd-pow-row"'+ta('单体电压 = V_rev + η_act + η_ohm，由电流密度 j、温度 T 与氢氧压力解算；来源为极化曲线时由曲线求取，输入值非 0 时为手动覆盖')+'><span>单体电压（'+st.vSource+'）</span><span>'+F2(st.Vcell)+' V</span></div>'
+      '<div class="pfd-pow-head">系统功率汇总（周期末选型）</div>'
+      + '<div class="pfd-pow-row"'+ta('选型工况的单体电压 = 寿命初期电压 + 更换周期内电压上升；换热器、泵、风机与系统容量均按此值选型（最恶劣工况），年耗电另按周期平均电压计算')+'><span>单体电压（周期末）</span><span>'+F2(pw.VcellSel)+' V</span></div>'
+      + '<div class="pfd-pow-row"'+ta('寿命初期（BOL）单体电压，用于电化学与极化曲线展示')+'><span>单体电压（初期）</span><span>'+F2(pw.VcellBol)+' V</span></div>'
       + '<div class="pfd-pow-row"'+ta('电解槽节数 = 输入参数「电解槽节数」（单体串联数）；电压逐节累加、各节电流相同')+'><span>电解槽节数</span><span>'+F0(st.N)+' 节</span></div>'
       + '<div class="pfd-pow-row"'+ta('直流电流 = 反应面积(cm²) × 电流密度(A/cm²)；全槽串联，各节电流相同')+'><span>直流电流</span><span>'+F0(st.I)+' A</span></div>'
-      + '<div class="pfd-pow-row"'+ta('直流电压 = 单体电压 × 电解槽节数')+'><span>直流电压</span><span>'+F0(st.Vstack)+' V</span></div>'
-      + '<div class="pfd-pow-row pfd-pow-group"'+ta('直流功率 = 直流电流 × 直流电压 / 1000（毛功率，未扣辅机）')+'><span>电解槽直流功率</span><span>'+F1(st.Pstack)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('直流电压 = 单体电压 × 电解槽节数（周期末选型）')+'><span>直流电压</span><span>'+F0(pw.Vstack)+' V</span></div>'
+      + '<div class="pfd-pow-row pfd-pow-group"'+ta('直流功率 = 直流电流 × 直流电压 / 1000；按周期末单体电压计算（毛功率，未扣辅机）')+'><span>电解槽直流功率</span><span>'+F1(pw.Pstack)+' kW</span></div>'
       + '<div class="pfd-pow-row"'+ta('电源输入 = 直流功率 / 制氢电源效率')+'><span>制氢电源输入</span><span>'+F1(pw.Prect)+' kW</span></div>'
       + '<div class="pfd-pow-row"'+ta('泵功率 = ρgH·Q/η；Q 为纯水循环流量，H 为泵压头，η 为泵效率')+'><span>纯水循环泵</span><span>'+F2(pw.P_pump)+' kW</span></div>'
       + '<div class="pfd-pow-row"'+ta('泵功率 = ρgH·Q/η；Q 为冷却水循环流量，H 为泵压头，η 为泵效率')+'><span>冷却水泵</span><span>'+F2(pw.P_cpump)+' kW</span></div>'
@@ -7206,9 +7374,9 @@ function renderTables(){
       + '<div class="pfd-pow-row"'+ta('纯化加热 = 直流功率 × 纯化加热占比')+'><span>纯化加热</span><span>'+F2(pw.P_purif)+' kW</span></div>'
       + '<div class="pfd-pow-row pfd-pow-group"'+ta('辅机合计 = 纯水循环泵 + 冷却水泵 + 冷却塔风机 + 纯化加热')+'><span>辅机合计</span><span>'+F2(pw.bopTotal)+' kW</span></div>'
       + '<div class="pfd-pow-row pfd-pow-sys"'+ta('系统输入 = 制氢电源输入 + 辅机合计')+'><span>系统输入功率</span><span>'+F1(pw.Psys)+' kW</span></div>'
-      + '<div class="pfd-pow-row"'+ta('产氢流量 = 实际产氢(mol/s)×22.414×3.6；实际产氢 = 理论产氢 × 法拉第效率')+'><span>产氢量</span><span>'+F1(st.vH2)+' Nm³/h</span></div>'
-      + '<div class="pfd-pow-row"'+ta('产氢质量 = 实际产氢(mol/s)×2.016×3.6')+'><span>产氢质量</span><span>'+F1(st.mH2kgh)+' kg/h</span></div>'
-      + '<div class="pfd-pow-row pfd-pow-sys"'+ta('电能单耗(kWh/kg) = 系统输入功率 / 产氢质量流量(kg/h)；kWh/Nm³ = 系统输入功率 / 产氢流量(Nm³/h)；行业典型 4.5~5.5')+'><span>电能单耗</span><span>'+F2(pw.kWhKg)+' kWh/kg</span></div>'
+      + '<div class="pfd-pow-row"'+ta('产品氢流量 = 实际产氢(mol/s)×22.414×3.6 × 纯化回收率；实际产氢 = 理论产氢 × 法拉第效率')+'><span>产品氢量</span><span>'+F1(pw.vH2Pro)+' Nm³/h</span></div>'
+      + '<div class="pfd-pow-row"'+ta('产氢质量 = 实际产氢(mol/s)×2.016×3.6；纯化前粗氢')+'><span>产氢质量（粗氢）</span><span>'+F1(st.mH2kgh)+' kg/h</span></div>'
+      + '<div class="pfd-pow-row pfd-pow-sys"'+ta('电能单耗(kWh/kg) = 系统输入功率 / 产品氢质量流量(kg/h)；kWh/Nm³ = 系统输入功率 / 产品氢流量(Nm³/h)；行业典型 4.5~5.5')+'><span>电能单耗</span><span>'+F2(pw.kWhKg)+' kWh/kg</span></div>'
       + '<div class="pfd-pow-row"'+ta('系统效率 = 产品氢 HHV 功率 / 系统输入功率；HHV 热中性电压 1.481 V')+'><span>系统效率(HHV)</span><span>'+F1(pw.etaSysHHV)+' %</span></div>';
   }
   const c = document.getElementById('pemCtlNote');
@@ -7220,8 +7388,8 @@ function renderTables(){
       '<div class="pn-head">控制与安全联锁</div>'
       + '<div class="pn-row"'+ta('氢氧压差 = |氢侧压力 − 氧侧压力|；设计要求 |P_H₂ − P_O₂| ≤ 氢氧压差限值，超限将导致膜击穿与氢氧互窜，须设置软件+硬件+机械三重保护')+'><span>氢氧压差</span><span class="pn-v '+(ok?'ok':'warn')+'">'+F2(gs.dP)+' bar / ≤'+F2(gs.dpLim)+'</span></div>'
       + '<div class="pn-row"'+ta('电解槽工作温度；限值 ≤85 ℃（过高会加速膜降解与催化剂溶解），推荐控制 60~80 ℃')+'><span>电解槽温度</span><span class="pn-v '+(tOK?'ok':'warn')+'">'+F1(gi('pemOpTemp'))+' ℃ / ≤85</span></div>'
-      + '<div class="pn-row"'+ta('氢中氧浓度 = 膜氢氧互窜量/(产氧量+互窜量)×100，互窜量由「膜氢氧互窜电流密度」决定；≥2 vol% 报警、≥4 vol% 立即联锁停车，4% 为氢的爆炸下限(LEL)')+'><span>氢中氧</span><span class="pn-v '+(gs.h2InO2<2?'ok':'warn')+'">'+F3(gs.h2InO2)+' vol%（2 报警 / 4 联锁）</span></div>'
-      + '<div class="pn-row"'+ta('氧中氢浓度 = 膜氧窜氢量/(产氢量+互窜量)×100；≥2 vol% 报警并停车，用于判断膜是否泄漏')+'><span>氧中氢</span><span class="pn-v '+(gs.o2InH2<2?'ok':'warn')+'">'+F3(gs.o2InH2)+' vol%（2 报警）</span></div>'
+      + '<div class="pn-row"'+ta('氧中氢浓度（氧气侧含氢）= 膜氢氧互窜量/(产氧量+互窜量)×100，互窜量由「膜氢氧互窜电流密度」决定；≥2 vol% 报警、≥4 vol% 立即联锁停车，4% 为氢的爆炸下限(LEL)')+'><span>氧中氢</span><span class="pn-v '+(gs.h2InO2<2?'ok':'warn')+'">'+F3(gs.h2InO2)+' vol%（2 报警 / 4 联锁）</span></div>'
+      + '<div class="pn-row"'+ta('氢中氧浓度（氢气侧含氧，纯化前粗氢）= 膜氧窜氢量/(产氢量+互窜量)×100；≥2 vol% 报警并停车，用于判断膜是否泄漏。注意这是膜完整性指标，不是产品氢的氧杂质（产品氢要求 ppm 级）')+'><span>氢中氧</span><span class="pn-v '+(gs.o2InH2<2?'ok':'warn')+'">'+F3(gs.o2InH2)+' vol%（2 报警）</span></div>'
       + '<div class="pn-row"'+ta('PEM 必须使用超纯水，电阻率 ≥18.2 MΩ·cm（25℃）；金属离子会毒化质子交换膜与催化剂导致电压升高，需在线监测电导率并再生混床')+'><span>纯水电阻率</span><span class="pn-v">≥18.2 MΩ·cm</span></div>'
       + '<div class="pn-row"'+ta('安全仪表功能等级 SIL2，联锁逻辑独立于主控 PLC/DCS；氢中氧/氧中氢、氢氧压差、系统超压、超温、冷却水断流、液位异常均须联锁停车')+'><span>安全等级</span><span class="pn-v">SIL2 · 独立于主控</span></div>';
   }
@@ -7232,11 +7400,11 @@ function renderTables(){
     ec.innerHTML =
       '<div class="pn-head">项目经济性（LCOH 综合氢成本）</div>'
       + '<div class="pn-row"'+ta('等效满负荷小时数 = 年运行小时数 × 平均负荷率/100；把变负荷运行折算为满负荷小时数，作为下述年量的核算基准')+'><span>等效满负荷小时数</span><span class="pn-v">'+F0(pw.eqFullH)+' h</span></div>'
-      + '<div class="pn-row"'+ta('年制氢量(kg) = 产氢质量流量(kg/h) × 等效满负荷小时数；年制氢量(Nm³) = 产氢体积流量(Nm³/h) × 等效满负荷小时数')+'><span>年制氢量</span><span class="pn-v">'+F1(pw.aH2Kg/1000)+' t（'+F0(pw.aH2Nm3)+' Nm³）</span></div>'
-      + '<div class="pn-row"'+ta('年耗电量(kWh) = 系统输入功率(kW) × 等效满负荷小时数；此处系统输入功率按「更换周期内平均单体电压」复算，已含电压衰减（平均功率 '+F1(pw.PsysAnnual)+' kW）')+'><span>年耗电量</span><span class="pn-v">'+F1(pw.aKWh/1000)+' MWh</span></div>'
-      + '<div class="pn-row"'+ta('氢气电费成本(元/kg) = 电能单耗(kWh/kg) × 电价(元/kWh)；设计点（寿命初期）口径，与运行小时数无关；含电压衰减的年平均口径为 '+F2(pw.avgCostKg)+' 元/kg')+'><span>氢气电费成本</span><span class="pn-v">'+F2(pw.h2CostKg)+' 元/kg</span></div>'
+      + '<div class="pn-row"'+ta('年产品氢量(kg) = 产品氢质量流量(kg/h) × 等效满负荷小时数（纯化后口径）；年产品氢量(Nm³) = 产品氢体积流量(Nm³/h) × 等效满负荷小时数')+'><span>年制氢量</span><span class="pn-v">'+F1(pw.aH2Kg/1000)+' t（'+F0(pw.aH2Nm3)+' Nm³）</span></div>'
+      + '<div class="pn-row"'+ta('年耗电量(kWh) = 系统输入功率(kW) × 等效满负荷小时数；系统输入含整流与 BOP 辅电（非电堆直流功率），并按「更换周期内平均单体电压」复算、已含电压衰减（平均功率 '+F1(pw.PsysAnnual)+' kW）')+'><span>年耗电量</span><span class="pn-v">'+F1(pw.aKWh/1000)+' MWh</span></div>'
+      + '<div class="pn-row"'+ta('氢气电费成本(元/kg) = 电能单耗(kWh/kg产品氢) × 电价(元/kWh)；设计点（寿命初期）口径，与运行小时数无关；含电压衰减的年平均口径为 '+F2(pw.avgCostKg)+' 元/kg')+'><span>氢气电费成本</span><span class="pn-v">'+F2(pw.h2CostKg)+' 元/kg</span></div>'
       + '<div class="pn-row"'+ta('年电费(万元) = 年耗电量(kWh) × 电价(元/kWh) / 10000；年耗电量已按更换周期内平均单体电压计入电压衰减')+'><span>年电费</span><span class="pn-v">'+F1(pw.aCostWan)+' 万元</span></div>'
-      + '<div class="pn-row"'+ta('LCOH = 年总成本(万元) × 10000 / 年制氢量(kg)。年总成本 = 年CAPEX摊销(总投资×CRF) + 年运维(总投资×运维费率) + 年更换摊销(总投资×电堆更换占比/更换周期) + 年电费（已含电压衰减）；总投资 = 系统输入功率(kW)×单位投资(元/kW)/10000；CRF = i(1+i)^n/[(1+i)^n−1]（默认 i=8%、n=15 年）。注意口径：LCOH 随年制氢量摊薄，与「氢气电费成本」口径不同，低利用率下 LCOH 更高')+'><span>综合氢成本 LCOH</span><span class="pn-v">'+F2(pw.lcoh)+' 元/kg</span></div>';
+      + '<div class="pn-row"'+ta('LCOH = 年总成本(万元) × 10000 / 年产品氢量(kg)。年总成本 = 年CAPEX摊销(总投资×CRF) + 年运维(总投资×运维费率) + 年更换摊销(总投资×电堆更换占比×更换次数/项目寿命) + 年电费（已含电压衰减）；总投资 = 周期末选型系统输入功率('+F1(pw.PsysSel)+' kW)×单位投资(元/kW)/10000；更换次数按寿命封顶 nRepl = ceil(项目寿命/更换周期) − 1；CRF = i(1+i)^n/[(1+i)^n−1]（默认 i=8%、n=15 年）')+'><span>综合氢成本 LCOH</span><span class="pn-v">'+F2(pw.lcoh)+' 元/kg</span></div>';
     /* 启用可见时按内容实测高度回写，避免字宽差异导致裁切；隐藏状态下保留定长 130 */
     const hh = Math.ceil(ec.offsetHeight);
     if(pemEconFo && hh) pemEconFo.setAttribute('height', hh);
@@ -7403,12 +7571,12 @@ function buildPemPrintLayout(){
 
   /* ① 题头 + 设计点摘要 */
   const sum = [
-    ['单体电压（'+st.vSource+'）',   F3(st.Vcell)+' V'],
-    ['电解槽直流功率',               F1(st.Pstack)+' kW'],
-    ['产氢量',                       F1(st.vH2)+' Nm³/h'],
+    ['单体电压（BOL / EOL）',        F3(pw.VcellBol)+' / '+F3(pw.VcellSel)+' V'],
+    ['电解槽直流功率（周期末）',     F1(pw.Pstack)+' kW'],
+    ['产品氢量（纯化后）',           F1(pw.vH2Pro)+' Nm³/h（'+F1(pw.mH2ProKgh)+' kg/h）'],
+    ['选型系统输入功率',             F1(pw.PsysSel)+' kW'],
     ['系统效率 HHV / LHV',           F1(pw.etaSysHHV)+' % / '+F1(pw.etaSysLHV)+' %'],
-    ['电能单耗',                     F2(pw.kWhKg)+' kWh/kgH₂'],
-    ['电能单耗',                     F2(pw.kWhNm3)+' kWh/Nm³']
+    ['电能单耗（产品氢）',           F2(pw.kWhKg)+' kWh/kg / '+F2(pw.kWhNm3)+' kWh/Nm³']
   ];
   const headHtml = '<div class="pdl-head">'
     + '<div class="pdl-title"><h1>PEM电解槽系统设计 · 设计文档</h1>'
@@ -7422,13 +7590,14 @@ function buildPemPrintLayout(){
     row2('等效满负荷小时数', F0(pw.eqFullH)+' h'),
     row2('电压衰减率', F1(pw.degRate)+' µV/(h·节)'),
     row2('更换周期内电压上升 / 周期末单体电压', F3(pw.dvCycle)+' V / '+F3(pw.VcellEnd)+' V（每节）'),
-    row2('年制氢量（质量 / 体积）', F1(pw.aH2Kg/1000)+' t / '+F0(pw.aH2Nm3)+' Nm³'),
-    row2('年耗电量（含衰减，按平均单体电压 '+F3(pw.VcellAvg)+' V 复算）', F1(pw.aKWh/1000)+' MWh（'+F0(pw.aKWh)+' kWh）'),
+    row2('选型系统输入功率（按周期末单体电压）', F1(pw.PsysSel)+' kW（寿命初期为 '+F1(pw.PsysBol)+' kW）'),
+    row2('年产品氢量（质量 / 体积，纯化后）', F1(pw.aH2Kg/1000)+' t / '+F0(pw.aH2Nm3)+' Nm³'),
+    row2('年耗电量（系统输入含 BOP，按平均单体电压 '+F3(pw.VcellAvg)+' V 复算）', F1(pw.aKWh/1000)+' MWh（'+F0(pw.aKWh)+' kWh）'),
     row2('氢气电费成本（设计点·寿命初期）', F2(pw.h2CostKg)+' 元/kg'),
-    row2('平均电能单耗（含衰减）', F2(pw.avgKWhKg)+' kWh/kg'),
+    row2('平均电能单耗（含衰减）', F2(pw.avgKWhKg)+' kWh/kg产品氢'),
     row2('平均氢气电费成本（含衰减）', F2(pw.avgCostKg)+' 元/kg'),
     row2('年电费（含衰减）', F1(pw.aCostWan)+' 万元'),
-    row2('总投资（'+F1(pw.unitInvest/10000)+' 万元/kW · '+F0(pw.Psys)+' kW）', F1(pw.capexWan)+' 万元'),
+    row2('总投资（'+F1(pw.unitInvest/10000)+' 万元/kW · 周期末选型 '+F0(pw.PsysSel)+' kW）', F1(pw.capexWan)+' 万元'),
     row2('年CAPEX摊销（CRF = '+F3(pw.crf)+'）', F1(pw.capexAnnual)+' 万元/年'),
     row2('年运维与更换（运维 '+F1(pw.omRate*100)+'% · 更换 '+F0(pw.stackCostR*100)+'%/'+F0(pw.stackCycle)+'年）', F1(pw.omAnnual+pw.stackAnnual)+' 万元/年'),
     row2('年总成本', F1(pw.totalAnnual)+' 万元/年'),
@@ -7503,13 +7672,13 @@ function buildPemPrintLayout(){
     '  μ_w(T) = 2.414e-5×10^(247.8/(T+273.15−140))   （Pa·s）；c_p,水(T) 按 0~100 ℃ 水表线性插值；（T 均为 ℃）',
     '常数：V_热中性,HHV = 1.481 V；V_热中性,LHV = 1.254 V；V_m = 22.414 L/mol；HHV = 39.41 kWh/kg；LHV = 33.33 kWh/kg',
     '经济性：年制氢量 = 产氢质量流量 × 等效满负荷小时数；等效满负荷小时数 = 年运行小时数 × 平均负荷率/100',
-    '  LCOH = 年总成本(万元)×10000 / 年制氢量(kg)；年总成本 = 总投资×CRF + 总投资×运维费率 + 总投资×电堆更换占比/更换周期 + 年电费',
+    '  LCOH = 年总成本(万元)×10000 / 年制氢量(kg)；年总成本 = 总投资×CRF + 总投资×运维费率 + 总投资×电堆更换占比×更换次数/项目寿命 + 年电费；更换次数 = ceil(项目寿命/更换周期)−1（按寿命封顶）',
     '  总投资 = 系统输入功率(kW)×单位投资(元/kW)/10000；CRF = i(1+i)^n/[(1+i)^n−1]（i 折现率、n 项目寿命）；氢气电费成本 = 电能单耗×电价（设计点口径，与运行小时数无关）',
     '法拉第效率（随负荷变化）：η_F = 1 − 2·i_x/j，i_x = 膜氢氧互窜电流密度、j = 电流密度；系数 2 来自氧侧回窜 O₂ 在氢侧按 2H₂+O₂→2H₂O 额外消耗 2 倍 H₂（总氢损失 = nCrossH2 + 2·nCrossO2 = 2·nCrossH2）。输入参数非 0 时手动覆盖',
     '电压衰减：年升压 = 衰减率(µV/h·节)×等效满负荷小时数/1e6；周期升压 = 年升压×更换周期；平均单体电压 = 初期电压 + 周期升压/2',
     '  年耗电量 = 系统输入功率(按平均单体电压复算整链)×等效满负荷小时数；平均电能单耗 = 年耗电量/年制氢量；设计点（电能单耗/氢气电费成本）仍按寿命初期电压',
     '部分负荷曲线：负荷率 x ∈ [最小负荷, 1] 上扫描 7 点；Psys(x)、mH2(x) 以「周期内平均单体电压」为基准按电流密度 j·x 复算整链（cut-off 热驱动流量：吸热时不产生负流量/负泵功）',
-    '  最小负荷（由安全边界反推）：在 j ∈ (0, j_design] 上二分，找「氢中氧 = 目标 vol%」的 j；窜气量恒定而主气流随 j 变小 → 氢中氧随 j 单调下降，故二分必收敛。输入非 0 时手动覆盖',
+    '  最小负荷（由安全边界反推）：在 j ∈ (0, j_design] 上二分，找「氧中氢 = 目标 vol%」的 j；窜气量恒定而主气流随 j 变小 → 氧中氢随 j 单调下降，故二分必收敛。输入非 0 时手动覆盖',
     '  注意方向：本模型下低负荷的 kWh/kg 反而更低（单体电压下降带来的电化学效率收益 > BOP 占比升高与法拉第效率下降的损失）；限制最小负荷的理由是安全与固定成本摊薄，不是电耗',
     '电源与调度（5 条策略 · 8760 h 时序）：①②③ 为电网口径基线（不使用自有电源、满负荷，与既有结果逐位一致）；④ 跟随风光型；⑤⑥ 优化型',
     '  单小时电费 = 自有风光电量 × 绿电成本 + 电网电量 × 该小时分时电价；风光序列 = 按「装机 × 8760 × 容量系数」确定性合成（固定种子 PRNG）或粘贴覆盖；自有风光必须单独定价（其投资不在「单位投资」口径内）',
