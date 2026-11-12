@@ -11792,9 +11792,10 @@ E('path',{d:'M1240,376 L1240,390', stroke:'#94a3b8','stroke-width':1.6,'stroke-d
 
 /* 氢侧分离水回用：虚线沿分离器左下角回到碱液储罐 */
 (function(){
-  E('path',{d:'M1100,530 L1088,530 L1088,690 L430,690 L430,430 L270,430',
+  /* 氢侧分离器电解液回流：并入氧侧回流总管后一起进板式换热器冷却，再回碱液储罐 */
+  E('path',{d:'M1100,530 L1088,530 L1088,690 L580,690',
     fill:'none', stroke:'#67e8f9','stroke-width':1.8,'stroke-dasharray':'7 5',
-    opacity:0.55,'marker-end':'url(#alkAhC)'});
+    opacity:0.55});
   E('text',{x:960, y:682, fill:'#67e8f9','font-size':9, opacity:0.9}).textContent = '电解液回流';
 })();
 
