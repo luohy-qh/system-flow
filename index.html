@@ -130,6 +130,17 @@
   #page-alk .io-head .io-bar .io-btn { padding-left: 7px; padding-right: 7px; }
   #page-alk .calc-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   @media (max-width: 1180px) { #page-alk .calc-panels { grid-template-columns: 1fr; } }
+  /* 燃料电池页：子系统结果面板与 PEM / 碱性页一致，采用两列布局 */
+  #page-pfd .calc-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 1180px) { #page-pfd .calc-panels { grid-template-columns: 1fr; } }
+  /* 燃料电池页：散热器 / 中冷器 / 阀门三个部件面板固定在同一排 */
+  #page-pfd .pfd-hx-row {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  @media (max-width: 1180px) { #page-pfd .pfd-hx-row { grid-template-columns: 1fr; } }
   .legend {
     margin-top: 14px; padding-top: 12px; border-top: 1px solid #2a4a6b;
     font-size: 0.78rem; color: #94a3b8;
@@ -1039,6 +1050,7 @@
     border: 1px solid #cbd5e1; padding: 2px 6px; text-align: left; vertical-align: top;
   }
   #pfdPrintLayout table.pdl-tab tbody th { background: #f8fafc; font-weight: normal; width: 46%; }
+  #pfdPrintLayout table.pdl-tab tr.pdl-grp th { background: #e8eef6; font-weight: bold; color: #1e293b; }
   #pfdPrintLayout table.pdl-tab thead th { background: #e2e8f0; font-weight: bold; width: auto; }
   #pfdPrintLayout table.pdl-tab td.pdl-warn { color: #b91c1c; font-weight: bold; }
   #pfdPrintLayout table.pdl-tab td.pdl-ok { color: #047857; font-weight: bold; }
@@ -1562,6 +1574,28 @@
 
     <!-- 详细计算面板（流程图下方） -->
     <div class="calc-panels">
+      <!-- 电堆电化学 -->
+      <div class="hx-section">
+        <div class="hx-section-header" data-toggle="pfd-stack"><span>▾ 电堆电化学计算（法拉第定律 · LHV 基准）</span></div>
+        <div class="hx-section-body" id="pfd-stack"><div class="hx-results" id="pfd-stack-results"></div></div>
+      </div>
+      <!-- 氢气子系统 -->
+      <div class="hx-section">
+        <div class="hx-section-header" data-toggle="pfd-h2"><span>▾ 氢气子系统计算（供氢 · 循环 · 阳极水/冷凝）</span></div>
+        <div class="hx-section-body" id="pfd-h2"><div class="hx-results" id="pfd-h2-results"></div></div>
+      </div>
+      <!-- 空气子系统 -->
+      <div class="hx-section">
+        <div class="hx-section-header" data-toggle="pfd-air"><span>▾ 空气子系统计算（阴极水 · 露点 · 加湿器）</span></div>
+        <div class="hx-section-body" id="pfd-air"><div class="hx-results" id="pfd-air-results"></div></div>
+      </div>
+      <!-- 空气热力 / 辅机 -->
+      <div class="hx-section">
+        <div class="hx-section-header" data-toggle="pfd-airthermal"><span>▾ 空气热力 · 辅机 · 系统输出</span></div>
+        <div class="hx-section-body" id="pfd-airthermal"><div class="hx-results" id="pfd-airthermal-results"></div></div>
+      </div>
+      <!-- 三个部件计算面板：同一排 -->
+      <div class="pfd-hx-row">
       <!-- 散热器计算 -->
       <div class="hx-section">
         <div class="hx-section-header" data-toggle="hx-rad">
@@ -1628,6 +1662,7 @@
           <div class="hx-results" id="hx-valve-results"></div>
         </div>
       </div>
+      </div><!-- /pfd-hx-row -->
     </div>
   </div>
 </div>
@@ -1643,7 +1678,7 @@
     </div>
     <div class="sim-help-body" id="pfdHelpBody">
 
-      <blockquote>本页是整条工具链的<strong>最上游</strong>：左侧参数栏 → 右侧 SVG 流程图 → 图下「系统功率汇总 / 散热器 / 中冷器 / 阀门流体」计算面板。改动任一参数后，图上数据气泡与图下结果即时重算；本页的<strong>氢气利用率</strong>与<strong>电堆功率</strong>会写入隐藏元素 <code>#stackPower</code> 并传给「车辆混合动力系统」页。</blockquote>
+      <blockquote>本页是整条工具链的<strong>最上游</strong>：左侧参数栏 → 右侧 SVG 流程图 → 图下「电堆电化学 / 氢气子系统 / 空气子系统 / 空气热力 · 辅机 / 散热器 / 中冷器 / 阀门流体」计算面板。改动任一参数后，图上数据气泡、子系统结果面板与图下结果即时重算；本页的<strong>氢气利用率</strong>与<strong>电堆功率</strong>会写入隐藏元素 <code>#stackPower</code> 并传给「车辆混合动力系统」页。</blockquote>
 
       <h4>01 计算链路总览</h4>
       <p>自<strong>电化学</strong>到<strong>热管理与辅机选型</strong>的单向推算链，所有下游量均由上游量显式推导，不存在循环依赖：</p>
@@ -1854,6 +1889,45 @@ BOP  ：空压机 22.61 + 泵 1.097 + 风扇 3.571 + 氢循环泵 0.210 = 27.49 
 
       <hr>
       <p>本说明的完整版——含默认工况<strong>逐步代入验算</strong>与逐行<strong>参数敏感性分析</strong>——另见同目录下的 <code>fuelcell-calc-logic.html</code>，可直接在浏览器打开并打印为 PDF。</p>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============ 燃料电池系统 · 版本升级说明弹窗（由图签内问号打开） ============ -->
+<div class="sim-help-overlay" id="pfdVerOverlay">
+  <div class="sim-help-modal" role="dialog" aria-modal="true" aria-labelledby="pfdVerTitle">
+    <div class="sim-help-head">
+      <h3 id="pfdVerTitle">燃料电池系统 · 版本升级说明</h3>
+      <button type="button" class="sim-help-close" id="pfdVerClose" title="关闭" aria-label="关闭">✕</button>
+    </div>
+    <div class="sim-help-body" id="pfdVerBody">
+
+      <blockquote>本流程图当前版本为 <strong>V1.1</strong>（2026-11-12）。V1.0 建立了 150 kW 级燃料电池的完整稳态计算链（电堆电化学 → 氢气/空气子系统 → 空气热力 → 热管理与辅机）；<strong>V1.1 完成「流程图仪表补全 + 图下子系统结果面板 + 设计文档参数补全」</strong>：新增空气/氢气/冷却路在线仪表与控制阀标注，图下新增电堆、氢气、空气、空气热力 · 辅机四组结果面板，导出设计文档按子系统列出计算参数与结果。</blockquote>
+
+      <h4>V1.1 · 重要更新（当前版本 · 2026-11-12）</h4>
+      <h5>1. 流程图仪表 / 控制阀</h5>
+      <ul>
+        <li><b>空气路</b>：滤清器后 <code>FI</code>（空气流量）、中冷器后 <code>TI</code>（增压空气温度）。</li>
+        <li><b>氢气路</b>：供氢 <code>PT</code>、比例阀 <code>PCV</code>、循环氢 <code>FI</code>、阳极入口 <code>PT</code>、气液分离器 <code>PI</code> / <code>LI</code>、电堆区氢泄漏 <code>AT</code>。</li>
+        <li><b>冷却与安全</b>：三通阀 <code>TIC</code>、冷却液泵出口 <code>FI</code>、回流 <code>TI</code>；图例新增「仪表 / 控制阀」。</li>
+      </ul>
+      <h5>2. 图下子系统计算面板</h5>
+      <ul>
+        <li>新增 <b>电堆电化学计算</b>：电流 / 电压 / 功率 / 效率、反应产热、理论耗氢 / 耗氧 / 产水。</li>
+        <li>新增 <b>氢气子系统计算</b>：系统供氢、尾气、阳极循环量、入堆 RH、阳极出口 T/P/RH、液态水与冷凝放热。</li>
+        <li>新增 <b>空气子系统计算</b>：系统供空气、阴极出口 T/P/RH、液态水、露点、加湿器干 / 湿侧水量与 RH。</li>
+        <li>新增 <b>空气热力 · 辅机 · 系统输出</b>：大气压 / 密度、压比、级出口温度、空压机功耗、膨胀机回收功、四项辅机功耗、系统输出与净效率。</li>
+        <li>子系统面板与 PEM / 碱性页一致采用 <b>两列布局</b>；散热器 / 中冷器 / 阀门三个部件面板固定在<b>同一排</b>。</li>
+      </ul>
+      <h5>3. 设计文档与说明同步</h5>
+      <ul>
+        <li>导出设计文档的第二~五章改为「先计算参数、后计算结果」，补齐电堆、氢气、空气、空气热力与散热器 / 中冷器 / 阀门输入参数；分组标题加粗，长表允许跨页。</li>
+        <li><code>fuelcell-calc-logic.html</code> 的「图下计算面板」表同步新增四组子系统面板。</li>
+      </ul>
+
+      <h4>V1.0 · 初版（2026-09-28）</h4>
+      <p>建立 150 kW 级燃料电池系统设计页：37 项输入、电堆电化学（法拉第定律 · LHV 基准）、氢气 / 空气子系统水量平衡、空气热力（海拔 → 两级压缩 → 尾气膨胀机）、热管理与辅机功耗；提供 SVG 数据气泡、系统功率汇总、散热器 / 中冷器 / 阀门三个计算面板，并支持导出设计文档 PDF。</p>
 
     </div>
   </div>
@@ -6410,6 +6484,18 @@ function equip(x,y,w,h,cls,label,sub){
   return g;
 }
 
+/* ---- 仪表 / 控制阀图元（与 PEM、碱性电解槽页保持同一套符号） ---- */
+function instrTag(x,y,label,color){
+  const c = color || '#67e8f9';
+  const g = el('g');
+  el('circle',{cx:x, cy:y, r:10, fill:'#0b2436', stroke:c, 'stroke-width':1.4}, g);
+  el('text',{x, y:y+3, 'text-anchor':'middle', fill:c, 'font-size':7, 'font-weight':'bold'}, g).textContent = label;
+  return g;
+}
+function dashedLeader(x1,y1,x2,y2,color){
+  el('line',{x1,y1,x2,y2, stroke:color||'#64748b','stroke-width':1,'stroke-dasharray':'3 2', opacity:0.85});
+}
+
 /* ---- 真实外形辅助函数（参考引射器剖面风格） ---- */
 // 旋转机械：蜗壳 + 叶轮（blades 个叶片，叶轮持续旋转），cx/cy 圆心，r 半径
 function rotaryMachine(cx, cy, r, dark, stroke, blades=6){
@@ -6797,8 +6883,9 @@ el('text',{x:410,y:700,class:'equip-sub',fill:'#a5f3fc'}).textContent='液态水
     + '<div class="tb-name">燃料电池系统流程图</div>'
     + '<div class="tb-sub">PFD · Fuel Cell System</div>'
     + '<div class="tb-line"></div>'
-    + '<div class="tb-row"><span>版本</span><span>V1.0</span></div>'
-    + '<div class="tb-row"><span>日期</span><span>2026-09-28</span></div>'
+    + '<div class="tb-row"><span>版本</span><span>V1.1</span></div>'
+    + '<div class="tb-row"><span>日期</span><span>2026-11-12</span></div>'
+    + '<button type="button" class="tb-ver" id="pfdVerBtn" title="查看版本升级内容" aria-label="查看版本升级内容">?</button>'
     + '</div>';
   svg.appendChild(fo);   // 高度与最终位置由 drawPfdFrame() 统一设置
 })();
@@ -6812,6 +6899,7 @@ el('text',{x:410,y:700,class:'equip-sub',fill:'#a5f3fc'}).textContent='液态水
     + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#0ea5e9"></span>空气流路</div>'
     + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#06b6d4"></span>水流路</div>'
     + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#f97316"></span>冷却液流路</div>'
+    + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#67e8f9"></span>仪表/控制阀</div>'
     + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#ef4444"></span>热流</div>'
     + '</div>';
   svg.appendChild(fo);
@@ -6887,6 +6975,35 @@ arrow(565,146,565,275);          // 中冷器热
 el('text',{x:572,y:224,class:'equip-sub',fill:'#fca5a5'}).textContent='中冷器热';
 arrow(400,640,400,690);          // 冷凝热(已随水流) - 用文字
 el('text',{x:410,y:670,class:'equip-sub',fill:'#fca5a5'}).textContent='冷凝放热';
+
+/* ====== 仪表 / 控制阀（在线检测与调节） ====== */
+/* 空气路：滤清器后测流量，中冷器后测增压空气温度 */
+instrTag(335, 86, 'FI');
+dashedLeader(335, 96, 335, 115);
+instrTag(660, 88, 'TI');
+dashedLeader(660, 98, 660, 115);
+/* 氢气路：供氢压力、比例阀 PCV、循环氢流量、阳极入口压力、分离器压力/液位 */
+instrTag(190, 392, 'PT');
+dashedLeader(190, 402, 190, 424);
+instrTag(265, 372, 'PCV');
+dashedLeader(265, 382, 265, 396);
+instrTag(330, 532, 'FI');
+dashedLeader(330, 542, 330, 552);
+instrTag(585, 396, 'PT');
+dashedLeader(578, 404, 565, 432);
+instrTag(450, 545, 'PI');
+dashedLeader(443, 552, 423, 584);
+instrTag(325, 585, 'LI');
+dashedLeader(334, 590, 346, 604);
+/* 冷却与安全：三通阀温控 TIC、泵出口流量、回流温度、电堆区氢泄漏报警 */
+instrTag(720, 695, 'TIC');
+dashedLeader(730, 695, 753, 695);
+instrTag(665, 720, 'FI');
+dashedLeader(665, 710, 665, 704);
+instrTag(1055, 728, 'TI');
+dashedLeader(1065, 728, 1072, 728);
+instrTag(590, 485, 'AT');
+dashedLeader(600, 490, 636, 501);
 
 /* ========== 数据气泡 ========== */
 const nodes = {};
@@ -7242,6 +7359,7 @@ function run(){
   if(SIM_RUNNING) return;          // 仿真期间冻结稳态页联动，避免无谓的 DOM 重写
   const r = calc();
   updateData(r);
+  renderPfdSubsystemResults(r);   // 图下子系统结果面板（电堆 / 氢气 / 空气 / 热力辅机）
   drawPfdFrame();                  // 数据气泡尺寸随数值变化，外框与图签跟着自适应
   renderHxResults();
   // 同步电堆功率到混合动力计算页
@@ -7435,6 +7553,110 @@ document.querySelectorAll('.hx-section-header').forEach(h=>{
   document.getElementById(id).addEventListener('input',()=>{ run(); renderHxResults(); });
 });
 document.getElementById('hx_mediumType').addEventListener('change',()=>{ run(); renderHxResults(); });
+
+/* 燃料电池页：子系统计算结果面板（与 PEM / 碱性页的 .hx-results 行样式一致） */
+function renderPfdSubsystemResults(r){
+  const F0 = v => (Number(v)||0).toFixed(0);
+  const F1 = v => (Number(v)||0).toFixed(1);
+  const F2 = v => (Number(v)||0).toFixed(2);
+  const F3 = v => (Number(v)||0).toFixed(3);
+  const F4 = v => (Number(v)||0).toFixed(4);
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const row = (l,val,warn,tip)=>`<div class="hx-result-row"${tip?` title="${esc(tip)}"`:''}><span class="hx-r-label">${l}</span><span class="hx-r-value${warn?' warn':''}">${val}</span></div>`;
+  const fill = (id, rows)=>{
+    const host = document.getElementById(id);
+    if(host) host.innerHTML = rows.map(a=>row(a[0],a[1],a[2],a[3])).join('');
+  };
+  const h2Lhv = r.stack.h2 * 241.92;
+  const netEta = h2Lhv>0 ? r.bop.systemNetPower/h2Lhv*100 : 0;
+
+  /* ① 电堆电化学 */
+  fill('pfd-stack-results', [
+    ['电堆电流(A)',           F1(r.stack.current),   false, '电堆电流 = 反应面积(cm²) × 电流密度(A/cm²)；全堆串联，各节电流相同'],
+    ['电堆电压(V)',           F1(r.stack.voltage),   false, '电堆电压 = 单电池电压(V) × 电堆节数'],
+    ['电堆直流功率(kW)',      F1(r.stack.power),     false, '电堆功率 = 电堆电流 × 电堆电压 / 1000（毛功率，未扣辅机）'],
+    ['电堆效率(%)',           F1(r.stack.efficiency),false, '电堆效率 = 单电池电压 / 1.254 × 100；基于氢低热值（LHV）口径'],
+    ['反应产热(kW)',          F1(r.stack.heat),      false, '反应产热 = 电堆功率 × (1.254 − 单电池电压)/单电池电压；差额全部转化为热'],
+    ['理论耗氢(mol/s)',       F3(r.stack.h2),        false, '理论耗氢 = 反应面积 × 电流密度 × 电堆节数 / (2 × 96485)'],
+    ['理论耗氧(mol/s)',       F3(r.stack.o2),        false, '理论耗氧 = 理论耗氢 / 2'],
+    ['理论产水(mol/s)',       F3(r.stack.water),     false, '理论产水 = 理论耗氢；每消耗 1 mol H₂ 生成 1 mol 水'],
+    ['单电池电压(V)',         F3(num('cellVoltage')),false, '设计点单电池电压（输入参数）'],
+    ['电堆节数(节)',          F0(num('cellCount')),  false, '单体串联节数（输入参数）'],
+    ['反应面积(cm²)',         F0(num('reactionArea')),false,'单电池有效反应面积（输入参数）'],
+    ['电流密度(A/cm²)',       F2(num('currentDensity')),false,'设计点电流密度（输入参数）']
+  ]);
+
+  /* ② 氢气子系统 */
+  fill('pfd-h2-results', [
+    ['系统供氢(NLPM)',        F1(r.h2.sysSupplyNLPM),false, '系统供氢 = 理论耗氢 × 100 / 氢气利用率 × 22.4 × 60'],
+    ['氢气尾气(NLPM)',        F1(r.h2.exhaust),      false, '氢气尾气 = 系统供氢 × (1 − 氢气利用率/100)'],
+    ['阳极循环量(NLPM)',      F1(r.h2.recircNLPM),   false, '阳极循环量 = 理论耗氢 × (氢气计量比 − 1) × 22.4 × 60'],
+    ['入堆氢 RH(%)',          F1(r.h2.inletHydrogenHumidity), r.h2.inletHydrogenHumidity>100, '按阳极入口温度的饱和压计算；超过 100% 表示该温度下已饱和、多余水分以液态存在'],
+    ['阳极出口温度(℃)',      F1(r.h2.anodeOutletTemp),false,'阳极出口温度 = 操作温度'],
+    ['阳极出口压力(kPa)',     F1(r.h2.anodeOutletPressure),false,'阳极出口压力 = 阳极入口压力 − 阳极压损'],
+    ['阳极出口 RH(%)',        F1(r.h2.anodeOutletHumidity), r.h2.anodeOutletHumidity>100, '阳极出口相对湿度；超过 100% 时析出液态水'],
+    ['阳极出口总水(mol/s)',   F3(r.h2.anodeOutletWater),false,'阳极出口总水 = 理论产水 × 水分布系数 + 进堆水量'],
+    ['阳极液态水(mol/s)',     F3(r.h2.anodeLiquidWater),false,'RH>100% 时析出的液态水量'],
+    ['阳极冷凝放热(kW)',      F2(r.h2.anodeCondensationHeat),false,'阳极冷凝放热 = 液态水 × 18 × 2258 / 1000'],
+    ['出口气态水(mol/s)',     F3(r.h2.outletGaseousWater),false,'出口气态水 = 出口总水 − 液态水'],
+    ['进堆液态水(mol/s)',     F3(r.h2.inletStackWater),false,'未分离液态水 + 出口气态水；阳极水平衡迭代 5 次收敛'],
+    ['氢气计量比',            F2(num('hydrogenRatio')),false,'阳极实际供氢 / 理论耗氢（输入参数）'],
+    ['氢气利用率(%)',         F1(num('hydrogenUtilization')),false,'系统供氢中被电化学消耗的比例（输入参数）'],
+    ['阳极水分布系数',        F2(num('waterDistribution')),false,'理论产水中留在阳极侧的比例（输入参数）'],
+    ['气分效率(%)',           F0(num('gasSeparatorEfficiency')),false,'气液分离器效率（输入参数）']
+  ]);
+
+  /* ③ 空气子系统 */
+  fill('pfd-air-results', [
+    ['系统供空气(NLPM)',      F1(r.air.supplyNLPM),  false, '系统供空气 = (理论耗氢/2) × 空气计量比 / 0.21 × 22.4 × 60'],
+    ['出口空气流量(NLPM)',    F1(r.air.outletNLPM),  false, '出口空气 = 系统供空气 − 理论耗氢/2（扣去被消耗的氧）'],
+    ['环境取水(mol/s)',       F3(r.air.ambientWaterIntake),false,'环境取水 = 环境湿度 × Psat(环境温度) × 系统供空气 / 101 / 100'],
+    ['阴极出口温度(℃)',      F1(r.air.cathodeOutletTemp),false,'阴极出口温度 = 操作温度'],
+    ['阴极出口压力(kPa)',     F1(r.air.cathodeOutletPressure),false,'阴极出口压力 = 阴极入口压力 − 阴极压损'],
+    ['阴极出口 RH(%)',        F1(r.air.airOutletHumidity), r.air.airOutletHumidity>100, '阴极出口相对湿度；超过 100% 时析出液态水'],
+    ['阴极出口总水(mol/s)',   F3(r.air.cathodeOutletWater),false,'阴极出口总水 = 理论产水 × (1 − 水分布系数) + 环境取水 + 干气加湿水'],
+    ['阴极液态水(mol/s)',     F3(r.air.outletLiquidWater),false,'RH>100% 时析出的液态水量'],
+    ['冷凝放热(kW)',          F2(r.air.condensationHeat),false,'冷凝放热 = 液态水 × 18 × 2258 / 1000'],
+    ['出口露点(℃)',          F1(r.air.outletDewPointTemp),false,'出口露点按反 Magnus 型经验式计算'],
+    ['干侧加湿水(mol/s)',     F3(r.hum.dryWater),     false, '干气加湿水 = (出口总水 − 液态水) × 加湿器效率/100'],
+    ['干侧 RH(%)',            F1(r.hum.dryRH),        false, '干侧出口相对湿度'],
+    ['湿侧 RH(%)',            F1(r.hum.wetRH),        r.hum.wetRH>100, '湿侧出口相对湿度；超过 100% 表示带液'],
+    ['湿侧水量(mol/s)',       F3(r.hum.wetWater),     false, '湿侧水量 = 出口总水 − 液态水 − 干气加湿水'],
+    ['加湿器效率(%)',         F0(r.hum.eff),          false, '输入参数「加湿器效率」'],
+    ['空气计量比',            F2(num('airRatio')),    false, '阴极实际供空气 / 理论耗氧（输入参数）']
+  ]);
+
+  /* ④ 空气热力 · 辅机 · 系统输出 */
+  fill('pfd-airthermal-results', [
+    ['大气压力(Pa)',          F0(r.airThermal.pressureAtHeight),false,'按海拔计算：h≤11000 m 时 101325×(1−h/44330)^5.25588，否则 22631.8×exp((11000−h)/6340)'],
+    ['大气密度(kg/m³)',       F4(r.airThermal.densityAtHeight),false,'大气密度 = 大气压力 / (空气气体常数 × 入口温度K)'],
+    ['空气入口体积流量(m³/s)',F4(r.airThermal.airInletVolumeFlow),false,'入口体积流量 = 供空气(mol/s) × 0.022414 × (T/273.15) × (101325/P_atm)'],
+    ['空气入口质量流量(g/s)', F2(r.airThermal.airInletMassFlow),false,'入口质量流量 = 入口体积流量 × 大气密度 × 1000'],
+    ['出口空气压力(Pa)',      F0(r.airThermal.outletAirPressure),false,'出口空气压力 = (阴极入口压力 + 中冷器压损) × 1000'],
+    ['压比 ε',                F2(r.airThermal.compressorPressureRatio),false,'压比 = 出口空气压力 / 大气压力'],
+    ['压缩级数',              F0(r.airThermal.stageCount),false,'输入参数「压缩级数」（1 或 2）'],
+    ['一级出口温度(℃)',      F1(r.airThermal.stage1TempK-273.15),false,'一级出口温度 = T₁ × (1 + (ε₁^((κ−1)/κ) − 1)/η_c)'],
+    ['二级出口温度(℃)',      F1(r.airThermal.stage2TempK-273.15),false,'二级出口温度 = T_mid × (1 + (ε₂^((κ−1)/κ) − 1)/η_c)；单级时与一级相同'],
+    ['空压机出口温度(℃)',    F1(r.airThermal.outletAirTempC),false,'空压机出口温度 = 最后一级出口温度'],
+    ['空气温升(K)',           F1(r.airThermal.airTempRise),false,'空气温升 = 各级温升之和'],
+    ['定熵压缩轴功(W)',       F1(r.airThermal.isentropicCompressionWork),false,'等熵压缩轴功（参考值），含两级叠加项'],
+    ['空压机功耗(W)',         F1(r.airThermal.compressorPowerConsumption),false,'空压机功耗 = 入口质量流量 × 空气定压比热 × 空气温升'],
+    ['尾气膨胀机',            r.airThermal.expanderOn?'启用':'关闭', false, '由流程图顶部「带尾气膨胀机 (0/1)」开关控制'],
+    ['膨胀比',                F2(r.airThermal.expanderPressureRatio),false,'膨胀比 = 膨胀机入口压力(Pa) / 大气压力(Pa)'],
+    ['膨胀机入口温度(℃)',    F1(r.airThermal.expanderInletTempK-273.15),false,'膨胀机入口温度 = 操作温度 + 273.15'],
+    ['膨胀机出口温度(℃)',    F1(r.airThermal.expanderOutletTempC),false,'膨胀机出口温度按等熵效率计算'],
+    ['膨胀机回收功(W)',       F1(r.airThermal.expanderPower),false,'回收功 = 通流质量流量 × 空气定压比热 × (入口温度 − 出口温度)'],
+    ['回收率(%)',             F1(r.airThermal.expanderRecoveryRatio),false,'回收率 = 膨胀机回收功 / 空压机功耗 × 100'],
+    ['空压机净功耗(W)',       F1(r.airThermal.netCompressorPower),false,'净功耗 = 空压机功耗 − 膨胀机回收功'],
+    ['辅机：空压机(kW)',      F2(r.bop.compressor),   false, '空压机净功耗 / 1000'],
+    ['辅机：冷却液泵(kW)',    F3(r.bop.pump),         false, '泵功率 = 冷却液密度 × 9.81 × 泵压头 × 泵流量 / 泵总效率'],
+    ['辅机：散热风扇(kW)',    F3(r.bop.fan),          false, '风扇功率 = 风扇全压 × 冷却空气流量 / 风扇效率'],
+    ['辅机：氢气循环泵(kW)',  F3(r.bop.h2Pump),       false, '氢循环泵功率 = 阳极压损 × 循环体积流量 / 泵效率'],
+    ['辅机合计(kW)',          F2(r.bop.total),        false, '辅机合计 = 空压机 + 冷却液泵 + 散热风扇 + 氢气循环泵'],
+    ['系统输出功率(kW)',      F2(r.bop.systemNetPower),false,'系统输出功率 = 电堆直流功率 − 辅机合计'],
+    ['系统净效率(%)',         F1(netEta),             false, '系统净效率 = 系统输出功率 / (理论耗氢 × 241.92) × 100']
+  ]);
+}
 
 function renderHxResults(){
   const r = calc();
@@ -8559,6 +8781,19 @@ document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeSimHelp(
   document.addEventListener('keydown', e=>{ if(e.key === 'Escape') close(); });
 })();
 
+/* 图签内的问号按钮：打开「版本升级说明」弹窗 */
+(function(){
+  const ov = document.getElementById('pfdVerOverlay');
+  if(!ov) return;
+  const body = document.getElementById('pfdVerBody');
+  const open = ()=>{ ov.classList.add('open'); if(body) body.scrollTop = 0; };
+  const close = ()=>ov.classList.remove('open');
+  document.querySelectorAll('#pfd .tb-ver').forEach(b=>b.addEventListener('click', e=>{ e.stopPropagation(); open(); }));
+  document.getElementById('pfdVerClose').addEventListener('click', close);
+  ov.addEventListener('click', e=>{ if(e.target === ov) close(); });
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape') close(); });
+})();
+
 /* 车辆混合动力系统页 · 计算逻辑说明弹窗（问号打开；✕ / 遮罩 / Esc 关闭） */
 (function(){
   const ov = document.getElementById('hybridHelpOverlay');
@@ -8655,6 +8890,8 @@ setupParamIO({
     clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
     clone.setAttribute('width', '1500');
     clone.setAttribute('height', '880');
+    /* 图签内的「?」版本按钮是网页交互件，导出为图片前剔除 */
+    clone.querySelectorAll('.tb-ver').forEach(b=>b.remove());
     let css = '';
     Array.from(document.styleSheets).forEach(sh=>{
       try{ Array.from(sh.cssRules).forEach(rr=>{ css += rr.cssText + '\n'; }); }catch(err){}
@@ -8681,7 +8918,7 @@ setupParamIO({
     const f3 = v => (Number(v)||0).toFixed(3);
     const skipped = [];
     /* 组标题行（跨两列），用于在同一张表内分隔子系统 / 热交换器面板 */
-    const grp = t => '<tr><th colspan="2">'+esc(t)+'</th></tr>';
+    const grp = t => '<tr class="pdl-grp"><th colspan="2">'+esc(t)+'</th></tr>';
 
     /* ① 题头 + 设计点摘要 */
     const sum = [
@@ -8706,13 +8943,32 @@ setupParamIO({
     });
     const inpHtml = sec('一、输入参数（共 '+INPUTS.length+' 项）', tab(inpRows, ['参数','当前值','步长']), 'pdl-flow');
 
+    /* 子系统计算参数：标签直接从页面输入框旁边的 <label> 读取，避免两处维护 */
+    const inputValue = id => {
+      const el = document.getElementById(id);
+      return el ? el.value : '';
+    };
+    const inputLabel = id => {
+      const el = document.getElementById(id);
+      if(el){
+        const grp = el.closest('.hx-input-group') || el.closest('.input-group') || el.closest('.fo-alt');
+        const lab = grp ? grp.querySelector('label') : null;
+        if(lab) return lab.textContent.trim();
+      }
+      const it = INPUTS.find(x=>x.id===id);
+      return it ? it.label : id;
+    };
+    const pRow = id => row2(inputLabel(id), inputValue(id));
+    const pGroup = (title, ids)=>[grp(title)].concat(ids.map(pRow));
+
     /* 气泡构成的表格行：优先读屏幕上已渲染的气泡；为空则回退到 calc() 的值 */
-    const secBubbles = (title, items, extra)=>{
+    const secBubbles = (title, items, extra, params, paramTitle)=>{
       let rows = [];
+      if(params && params.length) rows = rows.concat(grp(paramTitle||'计算参数'), params, grp('计算结果'));
       items.forEach(it=>{ rows = rows.concat(pfdBubbleRows(it.id, it.fb)); });
       if(extra) rows = rows.concat(extra);
       if(!rows.length){ skipped.push(title); return ''; }
-      return sec(title, tab(rows, ['项目','数值']));
+      return sec(title, tab(rows, ['项目','数值']), 'pdl-flow');
     };
 
     /* ③ 电堆电化学（stack_top 气泡；节数取自输入参数） */
@@ -8725,7 +8981,9 @@ setupParamIO({
         '反应热:'+f1(r.stack.heat)+'kW',
         '产水:'+f3(r.stack.water)+'mol/s'
       ]}
-    ], [ row2('电堆节数', f0(num('cellCount'))+' 节') ]);
+    ], null, [
+      pRow('cellVoltage'), pRow('cellCount'), pRow('reactionArea'), pRow('currentDensity')
+    ], '电堆参数');
 
     /* ④ 氢气子系统（h2_supply / h2_mix / anode_out / sep / recirc 气泡 + 输入参数） */
     const secH2 = secBubbles('三、氢气子系统', [
@@ -8735,7 +8993,11 @@ setupParamIO({
                             'RH:'+f1(r.h2.anodeOutletHumidity)+'%','总水:'+f3(r.h2.anodeOutletWater)+'mol/s'] },
       { id:'sep',       fb:['液态水:'+f3(r.h2.anodeLiquidWater)+'mol/s','冷凝放热:'+f2(r.h2.anodeCondensationHeat)+'kW'] },
       { id:'recirc',    fb:['循环量:'+f1(r.h2.recircNLPM)+'NLPM','尾气:'+f1(r.h2.exhaust)+'NLPM'] }
-    ], [ row2('氢气利用率', f1(num('hydrogenUtilization'))+' %') ]);
+    ], null, [
+      pRow('hydrogenRatio'), pRow('hydrogenUtilization'), pRow('anodeInletPressure'),
+      pRow('anodePressureLoss'), pRow('anodeInletTemp'), pRow('waterDistribution'),
+      pRow('gasSeparatorEfficiency')
+    ], '氢气路参数');
 
     /* ⑤ 空气子系统（ambient / comp / cathode_out / exhaust / expander / hum_dry 气泡） */
     const secAir = secBubbles('四、空气子系统', [
@@ -8756,10 +9018,29 @@ setupParamIO({
                           '净功耗:'+f1(r.airThermal.netCompressorPower)+'W']:[]) },
       { id:'hum_dry', fb:['干侧 T:'+f1(r.hum.dryT)+'℃','干侧 RH:'+f1(r.hum.dryRH)+'%',
                           '加湿水:'+f3(r.hum.dryWater)+'mol/s','效率:'+f0(r.hum.eff)+'%'] }
-    ]);
+    ], null, [
+      pRow('airRatio'), pRow('cathodeInletPressure'), pRow('cathodePressureLoss'),
+      pRow('humidity'), pRow('humidifierEfficiency'), pRow('humidifierDryLoss'), pRow('humidifierWetLoss'),
+      grp('空气热力参数'),
+      pRow('altitude'), pRow('compressorStages'), pRow('intercoolerMidTemp'),
+      pRow('airPumpEfficiency'), pRow('intercoolerPressureLoss'),
+      pRow('expanderEfficiency'), pRow('expanderInletLoss'),
+      row2('带尾气膨胀机', inputValue('expanderEnabled')==='1' ? '启用' : '关闭')
+    ], '阴极与加湿参数');
 
-    /* ⑥ 热管理与冷却：气泡（中冷器 / 湿侧加湿 / 冷却水泵 / 热负荷汇总）+ 三个换热器结果面板 */
+    /* ⑥ 热管理与冷却：先列冷却回路与三个换热器面板的输入参数，再列计算结果 */
     let thermRows = [];
+    thermRows = thermRows.concat(
+      pGroup('冷却回路参数', ['operatingTemp','tempDifference','glycolPercentage','coolingPressureLoss',
+        'coolantPumpHead','coolantPumpEfficiency','fanPressure','fanEfficiency','h2PumpEfficiency']),
+      pGroup('散热器输入参数', ['hx_coolantHeatRatio','hx_airTempDifference','hx_radiatorKa',
+        'hx_fanCount','hx_fanAreaRatio','hx_fanDiameter']),
+      pGroup('中冷器输入参数', ['hx_coolantTempDiff','hx_intercoolerKa']),
+      pGroup('阀门输入参数', ['hx_flowRateNLPM','hx_inletPressure','hx_outletPressure','hx_fluidTemperature']),
+      [ row2('选择介质', (()=>{ const s=document.getElementById('hx_mediumType');
+          return s && s.selectedIndex>=0 ? s.options[s.selectedIndex].text : ''; })()),
+        grp('计算结果') ]
+    );
     const gadd = (t, id, fb)=>{
       const rows = pfdBubbleRows(id, fb);
       if(rows.length){ thermRows.push(grp(t)); thermRows = thermRows.concat(rows); }
@@ -8774,7 +9055,7 @@ setupParamIO({
       if(rows.length){ thermRows.push(grp(t)); thermRows = thermRows.concat(rows.map(x=>row2(x.label, x.value, x.warn?'pdl-warn':''))); }
       else skipped.push(t);
     });
-    const secTherm = thermRows.length ? sec('五、热管理与冷却', tab(thermRows, ['项目','数值'])) : '';
+    const secTherm = thermRows.length ? sec('五、热管理与冷却', tab(thermRows, ['项目','数值']), 'pdl-flow') : '';
 
     /* ⑦ 系统功率汇总：读取 foreignObject 内 pfdPowTable 已渲染的行；为空则回退 calc() */
     let powRows = [];
@@ -10226,6 +10507,28 @@ function sigArrow(x1,y1,x2,y2,color){
 function tag(x,y,text,color,size){
   E('text',{x, y, class:'section-tag', fill:color||'#7dd3fc','font-size':size||12}).textContent = text;
 }
+/* 仪表圆圈（FI/AIT/TIC/AT/PDT） */
+function instrTag(x,y,label,color){
+  const c = color || '#67e8f9';
+  const g = E('g');
+  E('circle',{cx:x, cy:y, r:10, fill:'#0b2436', stroke:c, 'stroke-width':1.4}, g);
+  E('text',{x, y:y+3, 'text-anchor':'middle', fill:c, 'font-size':7, 'font-weight':'bold'}, g).textContent = label;
+  return g;
+}
+/* 控制阀（蝶形）；vertical=true 时安装在竖直管段 */
+function valveSym(x,y,vertical){
+  const c = '#fbbf24', s = 7;
+  if(vertical){
+    E('path',{d:`M${x-s},${y-s} L${x+s},${y-s} L${x},${y} Z`, fill:'none', stroke:c, 'stroke-width':1.6});
+    E('path',{d:`M${x-s},${y+s} L${x+s},${y+s} L${x},${y} Z`, fill:'none', stroke:c, 'stroke-width':1.6});
+  } else {
+    E('path',{d:`M${x-s},${y-s} L${x-s},${y+s} L${x},${y} Z`, fill:'none', stroke:c, 'stroke-width':1.6});
+    E('path',{d:`M${x+s},${y-s} L${x+s},${y+s} L${x},${y} Z`, fill:'none', stroke:c, 'stroke-width':1.6});
+  }
+}
+function dashedLeader(x1,y1,x2,y2,color){
+  E('line',{x1,y1,x2,y2, stroke:color||'#64748b','stroke-width':1,'stroke-dasharray':'3 2', opacity:0.85});
+}
 
 /* ---------------- 4. 流程图布局 ---------------- */
 /* 分区标题：贴近各自模块的左上角 */
@@ -10316,6 +10619,10 @@ E('rect',{x:1106, y:500, width:118, height:24, rx:3, fill:'#0e7490', opacity:0.3
 E('path',{d:'M1106,500 L1224,500', class:'pem-tank-wave', fill:'none', stroke:'#22d3ee','stroke-width':2, opacity:0.65});
 pipe('M1230,470 L1240,470', 'pipe-h2', 'flow-h2');
 equipBox(1240, 380, 160, 130, 'equip-h2', '氢气纯化', '脱氧 + 干燥 (TSA)');
+/* 纯化塔 N₂ 吹扫/置换（停车与再生前置换氢气） */
+dashedLeader(1245, 360, 1245, 378, '#67e8f9');
+E('path',{d:'M1242,374 L1245,379 L1248,374', fill:'none', stroke:'#67e8f9','stroke-width':1.2});
+E('text',{x:1252, y:356, fill:'#94a3b8','font-size':9}).textContent = 'N₂ 吹扫 / 置换';
 pipe('M1400,445 L1450,445', 'pipe-h2', 'flow-h2');
 E('text',{x:1455, y:430,'text-anchor':'end', fill:'#c7d2fe','font-size':10}).textContent = '产品氢';
 
@@ -10371,6 +10678,30 @@ E('line',{x1:840, y1:700, x2:840, y2:762, stroke:'#ef4444','stroke-width':2.5,
 /* 标签居中压在虚线上，垫深色底衬保证可读 */
 E('rect',{x:796, y:726, width:88, height:16, rx:3, fill:'#0f1c2e', opacity:0.92});
 E('text',{x:840, y:738,'text-anchor':'middle', fill:'#fca5a5','font-size':10}).textContent = '废热 → 冷却水';
+
+/* ===== 仪表与控制阀（与计算逻辑的安全/控制口径对应） ===== */
+/* 纯水：水箱电阻率 AIT、循环泵出口流量 FI */
+instrTag(292, 462, 'AIT');
+dashedLeader(282, 462, 272, 462);
+instrTag(410, 598, 'FI');
+dashedLeader(410, 608, 410, 619);
+/* 冷却水温度控制：TIC + 控制阀（维持电解槽工作温度） */
+valveSym(900, 800, false);
+instrTag(900, 756, 'TIC');
+dashedLeader(900, 766, 900, 792);
+E('text',{x:900, y:738,'text-anchor':'middle', fill:'#7dd3fc','font-size':8}).textContent = '70 ℃';
+/* 氧侧：放空压力控制 PCV + 氧中氢分析 AT */
+valveSym(950, 64, false);
+instrTag(1000, 84, 'AT');
+dashedLeader(990, 80, 967, 67);
+/* 氢侧：产品氢压力控制 PCV + 氢中氧分析 AT */
+valveSym(1435, 445, false);
+instrTag(1415, 470, 'AT');
+dashedLeader(1415, 460, 1420, 449);
+/* 氢氧差压变送器 PDT：两端分别接氧侧与氢侧分离器气相空间 */
+instrTag(1065, 320, 'PDT');
+dashedLeader(1055, 313, 972, 252);
+dashedLeader(1075, 327, 1098, 390);
 
 /* ---------------- 5. 数据气泡 ---------------- */
 const nodes = {};
@@ -10455,6 +10786,7 @@ function pemSet(id, lines, tips, lhIn){
     + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#38bdf8"></span>氧气流路</div>'
     + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#f97316"></span>冷却水流路</div>'
     + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#eab308"></span>电力/信号</div>'
+    + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#67e8f9"></span>仪表/控制阀</div>'
     + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#ef4444"></span>热流</div>'
     + '</div>';
   svg.appendChild(fo);
