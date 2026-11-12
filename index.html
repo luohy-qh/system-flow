@@ -97,6 +97,39 @@
   #page-pem .strategy-matrix td.v { color: #7dd3fc; font-weight: bold; }
   #page-pem .strategy-matrix td.m-best { color: #34d399; }
   #page-pem .strategy-matrix-foot { font-size: 0.6rem; color: #64748b; line-height: 1.45; margin-top: 4px; }
+  /* ====== 碱性电解槽页：参数栏分组框 / 运行策略面板（与 PEM 页视觉一致） ====== */
+  #page-alk .input-sect {
+    margin: 10px -10px 6px; padding: 8px 9px 3px;
+    border: 1px dashed #38bdf8; border-radius: 8px;
+  }
+  #page-alk .input-sect .sect-cap {
+    font-size: 0.72rem; color: #7dd3fc; letter-spacing: .03em; margin-bottom: 6px;
+  }
+  #page-alk .input-sect .input-group:last-child { margin-bottom: 2px; }
+  #page-alk .strategy-panel { margin-top: 14px; border-top: 1px solid #2a4a6b; }
+  #page-alk .strategy-head {
+    cursor: pointer; padding: 10px 0 8px; color: #7dd3fc;
+    font-size: 0.86rem; font-weight: bold;
+  }
+  #page-alk .strategy-head .st-sum {
+    display: block; margin-top: 2px; font-size: 0.72rem; font-weight: normal; color: #34d399;
+  }
+  #page-alk .strategy-body { display: none; }
+  #page-alk .strategy-panel.open .strategy-body { display: block; }
+  #page-alk .tou-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; margin: 4px 0 8px; }
+  #page-alk .tou-cell { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+  #page-alk .tou-h { font-size: 0.6rem; color: #64748b; }
+  #page-alk .tou-sel {
+    width: 100%; padding: 1px 0; font-size: 0.7rem; text-align: center;
+    background: #1a2b3f; color: #cbd5e1; border: 1px solid #334e6e; border-radius: 3px;
+  }
+  #page-alk .strategy-note { font-size: 0.68rem; color: #94a3b8; line-height: 1.5; margin: 2px 0 8px; }
+  #page-alk .io-head { flex-direction: column; align-items: stretch; gap: 6px; }
+  #page-alk .io-head h2 { flex: 0 0 auto; }
+  #page-alk .io-head .io-bar { flex-wrap: nowrap; gap: 6px; margin-bottom: 6px; }
+  #page-alk .io-head .io-bar .io-btn { padding-left: 7px; padding-right: 7px; }
+  #page-alk .calc-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 1180px) { #page-alk .calc-panels { grid-template-columns: 1fr; } }
   .legend {
     margin-top: 14px; padding-top: 12px; border-top: 1px solid #2a4a6b;
     font-size: 0.78rem; color: #94a3b8;
@@ -131,6 +164,7 @@
   .equip-heat { fill: #4a1f1f; stroke: #f87171; stroke-width: 2; }
   .equip-humid { fill: #1f3a4a; stroke: #22d3ee; stroke-width: 2; }
   .equip-ptc { fill: #4a2c0a; stroke: #f59e0b; stroke-width: 2; }
+  .equip-lye { fill: #3a2608; stroke: #f59e0b; stroke-width: 2; }
   .valve-body { fill: #2a1a0a; stroke: #fbbf24; stroke-width: 2; }
   .equip-label { fill: #e8eef5; font-size: 13px; font-weight: bold; text-anchor: middle; }
   .equip-sub { fill: #94a3b8; font-size: 10px; text-anchor: middle; }
@@ -152,6 +186,11 @@
   .flow-air { stroke: #bae6fd; }
   .flow-water { stroke: #a5f3fc; }
   .flow-coolant { stroke: #fed7aa; }
+  /* 碱性电解槽页：碱液（KOH）与直流母线（作用域用 #alkPfd，保证导出 SVG 图片时仍生效） */
+  #alkPfd .pipe-lye { stroke: #f59e0b; }
+  #alkPfd .flow-lye { stroke: #fbbf24; }
+  #alkPfd .pipe-power { stroke: #eab308; }
+  #alkPfd .flow-power { stroke: #fde68a; }
   @keyframes flowmove { to { stroke-dashoffset: -56; } }
 
   /* 第一页：叶轮旋转（空压机 / 冷却液泵 / 氢气循环泵 / 散热器风扇） */
@@ -176,6 +215,14 @@
   @keyframes pemElec { to { stroke-dashoffset: -30; } }
   .pem-elec { fill: none; stroke: #34d399; stroke-width: 4; stroke-linecap: round;
     stroke-dasharray: 7 8; animation: pemElec 0.9s linear infinite; }
+  /* 碱性电解槽：OH⁻ 由阴极（下）迁向阳极（上） */
+  @keyframes alkOH {
+    0%   { transform: translateY(0);     opacity: 0; }
+    25%  { transform: translateY(-5px);  opacity: 1; }
+    75%  { transform: translateY(-15px); opacity: 1; }
+    100% { transform: translateY(-20px); opacity: 0; }
+  }
+  .alk-oh { animation: alkOH 1.7s linear infinite; }
 
   @keyframes pemWater {
     0%   { transform: translateY(4px) scale(0.5); opacity: 0; }
@@ -898,6 +945,68 @@
     font-size: 7.5pt; color: #64748b;
   }
 
+  /* ====== 碱性电解槽设计文档导出（与 PEM 同构，独立 body 类 printing-alk） ====== */
+  #alkPrintLayout { display: none; }
+  #alkPrintLayout .pdl {
+    background: #ffffff; color: #0f172a;
+    font-family: "Microsoft YaHei","Segoe UI",sans-serif;
+    font-size: 10.5pt; line-height: 1.5;
+  }
+  #alkPrintLayout .pdl-head { page-break-inside: avoid; break-inside: avoid; }
+  #alkPrintLayout .pdl-title { border-bottom: 2px solid #0f172a; padding-bottom: 6px; }
+  #alkPrintLayout .pdl-title h1 { font-size: 17pt; margin: 0 0 4px; letter-spacing: 1px; }
+  #alkPrintLayout .pdl-title .pdl-meta {
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2px 10px;
+    font-size: 8.5pt; color: #475569;
+  }
+  #alkPrintLayout .pdl-sum {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px; margin: 8px 0 2px;
+  }
+  #alkPrintLayout .pdl-sum-item { border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px 7px; }
+  #alkPrintLayout .pdl-sum-item .k { font-size: 8pt; color: #475569; }
+  #alkPrintLayout .pdl-sum-item .v { font-size: 11.5pt; font-weight: bold; color: #b91c1c; }
+  #alkPrintLayout h3 {
+    font-size: 11pt; margin: 12px 0 5px; padding: 3px 8px;
+    background: #eef2f7; border-left: 4px solid #1d4ed8; color: #1e293b;
+    page-break-after: avoid; break-after: avoid;
+  }
+  #alkPrintLayout table.pdl-tab { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin-bottom: 2px; }
+  #alkPrintLayout table.pdl-tab th,
+  #alkPrintLayout table.pdl-tab td {
+    border: 1px solid #cbd5e1; padding: 2px 6px; text-align: left; vertical-align: top;
+  }
+  #alkPrintLayout table.pdl-tab tbody th { background: #f8fafc; font-weight: normal; width: 46%; }
+  #alkPrintLayout table.pdl-tab thead th { background: #e2e8f0; font-weight: bold; width: auto; }
+  #alkPrintLayout table.pdl-tab td.pdl-warn { color: #b91c1c; font-weight: bold; }
+  #alkPrintLayout table.pdl-tab td.pdl-ok { color: #047857; font-weight: bold; }
+  #alkPrintLayout .pdl-pre {
+    font-family: Consolas,"Courier New",monospace; font-size: 8pt; line-height: 1.45;
+    white-space: pre-wrap; background: #f8fafc; border: 1px solid #cbd5e1;
+    border-radius: 4px; padding: 6px 8px; margin: 0;
+  }
+  #alkPrintLayout .pdl-sec { page-break-inside: avoid; break-inside: avoid; margin-bottom: 4px; }
+  #alkPrintLayout .pdl-sec.pdl-flow { page-break-inside: auto; break-inside: auto; }
+  #alkPrintLayout .pdl-sub { font-weight: bold; font-size: 8.5pt; margin: 5px 0 2px; color: #0b4767; }
+  #alkPrintLayout .pdl-subnote { font-size: 7.5pt; color: #64748b; margin: 3px 0 0; }
+  #alkPrintLayout table.pdl-tab tr { page-break-inside: avoid; break-inside: avoid; }
+  #alkPrintLayout .pdl-pfd-fig {
+    position: relative; width: 164mm; height: 256mm;
+    margin: 0 auto; overflow: hidden;
+  }
+  #alkPrintLayout .pdl-pfd-fig img,
+  #alkPrintLayout .pdl-pfd-fig svg {
+    position: absolute; top: 50%; left: 50%;
+    display: block; width: 255mm; height: auto; margin: 0;
+    max-width: none; max-height: none;
+    transform: translate(-50%, -50%) rotate(90deg);
+    transform-origin: center center;
+  }
+  #alkPrintLayout .pdl-foot {
+    margin-top: 10px; border-top: 1px solid #cbd5e1; padding-top: 4px;
+    font-size: 7.5pt; color: #64748b;
+  }
+
   /* ====== 燃料电池系统文档导出（与 PEM 同构，独立 body 类 printing-pfd，避免与 PEM 的 printing 互相清屏） ====== */
   #pfdPrintLayout { display: none; }
   #pfdPrintLayout .pdl {
@@ -1067,6 +1176,16 @@
     body.printing #page-pem { display: block !important; }
     body.printing #page-pem > .layout { display: none !important; }
     body.printing #pemPrintLayout { display: block !important; }
+    /* 碱性电解槽页导出：独立 body 类 printing-alk，避免与 PEM 的 printing 互相清屏 */
+    body.printing-alk { background: #ffffff !important; }
+    body.printing-alk > header,
+    body.printing-alk > .tab-bar,
+    body.printing-alk > .page,
+    body.printing-alk .sim-help-overlay { display: none !important; }
+    body.printing-alk #page-alk { display: block !important; }
+    body.printing-alk #page-alk > .layout { display: none !important; }
+    body.printing-alk #alkPrintLayout { display: block !important; }
+    body.printing-alk .pdl-pfd-sec { break-before: page; page-break-before: always; }
     /* 流程图单独占一页（仍为纵向，图幅通过 CSS 旋转 90° 竖放以尽量放大） */
     body.printing .pdl-pfd-sec { break-before: page; page-break-before: always; }
 
@@ -1414,6 +1533,7 @@
   <button class="tab-btn" data-page="hybrid">车辆混合动力系统</button>
   <button class="tab-btn" data-page="sim">整车工况仿真</button>
   <button class="tab-btn" data-page="pem" style="align-self: flex-end">PEM电解槽系统</button>
+  <button class="tab-btn" data-page="alk" style="align-self: flex-end">碱性电解槽系统</button>
   <button class="tab-btn" data-page="mw">兆瓦级燃料电池发电系统</button>
   <button class="tab-btn" data-page="zcp">零碳园区三维可视化</button>
   <button class="tab-btn uav-hidden" data-page="uav" aria-hidden="true">无人机混合动力系统</button>
@@ -1818,6 +1938,330 @@ BOP  ：空压机 22.61 + 泵 1.097 + 风扇 3.571 + 氢循环泵 0.210 = 27.49 
 <!-- 设计文档打印布局：屏幕上隐藏，点「导出设计文档(PDF)」时填充，仅打印时显示 -->
 <div id="pemPrintLayout"></div>
 </div><!-- /page-pem -->
+
+<!-- ============ 第五页：碱性电解槽系统设计 ============ -->
+<div class="page" id="page-alk">
+<div class="layout">
+  <!-- 输入面板 -->
+  <div class="input-panel">
+    <div class="io-head">
+      <h2>碱性电解槽系统参数<button type="button" class="sim-help-btn" id="alkHelpBtn" title="查看计算逻辑说明" aria-label="查看计算逻辑说明">?</button></h2>
+      <div class="io-bar">
+        <button type="button" class="io-btn" id="alkExportBtn">导出参数</button>
+        <button type="button" class="io-btn io-import" id="alkImportBtn">导入参数</button>
+        <button type="button" class="io-btn" id="alkPdfBtn" title="生成设计文档并调用浏览器打印（另存为 PDF）">导出设计文档(PDF)</button>
+        <input type="file" id="alkImportFile" accept=".json,application/json" style="display:none">
+      </div>
+    </div>
+    <div id="alkInputs"></div>
+  </div>
+
+  <!-- 流程图 + 计算面板 -->
+  <div class="diagram-wrap">
+    <svg id="alkPfd" viewBox="-60 0 1560 1000" preserveAspectRatio="xMidYMid meet"></svg>
+
+    <div class="calc-panels">
+      <!-- 电解液系统 -->
+      <div class="hx-section">
+        <div class="hx-section-header" data-toggle="alk-lye"><span>▾ 电解液系统计算（KOH 循环 · 浓度 · 补水 · 补碱）</span></div>
+        <div class="hx-section-body" id="alk-lye"><div class="hx-results" id="alk-lye-results"></div></div>
+      </div>
+      <!-- 气系统 -->
+      <div class="hx-section">
+        <div class="hx-section-header" data-toggle="alk-gas"><span>▾ 气系统计算（产氢纯化 · 产氧 · 分离 · 压差）</span></div>
+        <div class="hx-section-body" id="alk-gas"><div class="hx-results" id="alk-gas-results"></div></div>
+      </div>
+      <!-- 换热器 -->
+      <div class="hx-section">
+        <div class="hx-section-header" data-toggle="alk-hx"><span>▾ 换热器选型计算（碱液板式换热器）</span></div>
+        <div class="hx-section-body" id="alk-hx">
+          <div class="hx-results" id="alk-hx-results"></div>
+          <!-- 计算依据与参考资料：可折叠；仅本页展示，不进入「导出设计文档(PDF)」 -->
+          <div class="hx-refs" id="alkHxRefs">
+            <div class="hx-refs-head" id="alkHxRefsHead"><span>▸ 计算依据与参考资料</span><span class="hx-refs-sum">20 条 · 4 类</span></div>
+            <div class="hx-refs-body">
+            <div class="hx-refs-grp">碱性水电解 · 原理与系统</div>
+            <ul>
+              <li><b>Zeng K., Zhang D.（2010）</b>，Recent progress in alkaline water electrolysis for hydrogen production and applications，<i>Progress in Energy and Combustion Science</i> —— 碱性电解原理、极化损失构成与系统流程。</li>
+              <li><b>Bodner M., Hofer A., Hacker V.（2015）</b>，H2 generation from alkaline electrolyzer，<i>WIREs Energy and Environment</i> —— 电解液循环、气液分离与运行边界。</li>
+              <li><b>David M., Ocampo-Martínez C., Sánchez-Peña R.（2019）</b>，Advances in alkaline water electrolyzers: A review，<i>Journal of Energy Storage</i> —— 隔膜、电极、气泡效应与动态运行。</li>
+              <li><b>Brauns J., Turek T.（2020）</b>，Alkaline water electrolysis powered by renewable energy: A review，<i>Processes</i> —— 部分负荷、最低负荷与可再生能源耦合。</li>
+              <li><b>Marini S. et al.（2012）</b>，Advanced alkaline water electrolysis，<i>Electrochimica Acta</i> —— 高电流密度下的极化曲线与气泡过电位。</li>
+            </ul>
+            <div class="hx-refs-grp">KOH 电解液物性</div>
+            <ul>
+              <li><b>Gilliam R.J., Graydon J.W., Kirk D.W., Thorpe S.J.（2007）</b>，A review of specific conductivities of potassium hydroxide solutions for various concentrations and temperatures，<i>Int. J. Hydrogen Energy</i> —— KOH 电导率随浓度/温度的关联式，本页 κ(T,w) 的拟合依据。</li>
+              <li><b>《CRC Handbook of Chemistry and Physics》</b>—— KOH 水溶液密度、比热与粘度取值。</li>
+              <li><b>NIST Chemistry WebBook</b>—— KOH 溶液热力学与水的饱和蒸汽压数据。</li>
+              <li><b>Kell G.S.（1975）</b>，Density, thermal expansivity, and compressibility of liquid water from 0° to 150 °C，<i>J. Chem. Eng. Data</i> —— 纯水密度式（冷却水侧物性）。</li>
+            </ul>
+            <div class="hx-refs-grp">传热与设备选型</div>
+            <ul>
+              <li><b>《传热学》</b>（杨世铭、陶文铨，高等教育出版社）—— 逆流对数平均温差、传热面积与对流换热。</li>
+              <li><b>Incropera F.P., DeWitt D.P., Fundamentals of Heat and Mass Transfer</b>（Wiley）—— 对流换热与沿程/局部压降。</li>
+              <li><b>Muley A., Manglik R.M.（1999）</b>，Experimental study of turbulent flow heat transfer and pressure drop in a plate heat exchanger with chevron plates，<i>Int. J. Heat and Mass Transfer</i> —— 人字形板片摩擦系数关联式。</li>
+              <li><b>Martin H.（1996）</b>，A theoretical approach to predict the performance of chevron-type plate heat exchangers，<i>Chemical Engineering and Processing</i> —— 板式换热器换热与压降预测。</li>
+              <li><b>尾花英朗《热交换器设计手册》</b>—— 板式换热器选型流程与经验取值（流速 0.3~1.0 m/s、压降 ≤100 kPa）。</li>
+              <li><b>GB/T 16409《板式换热器》</b>、<b>NB/T 47004《板式热交换器》</b>—— 板片结构、设计与验收。</li>
+            </ul>
+            <div class="hx-refs-grp">安全与标准</div>
+            <ul>
+              <li><b>GB/T 19774《水电解制氢系统技术要求》</b>—— 系统性能、辅助系统与安全要求。</li>
+              <li><b>GB/T 37562《压力型水电解制氢系统技术条件》</b>、<b>GB/T 37563《压力型水电解制氢系统安全要求》</b>—— 氢氧压差、氧中氢/氢中氧联锁判据。</li>
+              <li><b>GB 50177《氢气站设计规范》</b>、<b>GB/T 34584《加氢站安全技术规范》</b>—— 氢气泄漏、通风与防爆设计。</li>
+              <li><b>ISO 22734:2019</b>，Hydrogen generators using water electrolysis process —— 工业/商业水电解制氢系统的国际标准。</li>
+              <li><b>ISO 14687:2019</b>，Hydrogen fuel quality —— 产品氢纯度与杂质限值。</li>
+            </ul>
+            <p class="hx-refs-note">说明：经济性（LCOH）与运行策略部分为工程估算口径，其假设（单位投资、折现率、项目寿命、衰减率、分时电价等）已逐条列在参数栏、帮助弹窗与导出设计文档中，不在本清单范围内。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 电源 / 能效 / 控制 -->
+      <div class="hx-section">
+        <div class="hx-section-header" data-toggle="alk-pow"><span>▾ 电源 · 能效 · 控制计算</span></div>
+        <div class="hx-section-body" id="alk-pow"><div class="hx-results" id="alk-power-results"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 设计文档打印布局：屏幕上隐藏，点「导出设计文档(PDF)」时填充，仅打印时显示 -->
+<div id="alkPrintLayout"></div>
+</div><!-- /page-alk -->
+
+<!-- ============ 碱性电解槽系统设计 · 计算逻辑说明弹窗 ============ -->
+<div class="sim-help-overlay" id="alkHelpOverlay">
+  <div class="sim-help-modal" role="dialog" aria-modal="true" aria-labelledby="alkHelpTitle">
+    <div class="sim-help-head">
+      <h3 id="alkHelpTitle">碱性电解槽系统 · 计算逻辑说明</h3>
+      <button type="button" class="sim-help-close" id="alkHelpClose" title="关闭" aria-label="关闭">✕</button>
+    </div>
+    <div class="sim-help-body" id="alkHelpBody">
+
+      <blockquote>本页与「PEM电解槽系统」同构：左侧参数栏 → 右侧 SVG 流程图 → 图下四个计算面板。改动任一参数后，图上的数据气泡与图下四个面板即时重算。所有结果行都可<strong>鼠标悬停</strong>查看该行的公式说明。</blockquote>
+
+      <h4>一、计算链路总览</h4>
+      <p>整页是一条自<strong>电化学</strong>到<strong>设备选型</strong>的单向链，下游量全部由上游量推导，不存在循环依赖：</p>
+      <pre>① 碱性电解槽电化学（法拉第定律 + 四项极化）
+      ├─ 产氢量 / 产氧量 ──────────► ② 气系统（洗涤 · 纯化 · 互窜 · 压差校核）
+      ├─ 直流功率 / 反应废热 ────────► ③ 电解液系统（KOH 循环 · 补水 · 补碱）
+      │                                    └──► ④ 换热器选型（LMTD → 面积 → 板片 → 流速 → 压降）
+      └─ 直流电流 / 直流电压 ────────► ⑤ 整流电源 → 辅机功耗 → 系统能效与电耗
+                                              └──► ⑥ 安全联锁与设计校核
+                                                    └──► ⑦ 经济性（LCOH）与分时电价策略</pre>
+      <p>四个图下计算面板与链路一一对应：<code>电解液系统计算</code>、<code>气系统计算</code>、<code>换热器选型计算</code>、<code>电源 · 能效 · 控制计算</code>。</p>
+
+      <h4>二、碱性电解槽电化学</h4>
+
+      <h5>2.1 电流、电压、功率</h5>
+      <pre>I        = A × j                      直流电流（整堆串联，各节电流相同）
+V_cell   = V_rev + η_act + η_ohm + η_bub   单体电压（四项极化）
+V_stack  = V_cell × N                 直流电压
+P_stack  = V_stack × I / 1000         直流功率（kW）</pre>
+      <p><b>单体电压默认由极化曲线解算</b>：输入栏「单体电压」填 <code>0</code> 即走曲线（推荐）；填非 0 值则原样采用，作为<strong>手动覆盖</strong>。</p>
+
+      <h5>2.2 四项极化模型</h5>
+      <pre>V_rev = 1.23 − 0.9e-3×(T−25) + (R·T_k/(2F))·ln(P_H2·P_O2^0.5 / a_H2O)
+η_act = a×log10(j/j0)          a = 0.055 V/dec，j0 = 5×10⁻⁵ A/cm²
+η_ohm = j×ASR(T,w)             ASR = d_gap/κ(T,w) + ASR_sep + ASR_elec
+η_bub = b×(j/0.4)^0.5          b = 0.03 V（气泡/浓差过电位）
+κ(T,w) = κ25(w)·exp(0.012×(T−25))       KOH 电导率（S/cm）
+κ25(w) = 0.30 + 0.022w − 0.00035w²
+a_H2O = max(0.3, 1 − 0.0065w)             KOH 溶液水活度</pre>
+      <p>默认工作点 j = 0.4 A/cm²、T = 80 ℃、P_H2 = 10 bar、P_O2 = 9.8 bar、KOH 30 wt% 下：V_rev ≈ 1.2466 V、η_act ≈ 0.2147 V、η_ohm ≈ 0.2041 V、η_bub = 0.030 V，<b>V_cell ≈ 1.695 V</b>。ASR ≈ 0.510 Ω·cm²，其中电解液间隙贡献 d_gap/κ ≈ 0.16 Ω·cm²、隔膜 0.30、电极/接触 0.05。</p>
+      <blockquote><b>与 PEM 的关键差异</b>：① 电解液是 30 wt% KOH，靠 <b>OH⁻</b> 导电（阳极 <code>4OH⁻ → O₂ + 2H₂O + 4e⁻</code>、阴极 <code>2H₂O + 2e⁻ → H₂ + 2OH⁻</code>），不是 PEM 的 H⁺/质子交换膜；② 电流密度低一个量级（0.2~0.5 A/cm² vs PEM 1~2 A/cm²）；③ 气泡过电位与隔膜电阻是 ALK 特有的两项损失；④ 电解液循环量大，兼作反应物、冷却介质与气泡携带介质。</blockquote>
+
+      <h5>2.3 电流效率：互窜 + 寄生电流</h5>
+      <pre>i_x    = i_x,base × max(0.05, P_H2/10) × exp(2000×(1/353.15 − 1/T_k))   A/cm²
+n_窜,H2 = i_x·A·N/(2F)        氢窜至氧侧（mol/s）
+n_窜,O2 = i_x·A·N/(4F)        氧窜至氢侧（mol/s）
+η_F    = 1 − 2·i_x/j − s_shunt/100                      （由互窜与寄生电流反推）
+n_H2   = n_H2,th × η_F         n_H2,th = I·N/(2F)</pre>
+      <p>系数 2 的来由与 PEM 相同：氧侧回窜的 O₂ 在氢侧按 <code>2H₂+O₂→2H₂O</code> 额外消耗 2 倍 H₂。ALK 还必须计入<strong>寄生电流损失</strong> <code>s_shunt</code>（电解液总管把各节短路形成的旁路电流，典型 0.5~2 %）。默认 i_x = 1.5 mA/cm²、j = 0.4 A/cm²、s_shunt = 1 %：η_F = 1 − 0.0075 − 0.01 = <b>98.25 %</b>。输入「电流效率」非 0 时手动覆盖。</p>
+
+      <h5>2.4 产氢 / 产氧 / 效率 / 热平衡</h5>
+      <pre>n_O2,th = n_H2,th / 2                 理论产氧（mol/s）
+n_O2    = max(0, n_O2,th×(1 − s_shunt/100))   产氧（随寄生电流折减）
+m_H2 = n_H2×2.016×3.6                 kg/h；V_H2 = n_H2×22.414×3.6  Nm³/h
+V_O2 = n_O2×22.414×3.6                Nm³/h
+
+η_HHV = 1.481 / V_cell × 100 %         电堆本体（HHV 热中性电压 1.481 V）
+η_LHV = 1.254 / V_cell × 100 %         电堆本体（LHV 热中性电压 1.254 V）
+Q_heat,raw = P_stack×(V_cell − 1.481)/V_cell    有符号反应热（kW）
+Q_heat     = max(0, Q_heat,raw)                 需冷却带走的热量
+P_heat,ext = max(0, −Q_heat,raw)                吸热工况外部加热（按电加热等效计入 Psys）
+P_H2_HHV   = P_stack×(1.481/V_cell)×η_F
+P_H2_LHV   = P_stack×(1.254/V_cell)×η_F</pre>
+      <blockquote>默认 1.695 V 高于 1.481 V，电堆<strong>净放热</strong> 171.5 kW；若单体电压低于 1.481 V（极低负荷或手动设定低压），反应净吸热，需外部加热，且热量计入系统输入，避免 HHV 效率出现 &gt;100 %。ALK 的典型工作区间为 1.6~1.9 V，高于 PEM 的 1.8~2.0 V 但电流密度低一个量级。</blockquote>
+
+      <h4>三、电解液系统（KOH 循环）</h4>
+
+      <h5>3.1 KOH 物性（随浓度与温度）</h5>
+      <pre>ρ_lye(T,w) = 1000 + 9.2w − 0.55×(T−20)          kg/m³
+c_p,lye(T,w) = 4180 − 27w + 1.2×(T−20)          J/(kg·K)
+μ_lye(T,w) = μ_w(T)×(1 + 0.08w)                 Pa·s
+κ(T,w) = κ25(w)·exp(0.012×(T−25))               S/cm
+a_w = max(0.3, 1 − 0.0065w)                     水活度</pre>
+      <p>默认 30 wt% / 80 ℃：ρ ≈ 1243 kg/m³、c_p ≈ 3442 J/(kg·K)、μ ≈ 1.19 mPa·s、κ ≈ 1.248 S/cm、a_w ≈ 0.805。KOH 浓度同时影响电导率、粘度、比热与水活度：浓度过低电导率下降，过高粘度上升且低温易结晶，工程常用 25~32 wt%。</p>
+
+      <h5>3.2 电解液循环流量</h5>
+      <pre>m_heat  = Q_heat×1000 / (c_p,lye × ΔT_lye)      为带走废热所需流量（kg/s）
+m_react = n_H2×18.015/1000                      反应耗水流量（kg/s）
+m_circ  = max(m_heat, m_react × 最小循环倍率)    实际循环流量（kg/s）
+V_circ  = m_circ / ρ_lye × 3600                  m³/h
+循环倍率 = m_circ / m_react</pre>
+      <p>默认 ΔT_lye = 5 ℃：m_heat = 171.5×1000/(3442×5) = 9.96 kg/s（35.9 t/h），V_circ ≈ 28.9 m³/h，循环倍率约 <b>136 倍</b>。电解液循环由<strong>换热需求主导</strong>，循环倍率远大于 1；这与 PEM 纯水循环同源，但 ALK 的电解液同时承担 KOH 导电与气泡携带，流量不能仅按反应水设计。</p>
+
+      <h5>3.3 补水、补碱与排污</h5>
+      <pre>反应净耗水 = n_H2×18.015×3.6                     kg/h
+氢侧气相带水 = n_H2 × r_H2 × 18.015×3.6          kg/h
+氧侧气相带水 = n_O2 × r_O2 × 18.015×3.6          kg/h
+r = a_w·p_sat(T) / (P_abs − a_w·p_sat(T))         饱和摩尔比（KOH 水活度修正）
+排污量 = 电解液容积 × 排污率(%/d) × ρ_lye / 24    kg/h
+KOH 损失 = 排污量×w/100 + 碱雾夹带×w/100          kg/h
+净水损失 = 反应水 + 两侧气相带水 + 排污水 + 碱雾水
+原水耗量 = 净水损失 / RO 回收率
+冷却塔补水 = Q_heat,raw×3600/2260×1.2            kg/h（含 20 % 排污）</pre>
+      <p>ALK 的电解液是<strong>闭式循环</strong>，分离器把液体返回循环回路，因此不能像 PEM 那样按「循环水×(1−分离效率)」估算液态水损失；真正的水损失是<strong>反应水 + 气相带水 + 排污 + 碱雾</strong>。默认：反应水 264.2、氢侧带水 10.51、氧侧带水 5.44、排污 1.29、碱雾 0.002 kg/h，净水损失 281.0 kg/h，原水耗量 374.7 kg/h（RO 回收率 75 %），冷却塔补水 329.2 kg/h。</p>
+      <blockquote>KOH 损失主要来自<strong>排污</strong>：默认电解液容积 5 m³、排污率 0.5 %/d → 排污 1.29 kg/h，其中 KOH 0.39 kg/h；年 KOH 损失约 1.56 t（按 4000 h 计），是 ALK 相对 PEM 多出的一项运行成本。补水水质要求 ≤5 µS/cm，避免 Ca²⁺/Mg²⁺ 与 CO₂ 进入电解液生成碳酸盐沉淀。</blockquote>
+
+      <h4>四、气系统</h4>
+
+      <h5>4.1 产氢纯化 / 产氧</h5>
+      <pre>产品氢流量 = V_H2 × 纯化回收率 × min(1, 纯度/99.999)
+产品氢质量 = m_H2 × 纯化回收率 × min(1, 纯度/99.999)
+纯化损失   = V_H2 − 产品氢流量
+副产品氧   = V_O2 × 氧气回收率</pre>
+      <p>ALK 粗氢通常含 0.1~0.5 vol% O₂ 与饱和水蒸气，需经<strong>碱雾洗涤 → 冷却除水 → 催化脱氧 → TSA 干燥</strong>，产品氢可达 99.999 %。纯化回收率默认 98 %，产品氢是电能单耗与 LCOH 的分母。</p>
+
+      <h5>4.2 气相带水与水活度</h5>
+      <pre>p_sat(T) = 9.7×10⁻⁷T⁴ − 3.455×10⁻⁵T³ + 3.71504×10⁻³T² + 0.01245629T + 0.71004367  （kPa）
+p_H2O = a_w × p_sat(T)
+r_vap = p_H2O / (P_abs − p_H2O)</pre>
+      <p>KOH 溶液的水活度低于纯水（30 wt% 时约 0.805），因此同等温度/压力下气相带水比纯水低约 20 %；但 ALK 通常在 10 bar 左右运行（低于高压 PEM 的 30 bar），且温度 80 ℃，带水量仍然显著。默认氢侧 10.51 kg/h、氧侧 5.44 kg/h。</p>
+
+      <h5>4.3 互窜、压差与安全</h5>
+      <pre>氧中氢 = n_窜,H2 / (n_O2 + n_窜,H2) × 100      vol%（产氧为分母，干基）
+氢中氧 = n_窜,O2 / (n_H2 + n_窜,O2) × 100      vol%（纯化前粗氢）
+氢氧压差 ΔP = |P_H2 − P_O2|                   判据：ΔP ≤ 限值（默认 0.3 bar）</pre>
+      <p>隔膜不是绝对致密：氢、氧会通过隔膜孔道与电解液互窜。ALK 的氧中氢通常高于 PEM，是<strong>最低负荷的主要限制</strong>——主气流随负荷下降，而互窜量近似恒定，故低负荷时氧中氢升高。默认 i_x = 1.5 mA/cm²、j = 0.4 A/cm²：氧中氢 0.752 vol%、氢中氧 0.190 vol%；按氧中氢 ≤2 vol% 反推，最小负荷约 <b>37.1 %</b>（j ≈ 0.1485 A/cm²），远高于 PEM 的约 10 %。</p>
+      <blockquote>阈值：<strong>氧中氢 ≥2 vol% 报警、≥4 vol% 联锁停车</strong>（4 vol% 为氢在氧中的爆炸下限）；<strong>氢中氧 ≥2 vol% 报警并停车</strong>（判断隔膜是否破损）。ALK 还须监测电解液液位、KOH 浓度、补水电导率与氢氧压差，并设置氮气吹扫置换。</blockquote>
+
+      <h4>五、换热器选型（碱液板式换热器）</h4>
+      <pre>T_lye,in = 工作温度 + ΔT/2      T_lye,out = 工作温度 − ΔT/2（工作温度按槽内平均温度定义）
+Δt₁ = T_lye,in − T_cw,out        Δt₂ = T_lye,out − T_cw,in
+LMTD = (Δt₁ − Δt₂)/ln(Δt₁/Δt₂)                （℃）
+A_calc = Q_heat×1000/(K×LMTD)                 （m²）
+A_need = A_calc×(1+裕度)；N_plate = ceil(A_need/a_plate)+1 → 取偶数
+u = (V/3600)/(n_ch×A_ch)                      推荐 0.3~1.0 m/s
+Re = ρuD_eq/μ；Δp = (L/D_eq)·f·ρu²/2 + 1.5·ρu²/2</pre>
+      <p>碱液侧与冷却水侧<strong>严禁混合</strong>（KOH 进入冷却水会腐蚀管路，冷却水进入电解液会稀释浓度），必须采用双侧独立流道的间壁式换热器。碱液侧物性按 T_lye、w 取值，冷却水侧按进出口均温取值。工作温度按槽内平均温度定义，热侧进口 = 工作温度 + ΔT/2、出口 = 工作温度 − ΔT/2。设计点（BOL）LMTD 45.98 ℃、K = 2500 W/(m²·K)、A_calc 1.49 m²、24 片、碱液侧流速 0.515 m/s、冷却水侧 0.359 m/s、压降 2.92/1.35 kPa；设备选型按周期末（EOL）热负荷 267.5 kW → A_need 2.79 m²、<strong>36 片</strong>，页面「换热器选型计算」面板显示的是 EOL 值。</p>
+
+      <h4>六、电源 · 辅机 · 能效</h4>
+
+      <h5>6.1 整流电源</h5>
+      <pre>电源输入功率 = P_stack / η_rect        含整流变压器与晶闸管损耗（默认 96 %）</pre>
+
+      <h5>6.2 辅机功耗</h5>
+      <pre>碱液循环泵 P = (ρ_lye·g·H + Δp_hot)×(V_circ/3600)/η_pump
+冷却水泵   P = (ρ_w·g·H + Δp_cold)×(V_cold/3600)/η_cpump
+冷却塔风机 P = Δp_fan×Q_air/η_fan
+     其中 Q_air = Q_heat×3600/(c_air×ΔT_air×ρ_air)
+纯化加热   P = P_stack×纯化加热占比（脱氧器与 TSA 再生）
+辅机合计   = 上述四项之和
+外部加热   P_heat,ext = max(0, −Q_heat,raw)（吸热工况，单列）</pre>
+
+      <h5>6.3 系统能效与电耗</h5>
+      <pre>系统输入功率 = 电源输入 + 辅机合计 + 外部加热
+η_sys(HHV) = P_H2_HHV / 系统输入功率 × 100 %
+η_sys(LHV) = P_H2_LHV / 系统输入功率 × 100 %
+电能单耗 = 系统输入功率 / 产品氢质量流量(kg/h)   → kWh/kg
+电能单耗 = 系统输入功率 / 产品氢体积流量(Nm³/h)  → kWh/Nm³</pre>
+      <blockquote>务必区分三组效率：<code>η_HHV/η_LHV</code> 是电堆本体电化学效率（只看单体电压），<code>η_sys</code> 是系统效率（含整流、辅机与外部加热），电能单耗是可研/报价/运行成本的通用口径。行业典型 ALK 系统电耗 <strong>4.3~5.0 kWh/Nm³</strong>；理论下限为 LHV 33.33 kWh/kg、HHV 39.41 kWh/kg。默认系统电耗 4.51 kWh/Nm³（50.14 kWh/kg），落在典型区间内。</blockquote>
+
+      <h5>6.4 年运行核算</h5>
+      <pre>等效满负荷小时数 = 年运行小时数 × 平均负荷率/100
+年产品氢量(kg)  = 产品氢质量流量(kg/h) × 等效满负荷小时数
+年产品氢量(Nm³) = 产品氢体积流量(Nm³/h) × 等效满负荷小时数
+年耗电量(kWh)   = 系统输入功率(按周期平均电压复算) × 等效满负荷小时数
+氢气电费成本     = 电能单耗 × 电价                    → 元/kg（设计点）
+平均氢气电费成本 = 年电费 / 年产品氢量                → 元/kg（含衰减）</pre>
+
+      <h5>6.5 综合氢成本 LCOH</h5>
+      <pre>总投资 = 系统输入功率(周期末选型, kW) × 单位投资(元/kW) / 10000   → 万元
+CRF = i(1+i)^n/[(1+i)^n − 1]
+年CAPEX摊销 = 总投资×CRF
+年运维 = 总投资×运维费率
+更换次数 = ceil(项目寿命/电堆更换周期) − 1
+年更换摊销 = Σ[总投资×更换成本占比/(1+i)^(k·t_st)] × CRF
+年总成本 = 年CAPEX摊销 + 年运维 + 年更换摊销 + 年电费 + 年水费 + 年KOH费 + 年人工
+LCOH = 年总成本(万元)×10000 / 年产品氢量(kg)   → 元/kg</pre>
+      <blockquote>默认（4000 h、0.3 元/kWh、单位投资 4000 元/kW、寿命 20 年、更换周期 10 年、更换成本 35 %）：LCOH ≈ <b>26.36 元/kg</b>，其中电费占 <b>59.2 %</b>。ALK 的单位投资显著低于 PEM（约 3000~5000 元/kW vs PEM 8000~12000 元/kW），但电流密度低、系统电耗略高；在低电价场景 ALK 的 LCOH 优势明显。安全超限时 LCOH 显示「不可行」。</blockquote>
+
+      <h5>6.6 电压衰减与电堆更换</h5>
+      <pre>年升压 = 衰减率(µV/h·节) × 等效满负荷小时数 / 1e6
+周期内电压上升 = 年升压 × 电堆更换周期
+周期末单体电压 = 寿命初期单体电压 + 周期内电压上升
+平均单体电压 = 寿命初期单体电压 + 周期内电压上升/2
+选型功率 = 系统输入功率(按周期末电压复算整链)
+年耗电量 = 系统输入功率(按平均电压复算整链) × 等效满负荷小时数</pre>
+      <p>默认衰减率 3 µV/(h·节)、更换周期 10 年、4000 h/年：周期升压 0.120 V/节，周期末 1.816 V、平均 1.756 V；选型系统输入 1560.9 kW，年平均 1506.7 kW。ALK 的衰减通常低于 PEM（隔膜/电极降解较慢），但 KOH 碳酸盐化、隔膜堵塞与电极钝化仍会导致电压上升。</p>
+
+      <h5>6.7 运行策略（分时电价调度）</h5>
+      <pre>调度需求 N = 等效满负荷小时数
+① 定值电价基准   年电费 = 年耗电量 × 电价输入值
+② 恒定功率型     加权电价 = 8760 h 电价序列的算术平均（24 点按日重复）
+③ 谷电优先型     取全年最便宜的 N 小时运行（谷电不足自动顺延到平电）
+LCOH(策略) = (固定成本 + 年电费)×10000 / 年产品氢量
+固定成本 = 年CAPEX摊销 + 年运维 + 年更换摊销 + 年水费 + 年KOH费 + 年人工</pre>
+      <blockquote>默认分时电价（谷 0.15 / 平 0.35 / 峰 0.80 元/kWh）：① 26.36、② 30.37、③ 21.37 元/kg。三策略均为满负荷运行，年耗电量与年产氢量相同，差异只来自「在哪些小时运行」；若需风光、部分负荷与优化调度，可参考 PEM 页的进阶版策略矩阵。ALK 的最低负荷受氧中氢限制（默认约 37 %），部分负荷范围明显窄于 PEM，调度时应把该约束计入可执行性校核。</blockquote>
+
+      <h4>七、安全联锁与设计校核</h4>
+      <table>
+        <tr><th>校核项</th><th>判据</th><th>超限后果 / 措施</th></tr>
+        <tr><td>氢氧压差</td><td>|P_H2 − P_O2| ≤ 限值（默认 0.3 bar）</td><td>隔膜机械损伤、氢氧互窜 → 双侧等压运行 + 软件/硬件/机械三重保护</td></tr>
+        <tr><td>氧中氢</td><td>≥2 vol% 报警；≥4 vol% 联锁</td><td>氧气侧含氢，4 vol% 为氢的爆炸下限，立即切断电源并氮气吹扫</td></tr>
+        <tr><td>氢中氧</td><td>≥2 vol% 报警</td><td>氢气侧含氧（纯化前粗氢），判断隔膜是否破损，超限停车</td></tr>
+        <tr><td>电解液温度</td><td>≤90 ℃（推荐 70~85 ℃）</td><td>隔膜老化、KOH 腐蚀加剧、气相带水增大</td></tr>
+        <tr><td>KOH 浓度</td><td>25~32 wt%（推荐 30 wt%）</td><td>过低电导率下降、过高粘度上升且易结晶</td></tr>
+        <tr><td>补水电导率</td><td>≤5 µS/cm</td><td>Ca²⁺/Mg²⁺ 与 CO₂ 生成碳酸盐沉淀，堵塞隔膜与管路</td></tr>
+        <tr><td>换热器流速</td><td>0.3~1.0 m/s</td><td>过低结垢，过高冲刷腐蚀与压降大</td></tr>
+        <tr><td>换热器压降</td><td>≤100 kPa</td><td>超出则碱液泵扬程不足</td></tr>
+        <tr><td>安全等级</td><td>SIL2，独立于主控系统</td><td>软件 + 硬件 + 机械（爆破片）三重保护</td></tr>
+      </table>
+
+      <h4>八、符号与常数</h4>
+      <table>
+        <tr><th>符号</th><th>含义</th><th>取值 / 单位</th></tr>
+        <tr><td>F</td><td>法拉第常数</td><td>96485 C/mol</td></tr>
+        <tr><td>1.481 V / 1.254 V</td><td>HHV / LHV 热中性电压</td><td>对应 ΔH_HHV = 285.83 kJ/mol、ΔH_LHV = 241.83 kJ/mol</td></tr>
+        <tr><td>22.414</td><td>标准状态摩尔体积</td><td>L/mol（0 ℃、101.325 kPa）</td></tr>
+        <tr><td>ρ_lye / c_p,lye / μ_lye / κ</td><td>KOH 电解液密度 / 比热 / 粘度 / 电导率</td><td>随 T 与 w 变化；默认 30 wt% / 80 ℃：1243 kg/m³ / 3442 J/(kg·K) / 1.19 mPa·s / 1.248 S/cm</td></tr>
+        <tr><td>a_w</td><td>KOH 溶液水活度</td><td>a_w = max(0.3, 1 − 0.0065w)；30 wt% → 0.805</td></tr>
+        <tr><td>η_F / i_x / s_shunt</td><td>电流效率 / 隔膜互窜电流密度 / 寄生电流损失</td><td>η_F = 1 − 2i_x/j − s_shunt；默认 98.25 % / 1.5 mA·cm⁻² / 1 %</td></tr>
+        <tr><td>c_air / ρ_air</td><td>空气比热 / 密度</td><td>1005 J/(kg·K) / 1.2 kg/m³</td></tr>
+        <tr><td>33.33 / 39.41</td><td>氢 LHV / HHV 质量能量密度</td><td>kWh/kg</td></tr>
+      </table>
+
+      <h4>九、计算依据与参考资料（摘要）</h4>
+      <ul>
+        <li>Zeng K., Zhang D.（2010），Recent progress in alkaline water electrolysis，<i>Progress in Energy and Combustion Science</i>.</li>
+        <li>Gilliam R.J. et al.（2007），A review of specific conductivities of potassium hydroxide solutions，<i>Int. J. Hydrogen Energy</i>.</li>
+        <li>David M. et al.（2019），Advances in alkaline water electrolyzers: A review，<i>Journal of Energy Storage</i>.</li>
+        <li>Brauns J., Turek T.（2020），Alkaline water electrolysis powered by renewable energy: A review，<i>Processes</i>.</li>
+        <li>GB/T 19774《水电解制氢系统技术要求》、GB/T 37562/37563《压力型水电解制氢系统技术条件/安全要求》、GB 50177《氢气站设计规范》、ISO 22734:2019.</li>
+        <li>《传热学》（杨世铭、陶文铨）、Muley &amp; Manglik（1999）、Martin（1996）、GB/T 16409《板式换热器》.</li>
+      </ul>
+
+      <hr>
+      <p>本页参数与全部计算结果可一键导出为<strong>设计文档</strong>：点击输入栏中的「<code>导出设计文档(PDF)</code>」按钮，页面会按当前工况生成一份含摘要、输入参数、各系统计算、校核结论、极化曲线分解、公式常数与流程图的文档，并调起浏览器打印对话框——选择「另存为 PDF」即可保存（纯本地运行，无需联网）。</p>
+      <p>本说明的完整版——含<strong>默认工况逐值验算</strong>（1.5 MW 级碱性电解槽，每一步代入具体数字）、<strong>部分负荷与最小负荷反推</strong>与<strong>参数敏感性分析</strong>——另见同目录下的 <code>alk-calc-logic.html</code>，可直接在浏览器打开并打印为 PDF。</p>
+
+    </div>
+  </div>
+</div>
+
 
 <!-- ============ PEM 电解槽系统设计 · 版本升级说明弹窗（由图签内问号打开） ============ -->
 <div class="sim-help-overlay" id="pemVerOverlay">
@@ -6987,6 +7431,11 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     window.scrollTo(0,0);
   });
 });
+/* 深链：#alk 直接打开碱性电解槽页（便于分享与自动截图） */
+if(location.hash === '#alk'){
+  const b = document.querySelector('.tab-btn[data-page="alk"]');
+  if(b) b.click();
+}
 
 /* ========== 混合动力输入事件 ========== */
 const hybridInputIds = ['vehicleMass','range','rollingResistance','dragCoefficient','maxSpeed',
@@ -9993,9 +10442,9 @@ function renderPem(){
   /* --- 数据气泡 --- */
   pemSet('power', [
     `直流电流:<strong>${F0(st.I)}</strong>A`,
-    `直流电压:<strong>${F0(st.Vstack)}</strong>V`,
-    `直流功率:<strong>${F1(st.Pstack)}</strong>kW`,
-    `电源输入:<strong>${F1(pw.Prect)}</strong>kW`,
+    `直流电压(BOL):<strong>${F0(st.Vstack)}</strong>V`,
+    `直流功率(BOL):<strong>${F1(st.Pstack)}</strong>kW`,
+    `电源输入(EOL):<strong>${F1(pw.Prect)}</strong>kW`,
     `电源效率:<strong>${F0(gi('pemRectEff'))}</strong>%`,
     `平均负荷率:<strong>${F0(gi('pemUseFactor'))}</strong>%`
   ],[
@@ -10007,12 +10456,12 @@ function renderPem(){
     '平均负荷率(%) = 输入参数「平均负荷率」（运行期间平均出力/额定出力）；与「年运行小时数」共同决定等效满负荷小时数，据此核算年制氢量、年耗电量与年电费'
   ]);
   pemSet('bop', [
-    `辅机合计:<strong>${F2(pw.bopTotal)}</strong>kW`,
+    `辅机合计(EOL):<strong>${F2(pw.bopTotal)}</strong>kW`,
     `外部加热:<strong>${F2(pw.PheatExt)}</strong>kW`,
-    `系统输入:<strong>${F1(pw.Psys)}</strong>kW`,
-    `系统效率HHV:<strong>${F1(pw.etaSysHHV)}</strong>%`,
-    `电能单耗:<strong>${F2(pw.kWhKg)}</strong>kWh/kg`,
-    `电能单耗:<strong>${F2(pw.kWhNm3)}</strong>kWh/Nm³`
+    `系统输入(EOL):<strong>${F1(pw.Psys)}</strong>kW`,
+    `系统效率(BOL):<strong>${F1(pw.etaSysHHV)}</strong>%`,
+    `电能单耗(BOL):<strong>${F2(pw.kWhKg)}</strong>kWh/kg`,
+    `电能单耗(BOL):<strong>${F2(pw.kWhNm3)}</strong>kWh/Nm³`
   ],[
     '辅机合计(kW) = 纯水循环泵 + 冷却水泵 + 冷却塔风机 + 纯化加热；按周期末单体电压（最恶劣工况）选型',
     '外部加热(kW) = max(0, −反应热)；吸热工况按电加热等效计入系统输入，避免 HHV 效率>100 %',
@@ -10023,12 +10472,12 @@ function renderPem(){
   ]);
   pemSet('water', [
     `反应净耗水:<strong>${F1(wt.mWaterNetKgh)}</strong>kg/h`,
-    `循环水量:<strong>${F1(wt.Vcirc)}</strong>m³/h`,
-    `换热需求:<strong>${F1(wt.mHeatWater)}</strong>kg/h`,
-    `循环倍率:<strong>${F0(wt.circRatio)}</strong>倍`,
-    `原水耗量:<strong>${F1(wt.roFeedKgh)}</strong>kg/h`,
-    `未分离液滴:<strong>${F1(wt.liquidLossKgh)}</strong>kg/h`,
-    `冷却塔补水:<strong>${F1(wt.coolingMakeupKgh)}</strong>kg/h`,
+    `循环水量(EOL):<strong>${F1(wt.Vcirc)}</strong>m³/h`,
+    `换热需求(EOL):<strong>${F1(wt.mHeatWater)}</strong>kg/h`,
+    `循环倍率(EOL):<strong>${F0(wt.circRatio)}</strong>倍`,
+    `原水耗量(EOL):<strong>${F1(wt.roFeedKgh)}</strong>kg/h`,
+    `未分离液滴(EOL):<strong>${F1(wt.liquidLossKgh)}</strong>kg/h`,
+    `冷却塔补水(EOL):<strong>${F1(wt.coolingMakeupKgh)}</strong>kg/h`,
     `水质:<strong>≥18.2</strong>MΩ·cm`
   ],[
     '反应净耗水(kg/h) = 实际产氢量(mol/s) × 18.015 × 3.6；电解 1 mol 水生成 1 mol 氢',
@@ -10067,11 +10516,11 @@ function renderPem(){
     '产品氢纯度(%) = 输入参数「产品氢纯度」'
   ]);
   pemSet('hx', [
-    `热负荷:<strong>${F1(hx.Qheat)}</strong>kW` + (hx.QheatRaw<0 ? `（吸热 ${F1(-hx.QheatRaw)} kW，需外部加热）` : ''),
+    `热负荷(EOL):<strong>${F1(hx.Qheat)}</strong>kW` + (hx.QheatRaw<0 ? `（吸热 ${F1(-hx.QheatRaw)} kW，需外部加热）` : ''),
     `LMTD:<strong>${F1(hx.lmtd)}</strong>℃`,
-    `计算面积:<strong>${F2(hx.Acalc)}</strong>m²`,
-    `板片数:<strong>${F0(hx.Nplate)}</strong>片`,
-    `热侧压降:<strong>${F2(hx.dpHot/1000)}</strong>kPa`
+    `计算面积(EOL):<strong>${F2(hx.Acalc)}</strong>m²`,
+    `板片数(EOL):<strong>${F0(hx.Nplate)}</strong>片`,
+    `热侧压降(EOL):<strong>${F2(hx.dpHot/1000)}</strong>kPa`
   ],[
     `热负荷(kW) = 直流功率 × (单体电压 − 热中性电压1.481)/单体电压；按「周期末单体电压」选型计算（电压最高 → 废热最大 → 面积与流量最保守）。已钳位到 0：吸热工况（单体电压低于1.481V）不产生负流量与负泵功，另在括号内标出吸热量`,
     '对数平均温差(℃)：逆流布置，端差取 (纯水进口−冷却水出口) 与 (纯水出口−冷却水进口)',
@@ -10080,10 +10529,10 @@ function renderPem(){
     '换热器压降(kPa) = 摩擦阻力 + 局部阻力；摩擦项 = (流道长/当量直径)×摩擦系数×ρu²/2'
   ]);
   pemSet('pump1', [
-    `流量:<strong>${F1(wt.Vcirc)}</strong>m³/h`,
+    `流量(EOL):<strong>${F1(wt.Vcirc)}</strong>m³/h`,
     `扬程:<strong>${F0(gi('pemPumpHead'))}</strong>m`,
     `效率:<strong>${F0(gi('pemPumpEff'))}</strong>%`,
-    `功耗:<strong>${F2(pw.P_pump)}</strong>kW`
+    `功耗(EOL):<strong>${F2(pw.P_pump)}</strong>kW`
   ],[
     '纯水循环泵流量(m³/h) = 纯水循环水量 = max(换热需求, 反应用水)/ρ×3600',
     '扬程(m) = 输入参数「纯水循环泵扬程」；需覆盖板式换热器与电解槽的沿程及局部阻力',
@@ -10091,10 +10540,10 @@ function renderPem(){
     `功耗(kW) = ρ g H Q / η；ρ 取纯水温度 ${gi('pemOpTemp')}℃ 下的水密度`
   ]);
   pemSet('pump2', [
-    `流量:<strong>${F1(hx.Vcold)}</strong>m³/h`,
+    `流量(EOL):<strong>${F1(hx.Vcold)}</strong>m³/h`,
     `扬程:<strong>${F0(gi('pemCoolPumpHead'))}</strong>m`,
     `效率:<strong>${F0(gi('pemCoolPumpEff'))}</strong>%`,
-    `功耗:<strong>${F2(pw.P_cpump)}</strong>kW`
+    `功耗(EOL):<strong>${F2(pw.P_cpump)}</strong>kW`
   ],[
     '冷却水泵流量(m³/h) = 冷却水循环量 = 热负荷×1000/(4178×冷却水温升)/ρ×3600',
     '扬程(m) = 输入参数「冷却水泵扬程」；需覆盖板式换热器冷侧压降与冷却塔提升高度',
@@ -10103,10 +10552,10 @@ function renderPem(){
   ]);
   pemSet('cooltower', [
     `冷却水进/出:<strong>${F1(hx.Tci)}/${F1(hx.Tco)}</strong>℃`,
-    `冷却水流量:<strong>${F1(hx.Vcold)}</strong>m³/h`,
-    `空气流量:<strong>${F0(pw.Vair)}</strong>m³/h`,
-    `风机功耗:<strong>${F2(pw.P_fan)}</strong>kW`,
-    `带走热量:<strong>${F1(hx.Qheat)}</strong>kW`
+    `冷却水流量(EOL):<strong>${F1(hx.Vcold)}</strong>m³/h`,
+    `空气流量(EOL):<strong>${F0(pw.Vair)}</strong>m³/h`,
+    `风机功耗(EOL):<strong>${F2(pw.P_fan)}</strong>kW`,
+    `带走热量(EOL):<strong>${F1(hx.Qheat)}</strong>kW`
   ],[
     '冷却水进口温度 = 输入参数「冷却水进口温度」；出口温度 = 输入参数「冷却水出口温度」',
     '冷却水流量(m³/h) = 热负荷×1000/(冷却水比热 4178 × 冷却水温升)/ρ×3600',
@@ -10116,12 +10565,12 @@ function renderPem(){
   ]);
 
   pemSet('stack', [
-    `单体电压:<strong>${F2(st.Vcell)}</strong>V`,
+    `单体电压(BOL):<strong>${F2(st.Vcell)}</strong>V`,
     `电解槽节数:<strong>${F0(st.N)}</strong>节`,
-    `直流电压:<strong>${F0(st.Vstack)}</strong>V`,
-    `直流功率:<strong>${F1(st.Pstack)}</strong>kW`,
+    `直流电压(BOL):<strong>${F0(st.Vstack)}</strong>V`,
+    `直流功率(BOL):<strong>${F1(st.Pstack)}</strong>kW`,
     `电堆效率(HHV):<strong>≈${F1(st.etaHHV)}</strong>%`,
-    `反应产热:<strong>${F1(st.Qheat)}</strong>kW` + (st.Qheat<0 ? '（吸热，需外部加热）' : '')
+    `反应产热(BOL):<strong>${F1(st.Qheat)}</strong>kW` + (st.Qheat<0 ? '（吸热，需外部加热）' : '')
   ],[
     '单体电压(V) = V_rev + η_act + η_ohm，由电流密度 j、温度 T 与氢氧压力解算；来源为极化曲线时由曲线求取，输入值非 0 时为手动覆盖',
     '电解槽节数 = 输入参数「电解槽节数」（单体串联数）；电压逐节累加、各节电流相同',
@@ -10134,16 +10583,16 @@ function renderPem(){
   /* --- 计算面板 --- */
   document.getElementById('pem-water-results').innerHTML = [
     ['反应净耗水(kg/h)',            F1(wt.mWaterNetKgh), false, '反应净耗水 = 实际产氢量(mol/s)×18.015×3.6'],
-    ['换热所需水量(kg/h)',          F1(wt.mHeatWater),   false, `换热需求 = 废热×1000/(纯水比热 c_w×纯水侧温差)×3600；c_w 取 ${gi('pemOpTemp')}℃ 下的水比热`],
+    ['换热所需水量·EOL(kg/h)',      F1(wt.mHeatWater),   false, `换热需求 = 废热×1000/(纯水比热 c_w×纯水侧温差)×3600；c_w 取 ${gi('pemOpTemp')}℃ 下的水比热`],
     ['反应用水(kg/h)',              F1(wt.mWaterNetKgh*Math.max(1,gi('pemWaterExcess'))), false, '反应用水 = 反应净耗水 × 纯水循环倍率'],
-    ['循环水量(m³/h)',              F1(wt.Vcirc),        false, `循环水量 = max(换热需求, 反应用水)/ρ × 3600；ρ 取纯水温度 ${gi('pemOpTemp')}℃ 下的水密度`],
-    ['循环水量(L/min)',             F1(wt.Vcirc/60*1000), false, '循环水量(L/min) = 循环水量(m³/h) × 1000/60'],
-    ['循环倍率',                    F0(wt.circRatio)+' 倍', wt.circRatio<10, '循环倍率 = 循环质量流量/反应净耗水质量流量'],
+    ['循环水量·EOL(m³/h)',          F1(wt.Vcirc),        false, `循环水量 = max(换热需求, 反应用水)/ρ × 3600；ρ 取纯水温度 ${gi('pemOpTemp')}℃ 下的水密度`],
+    ['循环水量·EOL(L/min)',         F1(wt.Vcirc/60*1000), false, '循环水量(L/min) = 循环水量(m³/h) × 1000/60'],
+    ['循环倍率·EOL',                F0(wt.circRatio)+' 倍', wt.circRatio<10, '循环倍率 = 循环质量流量/反应净耗水质量流量'],
     ['纯水制备能力(kg/h)',          F1(wt.mWaterNetKgh), false, '纯水制备产水能力 ≥ 反应净耗水；反应消耗的水由制备系统持续补充'],
-    ['原水耗量(kg/h)',              F1(wt.roFeedKgh),   false, '原水耗量 = (反应净耗水 + 氢侧气相带水 + 氧侧气相带水 + 未回收液态水) / 纯水制备回收率（未回收液态水随分离效率变化；RO 浓水按回收率折算）'],
-    ['分离器未回收液量(kg/h)',      F1(wt.liquidLossKgh), wt.liquidLossKgh>0, '未回收液量 = (循环水 − 反应耗水 − 两侧气相带水) × (1−气液分离效率)，按周期末选型工况；量越大，原水耗量与水费越高'],
-    ['冷却塔补水量(kg/h)',          F1(wt.coolingMakeupKgh), false, '冷却塔补水 = 废热×3600/2260×1.2，按周期末选型工况；2260 kJ/kg 为汽化潜热，1.2 含 20 % 排污'],
-    ['年综合耗水量(t)',             F1(pw.aWaterT),     false, '年综合耗水量 = (原水耗量 + 冷却塔补水, kg/h) × 等效满负荷小时数 / 1000'],
+    ['原水耗量·EOL(kg/h)',          F1(wt.roFeedKgh),   false, '原水耗量 = (反应净耗水 + 氢侧气相带水 + 氧侧气相带水 + 未回收液态水) / 纯水制备回收率（未回收液态水随分离效率变化；RO 浓水按回收率折算）'],
+    ['分离器未回收液量·EOL(kg/h)',  F1(wt.liquidLossKgh), wt.liquidLossKgh>0, '未回收液量 = (循环水 − 反应耗水 − 两侧气相带水) × (1−气液分离效率)，按周期末选型工况；量越大，原水耗量与水费越高'],
+    ['冷却塔补水量·EOL(kg/h)',      F1(wt.coolingMakeupKgh), false, '冷却塔补水 = 废热×3600/2260×1.2，按周期末选型工况；2260 kJ/kg 为汽化潜热，1.2 含 20 % 排污'],
+    ['年综合耗水量·平均(t)',        F1(pw.aWaterT),     false, '年综合耗水量 = (原水耗量 + 冷却塔补水, kg/h) × 等效满负荷小时数 / 1000；按更换周期内平均单体电压口径'],
     ['年水费(万元)',                F2(pw.waterAnnual), false, '年水费 = 年综合耗水量(t) × 水价(元/t) / 10000'],
     ['纯水侧温差(℃)',              F1(wt.dTw),         false, '纯水侧温差 = 输入参数「纯水侧温差」；取值越小流量越大、温差应力越小'],
     ['纯水电阻率(MΩ·cm)',          '≥ 18.2',           false, 'PEM 必须使用超纯水；金属离子会毒化质子交换膜与催化剂，导致电压升高'],
@@ -10175,7 +10624,7 @@ function renderPem(){
   ].map(a=>row(a[0],a[1],a[2],a[3])).join('');
 
   document.getElementById('pem-hx-results').innerHTML = [
-    ['热负荷 Q(kW)',        F1(hx.Qheat), false, '热负荷 = 直流功率 × (单体电压 − 1.481)/单体电压；按「周期末单体电压」选型计算。1.481V 为 HHV 热中性电压。已钳位到 0：吸热工况（单体电压<1.481V）不产生负流量/负泵功/负面积，吸热量见电堆气泡'],
+    ['热负荷 Q·EOL(kW)',        F1(hx.Qheat), false, '热负荷 = 直流功率 × (单体电压 − 1.481)/单体电压；按「周期末单体电压」选型计算。1.481V 为 HHV 热中性电压。已钳位到 0：吸热工况（单体电压<1.481V）不产生负流量/负泵功/负面积，吸热量见电堆气泡'],
     ['热侧(纯水)进口(℃)',  F1(hx.Thi),   false, '纯水进口温度 = 电解槽工作温度'],
     ['热侧(纯水)出口(℃)',  F1(hx.Tho),   false, '纯水出口温度 = 工作温度 − 纯水侧温差'],
     ['冷侧(冷却水)进口(℃)',F1(hx.Tci),   false, '冷却水进口温度 = 输入参数「冷却水进口温度」'],
@@ -10186,7 +10635,7 @@ function renderPem(){
     ['计算面积(m²)',        F2(hx.Acalc), false, '计算面积 = 热负荷×1000/(K × LMTD)'],
     ['面积裕度(%)',         F0(gi('pemHxMargin')), false, '面积裕度 = 输入参数「换热面积裕度」，用于应对结垢与性能衰减（常规 15%~25%）'],
     ['需求面积(含裕度)(m²)',F2(hx.Aneed), false, '需求面积 = 计算面积 × (1 + 裕度)'],
-    ['板片数(片)',          F0(hx.Nplate), false, '板片数 = 需求面积/单板有效面积 + 1，向上取整并取偶数使两侧流道数相等'],
+    ['板片数·EOL(片)',      F0(hx.Nplate), false, '板片数 = 需求面积/单板有效面积 + 1，向上取整并取偶数使两侧流道数相等'],
     ['实际换热面积(m²)',    F2(hx.Agot),  false, '实际面积 = (板片数 − 1) × 单板有效面积'],
     ['热侧流道数 / 冷侧流道数', F0(hx.nHotCh)+' / '+F0(hx.nColdCh), false, '流道数由板间通道数均分得到，两侧并联流道数决定流速'],
     ['热侧流速(m/s)',       F2(hx.uHot),  hx.uHot<0.3||hx.uHot>1.5, '热侧流速 = (循环流量/3600)/(热侧流道数 × 单板流道面积)；推荐 0.3~1.0 m/s'],
@@ -10205,18 +10654,18 @@ function renderPem(){
     ['单体电压('+st.vSource+')(V)', F3(st.Vcell), false, '单体电压 = V_rev + η_act + η_ohm，由电流密度 j、温度 T 与氢氧压力解算；若输入「单体电压」非 0 则直接采用该值（手动覆盖，不再走曲线）'],
     ['系统电化学效率 (HHV)(%)', F1(etaHHVv(r)), false, '基于高热值：效率 = 1.481V/单体电压；1.481V 为水的 HHV 热中性电压'],
     ['系统电化学效率 (LHV)(%)', F2(st.etaLHV), false, '基于低热值：效率 = 1.254V/单体电压'],
-    ['电解槽直流功率(kW)',   F1(pw.Pstack), false, '直流功率 = 直流电流 × 直流电压 / 1000；按周期末单体电压计算（选型），寿命初期为 '+F1(st.Pstack)+' kW'],
-    ['制氢电源输入功率(kW)', F1(pw.Prect),  false, '电源输入 = 直流功率 / 制氢电源效率'],
-    ['纯水循环泵(kW)',       F2(pw.P_pump), false, '泵功率 = (ρgH + Δp)·Q/η；Δp 取板换热侧/冷侧压降'],
-    ['冷却水泵(kW)',         F2(pw.P_cpump),false, '泵功率 = (ρgH + Δp)·Q/η；Δp 取板换热侧/冷侧压降'],
-    ['冷却塔风机(kW)',       F2(pw.P_fan),  false, '风机 = 全压 × 风量 / 效率；风量由废热与空气温升求得'],
-    ['纯化加热(kW)',         F2(pw.P_purif),false, '纯化加热 = 直流功率 × 纯化加热占比'],
-    ['辅机合计(kW)',         F2(pw.bopTotal), false, '辅机合计 = 纯水循环泵 + 冷却水泵 + 通风机 + 纯化加热'],
-    ['系统输入功率(kW)',     F1(pw.Psys),   false, '系统输入 = 制氢电源输入 + 辅机合计；按周期末单体电压选型（额定容量）'],
-    ['系统效率 (HHV)(%)',    F1(pw.etaSysHHV), false, '系统效率 = 产品氢 HHV 功率 / 系统输入功率（按寿命初期口径）'],
-    ['系统效率 (LHV)(%)',    F1(pw.etaSysLHV), false, '系统效率 = 产品氢 LHV 功率 / 系统输入功率（按寿命初期口径）'],
-    ['电能单耗(kWh/kgH₂)',   F2(pw.kWhKg),  false, '电能单耗 = 系统输入功率(寿命初期) / 产品氢质量流量(kg/h)；分母为纯化后的产品氢，与 LCOH 分母一致'],
-    ['电能单耗(kWh/Nm³)',    F2(pw.kWhNm3), false, '电能单耗 = 系统输入功率(寿命初期) / 产品氢流量(Nm³/h)；行业典型 4.5~5.5'],
+    ['电解槽直流功率·EOL(kW)',   F1(pw.Pstack), false, '直流功率 = 直流电流 × 直流电压 / 1000；按周期末单体电压计算（选型），寿命初期为 '+F1(st.Pstack)+' kW'],
+    ['制氢电源输入功率·EOL(kW)', F1(pw.Prect),  false, '电源输入 = 直流功率 / 制氢电源效率'],
+    ['纯水循环泵·EOL(kW)',       F2(pw.P_pump), false, '泵功率 = (ρgH + Δp)·Q/η；Δp 取板换热侧/冷侧压降'],
+    ['冷却水泵·EOL(kW)',         F2(pw.P_cpump),false, '泵功率 = (ρgH + Δp)·Q/η；Δp 取板换热侧/冷侧压降'],
+    ['冷却塔风机·EOL(kW)',       F2(pw.P_fan),  false, '风机 = 全压 × 风量 / 效率；风量由废热与空气温升求得'],
+    ['纯化加热·EOL(kW)',         F2(pw.P_purif),false, '纯化加热 = 直流功率 × 纯化加热占比'],
+    ['辅机合计·EOL(kW)',         F2(pw.bopTotal), false, '辅机合计 = 纯水循环泵 + 冷却水泵 + 通风机 + 纯化加热'],
+    ['系统输入功率·EOL(kW)',     F1(pw.Psys),   false, '系统输入 = 制氢电源输入 + 辅机合计；按周期末单体电压选型（额定容量）'],
+    ['系统效率·BOL (HHV)(%)',    F1(pw.etaSysHHV), false, '系统效率 = 产品氢 HHV 功率 / 系统输入功率（按寿命初期口径）'],
+    ['系统效率·BOL (LHV)(%)',    F1(pw.etaSysLHV), false, '系统效率 = 产品氢 LHV 功率 / 系统输入功率（按寿命初期口径）'],
+    ['电能单耗·BOL(kWh/kgH₂)',   F2(pw.kWhKg),  false, '电能单耗 = 系统输入功率(寿命初期) / 产品氢质量流量(kg/h)；分母为纯化后的产品氢，与 LCOH 分母一致'],
+    ['电能单耗·BOL(kWh/Nm³)',    F2(pw.kWhNm3), false, '电能单耗 = 系统输入功率(寿命初期) / 产品氢流量(Nm³/h)；行业典型 4.5~5.5'],
     ['平均电能单耗(kWh/kg)', F2(pw.avgKWhKg), false, '平均电能单耗 = 年耗电量 / 年产品氢量；年耗电量为系统输入（含整流与 BOP 辅电），按电堆更换周期内平均单体电压复算，已含电压衰减'],
     ['平均氢气电费成本(元/kg)', F2(pw.avgCostKg), false, '平均氢气电费成本 = 年电费 / 年产品氢量 = 平均电能单耗 × 电价；已含电压衰减。在电费固定成本口径下，它与 LCOH 的电费部分一致，而「氢气电费成本」为寿命初期口径'],
     ['等效满负荷小时数(h)',  F0(pw.eqFullH), false, '等效满负荷小时数 = 年运行小时数 × 平均负荷率/100；把变负荷运行折算为满负荷小时数，供下述年量核算'],
@@ -10273,8 +10722,8 @@ function renderTables(){
       + '<div class="pfd-pow-row pfd-pow-sys"'+ta('系统输入 = 制氢电源输入 + 辅机合计')+'><span>系统输入功率</span><span>'+F1(pw.Psys)+' kW</span></div>'
       + '<div class="pfd-pow-row"'+ta('产品氢流量 = 实际产氢(mol/s)×22.414×3.6 × 纯化回收率；实际产氢 = 理论产氢 × 法拉第效率')+'><span>产品氢量</span><span>'+F1(pw.vH2Pro)+' Nm³/h</span></div>'
       + '<div class="pfd-pow-row"'+ta('产氢质量 = 实际产氢(mol/s)×2.016×3.6；纯化前粗氢')+'><span>产氢质量（粗氢）</span><span>'+F1(st.mH2kgh)+' kg/h</span></div>'
-      + '<div class="pfd-pow-row pfd-pow-sys"'+ta('电能单耗(kWh/kg) = 系统输入功率 / 产品氢质量流量(kg/h)；kWh/Nm³ = 系统输入功率 / 产品氢流量(Nm³/h)；行业典型 4.5~5.5')+'><span>电能单耗</span><span>'+F2(pw.kWhKg)+' kWh/kg</span></div>'
-      + '<div class="pfd-pow-row"'+ta('系统效率 = 产品氢 HHV 功率 / 系统输入功率；HHV 热中性电压 1.481 V')+'><span>系统效率(HHV)</span><span>'+F1(pw.etaSysHHV)+' %</span></div>';
+      + '<div class="pfd-pow-row pfd-pow-sys"'+ta('电能单耗(kWh/kg) = 系统输入功率 / 产品氢质量流量(kg/h)；kWh/Nm³ = 系统输入功率 / 产品氢流量(Nm³/h)；行业典型 4.5~5.5')+'><span>电能单耗(BOL)</span><span>'+F2(pw.kWhKg)+' kWh/kg</span></div>'
+      + '<div class="pfd-pow-row"'+ta('系统效率 = 产品氢 HHV 功率 / 系统输入功率；HHV 热中性电压 1.481 V')+'><span>系统效率(HHV)·BOL</span><span>'+F1(pw.etaSysHHV)+' %</span></div>';
   }
   const c = document.getElementById('pemCtlNote');
   if(c){
@@ -10302,7 +10751,7 @@ function renderTables(){
       + '<div class="pn-row"'+ta('等效满负荷小时数 = 年运行小时数 × 平均负荷率/100；把变负荷运行折算为满负荷小时数，作为下述年量的核算基准')+'><span>等效满负荷小时数</span><span class="pn-v">'+F0(pw.eqFullH)+' h</span></div>'
       + '<div class="pn-row"'+ta('年产品氢量(kg) = 产品氢质量流量(kg/h) × 等效满负荷小时数（纯化后口径）；年产品氢量(Nm³) = 产品氢体积流量(Nm³/h) × 等效满负荷小时数')+'><span>年制氢量</span><span class="pn-v">'+F1(pw.aH2Kg/1000)+' t（'+F0(pw.aH2Nm3)+' Nm³）</span></div>'
       + '<div class="pn-row"'+ta('年耗电量(kWh) = 系统输入功率(kW) × 等效满负荷小时数；系统输入含整流与 BOP 辅电（非电堆直流功率），并按「更换周期内平均单体电压」复算、已含电压衰减（平均功率 '+F1(pw.PsysAnnual)+' kW）')+'><span>年耗电量</span><span class="pn-v">'+F1(pw.aKWh/1000)+' MWh</span></div>'
-      + '<div class="pn-row"'+ta('氢气电费成本(元/kg) = 电能单耗(kWh/kg产品氢) × 电价(元/kWh)；设计点（寿命初期）口径，与运行小时数无关；含电压衰减的年平均口径为 '+F2(pw.avgCostKg)+' 元/kg')+'><span>氢气电费成本</span><span class="pn-v">'+F2(pw.h2CostKg)+' 元/kg</span></div>'
+      + '<div class="pn-row"'+ta('氢气电费成本(元/kg) = 电能单耗(kWh/kg产品氢) × 电价(元/kWh)；设计点（寿命初期）口径，与运行小时数无关；含电压衰减的年平均口径为 '+F2(pw.avgCostKg)+' 元/kg')+'><span>氢气电费成本(BOL)</span><span class="pn-v">'+F2(pw.h2CostKg)+' 元/kg</span></div>'
       + '<div class="pn-row"'+ta('年电费(万元) = 年耗电量(kWh) × 电价(元/kWh) / 10000；年耗电量已按更换周期内平均单体电压计入电压衰减')+'><span>年电费</span><span class="pn-v">'+F1(pw.aCostWan)+' 万元</span></div>'
       + '<div class="pn-row"'+ta('年水费(万元) = 原水/纯水耗量(t/a) × 水价(元/t) / 10000；原水耗量含未回收液态水')+'><span>年水费</span><span class="pn-v">'+F2(pw.waterAnnual)+' 万元</span></div>'
       + '<div class="pn-row"'+ta('年人工与辅料(万元/a) = 输入参数「年人工与辅料」')+'><span>年人工/辅料</span><span class="pn-v">'+F1(pw.laborAnnual)+' 万元</span></div>'
@@ -10625,7 +11074,1575 @@ window.addEventListener('afterprint', ()=>{ document.body.classList.remove('prin
 pemRun();
 })();
 /* ============================================================
-   第五页：无人机混合动力系统
+   第五页：碱性电解槽系统设计页（ALK）
+   ------------------------------------------------------------
+   与 PEM 页同构：左侧参数栏 → 右侧 SVG 流程图 → 图下四个计算面板。
+   计算链路：电解槽电化学（四项极化）→ 电解液系统 → 气系统
+             → 换热器选型 → 电源/能效/控制 → 经济性与分时电价策略。
+   ============================================================ */
+(function(){
+'use strict';
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('alkPfd');
+if(!svg) return;
+
+/* ---------------- 1. 输入参数 ---------------- */
+const ALK_INPUTS = [
+  { id:'alkCellVoltage',   label:'单体电压(V，0=按极化曲线自动)', val:'0',    step:'0.01'  },
+  { id:'alkCellCount',     label:'电解槽节数',                    val:'200',  step:'1'     },
+  { id:'alkArea',          label:'反应面积(cm²)',                 val:'10000',step:'500'   },
+  { id:'alkCurrentDensity',label:'电流密度(A/cm²)',               val:'0.4',  step:'0.01'  },
+  { id:'alkOpTemp',        label:'工作温度(℃)',                  val:'80',   step:'1'     },
+  { id:'alkKOHConc',       label:'KOH浓度(wt%)',                  val:'30',   step:'0.5'   },
+  { id:'alkGap',           label:'电极间距(cm)',                  val:'0.2',  step:'0.01'  },
+  { id:'alkSepASR',        label:'隔膜面积比电阻(Ω·cm²)',          val:'0.30', step:'0.01'  },
+  { id:'alkElecASR',       label:'电极/接触面积比电阻(Ω·cm²)',     val:'0.05', step:'0.01'  },
+  { id:'alkBubbleOP',      label:'气泡/浓差过电位(V)',             val:'0.03', step:'0.005' },
+  { id:'alkH2Pressure',    label:'氢气侧压力(bar)',               val:'10',   step:'0.5'   },
+  { id:'alkO2Pressure',    label:'氧气侧压力(bar)',               val:'9.8',  step:'0.5'   },
+  { id:'alkDpLimit',       label:'氢氧压差限值(bar)',              val:'0.3',  step:'0.05'  },
+  { id:'alkH2Crossover',   label:'隔膜氢氧互窜电流密度(mA/cm²)',    val:'1.5',  step:'0.1'   },
+  { id:'alkShuntLoss',     label:'寄生电流损失(%)',                val:'1.0',  step:'0.1'   },
+  { id:'alkFaradayEff',    label:'电流效率(%)，0=按互窜+寄生反推',  val:'0',    step:'0.5'   },
+  { id:'alkH2Purity',      label:'产品氢纯度(%)',                  val:'99.999',step:'0.001' },
+  { id:'alkPurifRecovery', label:'氢气纯化回收率(%)',              val:'98',   step:'0.5'   },
+  { id:'alkO2Purity',      label:'副产品氧纯度(%)',                val:'99.5', step:'0.1'   },
+  { id:'alkO2Recovery',    label:'氧气回收率(%)',                  val:'90',   step:'5'     },
+  { id:'alkMist',          label:'出口碱雾夹带(mg/Nm³)',           val:'5',    step:'1'     },
+  { id:'alkLyeVolume',     label:'电解液系统容积(m³)',             val:'5',    step:'0.5'   },
+  { id:'alkBlowdown',      label:'电解液排污率(%/d)',              val:'0.5',  step:'0.1'   },
+  { id:'alkElectrolyteDT', label:'电解液温升(℃)',                 val:'5',    step:'0.5'   },
+  { id:'alkMinCircRatio',  label:'最小电解液循环倍率',             val:'10',   step:'1'     },
+  { id:'alkPumpHead',      label:'碱液循环泵扬程(m)',              val:'25',   step:'1'     },
+  { id:'alkPumpEff',       label:'碱液循环泵总效率(%)',            val:'65',   step:'1'     },
+  { id:'alkCoolantTemp',   label:'冷却水进口温度(℃)',             val:'30',   step:'1'     },
+  { id:'alkCoolantOutlet', label:'冷却水出口温度(℃)',             val:'38',   step:'1'     },
+  { id:'alkCoolPumpHead',  label:'冷却水泵扬程(m)',                val:'18',   step:'1'     },
+  { id:'alkCoolPumpEff',   label:'冷却水泵总效率(%)',              val:'65',   step:'1'     },
+  { id:'alkAirTempRise',   label:'冷却塔空气温升(℃)',             val:'10',   step:'1'     },
+  { id:'alkFanPressure',   label:'冷却塔风机全压(Pa)',             val:'250',  step:'10'    },
+  { id:'alkFanEff',        label:'冷却塔风机效率(%)',              val:'55',   step:'1'     },
+  { id:'alkRectEff',       label:'整流电源效率(%)',                val:'96',   step:'1'     },
+  { id:'alkPurifHeat',     label:'纯化加热占电堆功率(%)',          val:'2.0',  step:'0.5'   },
+  { id:'alkHxK',           label:'换热器传热系数K W/(m²·K)',      val:'2500', step:'100'   },
+  { id:'alkHxMargin',      label:'换热面积裕度(%)',                val:'20',   step:'1'     },
+  { id:'alkHxPlateArea',   label:'换热器单板有效面积(m²)',         val:'0.08', step:'0.01'  },
+  { id:'alkHxChannelArea', label:'换热器单板流道面积(m²)',         val:'0.0013',step:'0.0001'},
+  { id:'alkHxFlowLength',  label:'换热器板片流道长度(m)',          val:'0.65', step:'0.01'  },
+  { id:'alkRORecovery',    label:'纯水制备回收率(%)',              val:'75',   step:'1'     },
+  { id:'alkAnnualHours',   label:'年运行小时数(h)',                val:'4000', step:'100'   },
+  { id:'alkUseFactor',     label:'平均负荷率(%)',                  val:'100',  step:'1'     },
+  { id:'alkPowerPrice',    label:'电价(元/kWh)',                   val:'0.3',  step:'0.01'  },
+  { id:'alkMinLoad',       label:'最小负荷(%)，0=按氧中氢反推',     val:'0',    step:'1'     },
+  { id:'alkH2InO2Lim',     label:'氧中氢目标(vol%)',               val:'2',    step:'0.1'   },
+  { id:'alkWaterPrice',    label:'原水/纯水价(元/t)',              val:'5',    step:'0.5',  sect:1 },
+  { id:'alkKOHPrice',      label:'KOH价格(元/t)',                  val:'4000', step:'100',  sect:1 },
+  { id:'alkLaborCost',     label:'年人工与辅料(万元/a)',           val:'30',   step:'5',    sect:1 },
+  { id:'alkUnitInvest',    label:'单位投资(元/kW)',                val:'4000', step:'500',  sect:1 },
+  { id:'alkDiscount',      label:'折现率(%)',                      val:'8',    step:'0.5',  sect:1 },
+  { id:'alkLife',          label:'项目寿命(年)',                   val:'20',   step:'1',    sect:1 },
+  { id:'alkOmRate',        label:'年运维费率(%投资/年)',            val:'3',    step:'0.5',  sect:1 },
+  { id:'alkDegRate',       label:'电压衰减率(µV/h·节)',             val:'3',    step:'1',    sect:1 },
+  { id:'alkStackCycle',    label:'电堆更换周期(年)',                val:'10',   step:'1',    sect:1 },
+  { id:'alkStackCost',     label:'电堆更换成本(%投资)',             val:'35',   step:'5',    sect:1 }
+];
+const host = document.getElementById('alkInputs');
+let sect = null;
+ALK_INPUTS.forEach(it=>{
+  const g = document.createElement('div');
+  g.className = 'input-group';
+  g.innerHTML = `<label for="${it.id}">${it.label}</label><input type="number" id="${it.id}" value="${it.val}" step="${it.step}">`;
+  if(it.sect){
+    if(!sect){
+      sect = document.createElement('div');
+      sect.className = 'input-sect';
+      sect.innerHTML = '<div class="sect-cap">LCOH 估算参数</div>';
+      host.appendChild(sect);
+    }
+    sect.appendChild(g);
+  } else {
+    sect = null;
+    host.appendChild(g);
+  }
+});
+const gi = id => { const e = document.getElementById(id); return e ? (parseFloat(e.value) || 0) : 0; };
+
+/* ---------------- 1b. 运行策略（分时电价调度） ---------------- */
+const TOU_CODE = ['谷','平','峰'];
+const TOU_SWATCH = [['#0b3b52','#7dd3fc'], ['#1a2b3f','#cbd5e1'], ['#4a1f24','#fca5a5']];
+const TOU_DEFAULT = [0,0,0,0,0,0,0,1,1,1,2,2,1,1,1,1,1,1,2,2,2,1,1,0];
+const touSlotEl = h => document.getElementById('alkTouSlot'+h);
+const touPrices = () => [gi('alkTouValley'), gi('alkTouFlat'), gi('alkTouPeak')];
+function touSlots(){ const a=[]; for(let h=0;h<24;h++){ const e=touSlotEl(h); a.push(e?(parseInt(e.value,10)||0):0); } return a; }
+function touPaint(sel){ const c=TOU_SWATCH[parseInt(sel.value,10)||0]||TOU_SWATCH[1];
+  sel.style.background=c[0]; sel.style.color=c[1]; }
+function touRuns(slots){
+  const out=[];
+  for(let t=0;t<3;t++){
+    const hrs=[]; for(let h=0;h<24;h++) if(slots[h]===t) hrs.push(h);
+    if(!hrs.length) continue;
+    const parts=[]; let a=hrs[0], b=hrs[0];
+    for(let i=1;i<hrs.length;i++){
+      if(hrs[i]===b+1){ b=hrs[i]; continue; }
+      parts.push(a===b?String(a):a+'–'+(b+1)); a=b=hrs[i];
+    }
+    parts.push(a===b?String(a):a+'–'+(b+1));
+    out.push(TOU_CODE[t]+' '+parts.join(','));
+  }
+  return out.join(' · ');
+}
+(function buildAlkStrategyPanel(){
+  const panel = document.querySelector('#page-alk .input-panel');
+  if(!panel) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'strategy-panel';
+  wrap.id = 'alkStrategy';
+  wrap.innerHTML =
+      '<div class="strategy-head" id="alkStrategyHead">'
+    +   '<span>▸ 运行策略（分时电价调度）</span><span class="st-sum" id="alkStrategySum"></span>'
+    + '</div>'
+    + '<div class="strategy-body">'
+    +   '<div class="input-sect"><div class="sect-cap">分时电价（24 点 · 按日重复）</div>'
+    +     '<div class="input-group"><label for="alkTouPeak">峰电价(元/kWh)</label><input type="number" id="alkTouPeak" value="0.8" step="0.01"></div>'
+    +     '<div class="input-group"><label for="alkTouFlat">平电价(元/kWh)</label><input type="number" id="alkTouFlat" value="0.35" step="0.01"></div>'
+    +     '<div class="input-group"><label for="alkTouValley">谷电价(元/kWh)</label><input type="number" id="alkTouValley" value="0.15" step="0.01"></div>'
+    +   '</div>'
+    +   '<div class="sect-cap" style="color:#7dd3fc;font-size:0.72rem;margin:2px 0 4px">时段类型（点击切换 谷 / 平 / 峰）</div>'
+    +   '<div class="tou-grid"></div>'
+    +   '<div class="strategy-note">① 定值电价基准：全年按输入电价运行；② 恒定功率型：运行时段在全年均匀摊开，加权电价 = 8760 h 电价序列的算术平均；③ 谷电优先型：全年按电价升序取最便宜 N 小时（N = 等效满负荷小时数），谷电不足自动顺延到平电。三策略均为满负荷运行，年耗电量与年产氢量相同，差异只来自「在哪些小时运行」。</div>'
+    +   '<div class="hx-results" id="alk-strategy-results"></div>'
+    + '</div>';
+  panel.appendChild(wrap);
+  const grid = wrap.querySelector('.tou-grid');
+  for(let h=0;h<24;h++){
+    const cell = document.createElement('div');
+    cell.className = 'tou-cell';
+    cell.innerHTML = '<span class="tou-h">'+h+'</span>'
+      + '<select id="alkTouSlot'+h+'" class="tou-sel" title="'+h+':00–'+((h+1)%24)+':00 时段类型">'
+      + TOU_CODE.map((n,i)=>'<option value="'+i+'">'+n+'</option>').join('') + '</select>';
+    grid.appendChild(cell);
+    const sel = cell.querySelector('select');
+    sel.value = String(TOU_DEFAULT[h]);
+    touPaint(sel);
+    sel.addEventListener('change', ()=>{ touPaint(sel); alkRun(); });
+  }
+  wrap.querySelectorAll('input[type="number"]').forEach(el=>el.addEventListener('input', alkRun));
+  wrap.querySelector('#alkStrategyHead').addEventListener('click', ()=>wrap.classList.toggle('open'));
+})();
+
+/* ---------------- 2. 计算引擎 ---------------- */
+const F = 96485, R_GAS = 8.314, VTHN = 1.481, VLHV = 1.254, VMOL = 22.414;
+const CP_AIR = 1005, RHO_AIR = 1.2;
+const HHV_KWH_KG = 39.41, LHV_KWH_KG = 33.33;
+const ALK_A_TAFEL = 0.055, ALK_J0 = 5e-5;
+
+/* 纯水物性（冷却水侧） */
+const rhoW = T => { const t=Math.min(100,Math.max(0,T));
+  return 1000*(1 - (t+288.9414)/(508929.2*(t+68.12963))*Math.pow(t-3.9863,2)); };
+const muW  = T => { const t=Math.min(100,Math.max(0,T));
+  return 2.414e-5*Math.pow(10, 247.8/(t+273.15-140)); };
+const cpW  = T => { const t=Math.min(100,Math.max(0,T));
+  const tb=[[0,4217.4],[10,4191.9],[20,4181.8],[30,4178.3],[40,4178.4],[50,4180.6],[60,4184.3],[70,4189.1],[80,4195.0],[90,4201.5],[100,4216.0]];
+  let i=0; while(i<tb.length-2 && t>tb[i+1][0]) i++;
+  const t1=tb[i][0], c1=tb[i][1], t2=tb[i+1][0], c2=tb[i+1][1];
+  return c1+(c2-c1)*(t-t1)/(t2-t1); };
+function satVaporP(T){
+  return 0.00000097*Math.pow(T,4) - 0.00003455*Math.pow(T,3)
+       + 0.00371504*Math.pow(T,2) + 0.01245629*T + 0.71004367;
+}
+/* KOH 电解液物性（工程拟合，25~35 wt%、40~100 ℃ 内使用） */
+function rhoLye(T,w){ const t=Math.min(120,Math.max(0,T)); return 1000 + 9.2*w - 0.55*(t-20); }
+function cpLye(T,w){ const t=Math.min(120,Math.max(0,T)); return 4180 - 27*w + 1.2*(t-20); }
+function muLye(T,w){ return muW(T)*(1 + 0.08*w); }
+function kLye(T,w){ const k25 = 0.30 + 0.022*w - 0.00035*w*w; return k25*Math.exp(0.012*(T-25)); }
+function awLye(w){ return Math.max(0.3, 1 - 0.0065*w); }
+
+/* 碱性极化曲线：V = V_rev + η_act + η_ohm + η_bub
+   V_rev 用 KOH 水活度修正的水分压；η_ohm 的 ASR = 间隙/κ + 隔膜 + 电极；
+   η_bub 为气泡/浓差过电位，按 (j/0.4)^0.5 缩放。 */
+function alkCellVoltageCurve(j, T, PH2, PO2, w){
+  const none = { V:NaN, Vrev:NaN, etaAct:NaN, etaOhm:NaN, etaBub:NaN, asr:NaN, kappa:NaN, aw:NaN };
+  if(!(j>0) || !(T>0) || !(PH2>0) || !(PO2>0) || !(w>0)) return none;
+  const Tk = T + 273.15;
+  const aw = awLye(w);
+  const pH2O = aw*satVaporP(T)/100;                 // kPa → bar
+  if(!(pH2O>0) || !isFinite(pH2O)) return none;
+  /* 分压口径：总压扣除水蒸气分压后才是 H₂ / O₂ 的有效分压 */
+  const pH2 = Math.max(1e-6, PH2 - pH2O);
+  const pO2 = Math.max(1e-6, PO2 - pH2O);
+  const Vrev   = 1.23 - 0.9e-3*(T-25) + (R_GAS*Tk/(2*F))*Math.log(pH2*Math.pow(pO2,0.5)/Math.max(1e-6,pH2O));
+  const etaAct = ALK_A_TAFEL*Math.log10(j/ALK_J0);
+  const kappa  = kLye(T,w);                          // S/cm
+  const asr    = gi('alkGap')/kappa + gi('alkSepASR') + gi('alkElecASR');
+  const etaOhm = j*asr;
+  const etaBub = gi('alkBubbleOP')*Math.sqrt(Math.max(0,j)/0.4);
+  const V      = Vrev + etaAct + etaOhm + etaBub;
+  if(!isFinite(V)) return none;
+  return { V, Vrev, etaAct, etaOhm, etaBub, asr, kappa, aw };
+}
+
+function calcAlk(vcellOv, jOv){
+  /* vcellOv > 0：按指定单体电压复算整条链路（用于周期末/平均电压）；
+     jOv > 0：按指定电流密度复算整条链路（用于最小负荷反推与部分负荷点）；
+     两者都不做衰减递归，避免无限递归。 */
+  const vcellOverride = vcellOv>0 ? vcellOv : 0;
+  const jOverride     = jOv>0 ? jOv : 0;
+  const doDeg = vcellOverride<=0 && jOverride<=0;
+
+  const N=gi('alkCellCount'), A=gi('alkArea'),
+        j = jOverride>0 ? jOverride : gi('alkCurrentDensity'),
+        opT=gi('alkOpTemp'), koh=gi('alkKOHConc');
+
+  /* ---- 单体电压 ---- */
+  const VcellIn = gi('alkCellVoltage');
+  const pol     = alkCellVoltageCurve(j, opT, gi('alkH2Pressure'), gi('alkO2Pressure'), koh);
+  const useCurve= !(VcellIn>0) && pol.V>0 && isFinite(pol.V);
+  const Vcell   = vcellOverride>0 ? vcellOverride
+                : (VcellIn>0) ? VcellIn : (useCurve ? pol.V : 0);
+  const polV    = useCurve ? pol : { V:0, Vrev:0, etaAct:0, etaOhm:0, etaBub:0, asr:0, kappa:0, aw:0 };
+  const vSource = (VcellIn>0) ? '手动覆盖' : (useCurve ? '极化曲线' : '无效工况');
+
+  /* ---- 隔膜互窜：以跨界电流密度表征，按氢分压与温度修正 ---- */
+  const icexBase = gi('alkH2Crossover')*1e-3;                 // A/cm² @10 bar, 80 ℃
+  const icex     = icexBase * Math.max(0.05, gi('alkH2Pressure')/10)
+                  * Math.exp(2000*(1/353.15 - 1/(opT+273.15)));
+  const nCrossH2 = icex*A*N/(2*F);                            // 氢窜至氧侧 mol/s
+  const nCrossO2 = icex*A*N/(4*F);                            // 氧窜至氢侧 mol/s
+  const shunt    = Math.max(0, gi('alkShuntLoss'));           // % 寄生电流
+
+  /* ---- 电流效率：由互窜 + 寄生电流反推；输入非 0 时手动覆盖 ---- */
+  const etaFIn = gi('alkFaradayEff');
+  const etaFCr = j>0 ? Math.max(0, 1 - 2*icex/j - shunt/100)*100 : 0;
+  const etaF   = etaFIn>0 ? etaFIn : etaFCr;
+  const vEtaF  = etaFIn>0 ? '手动覆盖' : '按互窜+寄生反推';
+
+  /* ---- 电解槽（法拉第定律） ---- */
+  const I       = A*j;
+  const Vstack  = Vcell*N;
+  const Pstack  = Vstack*I/1000;
+  const nH2th   = I*N/(2*F);
+  const nH2     = nH2th*etaF/100;
+  const nO2th   = nH2th/2;
+  /* 氧产量随寄生电流折减；窜氢按「以气体形式进入氧侧」计（计入氧中氢），
+     不再重复扣除其复合消耗的 O₂，避免同一份窜氢被两种相反假设重复使用 */
+  const nO2     = Math.max(0, nO2th*(1 - shunt/100));
+  const etaHHV  = Vcell>0 ? VTHN/Vcell*100 : 0;
+  const etaLHV  = Vcell>0 ? VLHV/Vcell*100 : 0;
+  const QheatRaw= Vcell>0 ? Pstack*(Vcell-VTHN)/Vcell : 0;
+  const Qheat   = Math.max(0, QheatRaw);
+  const PheatExt= Math.max(0, -QheatRaw);
+  const PH2_HHV = Vcell>0 ? Pstack*(VTHN/Vcell)*(etaF/100) : 0;
+  const PH2_LHV = Vcell>0 ? Pstack*(VLHV/Vcell)*(etaF/100) : 0;
+  const mH2     = nH2*2.016;
+  const mH2kgh  = mH2*3.6;
+  const vH2     = nH2*VMOL*3.6;
+  const vO2     = nO2*VMOL*3.6;
+
+  /* ---- 电解液系统 ---- */
+  const lyeRho = rhoLye(opT,koh);
+  const lyeCp  = cpLye(opT,koh);
+  const lyeMu  = muLye(opT,koh);
+  const lyeK   = kLye(opT,koh);
+  const dTlye  = Math.max(0.1, gi('alkElectrolyteDT'));
+  const mHeat  = Qheat*1000/(lyeCp*dTlye);                     // kg/s
+  const mReactWater = nH2*18.015/1000;                         // kg/s
+  const minRatio = Math.max(1, gi('alkMinCircRatio'));
+  const mCirc  = Math.max(mHeat, mReactWater*minRatio);        // kg/s
+  const Vcirc  = mCirc/lyeRho*3600;                            // m³/h
+  const circRatio = mReactWater>0 ? mCirc/mReactWater : 0;
+  const mWaterNetKgh = nH2*18.015*3.6;
+
+  /* ---- 气系统：压力、饱和带水、纯度 ---- */
+  const PH2b = gi('alkH2Pressure'), PO2b = gi('alkO2Pressure');
+  const dP   = Math.abs(PH2b-PO2b);
+  const dpLim= gi('alkDpLimit');
+  const pSat = satVaporP(opT);                                 // kPa
+  const aw   = awLye(koh);
+  const pH2O = aw*pSat/100;                                    // bar
+  const h2VapR = PH2b>pH2O ? pH2O/Math.max(0.1, PH2b-pH2O) : 0;
+  const o2VapR = PO2b>pH2O ? pH2O/Math.max(0.1, PO2b-pH2O) : 0;
+  const h2WaterKgh = nH2*h2VapR*18.015*3.6;
+  const o2WaterKgh = nO2*o2VapR*18.015*3.6;
+
+  /* ---- 排污 / 碱雾 / 补水 / 补碱 ---- */
+  const blowKgh = Math.max(0,gi('alkLyeVolume'))*Math.max(0,gi('alkBlowdown'))/100*lyeRho/24;
+  const blowKOHkgh = blowKgh*koh/100;
+  const blowWaterKgh = blowKgh*(1-koh/100);
+  const mistKgh = Math.max(0,gi('alkMist'))*1e-6*(vH2+vO2);
+  const mistKOHkgh = mistKgh*koh/100;
+  const mistWaterKgh = mistKgh*(1-koh/100);
+  const kohLossKgh = blowKOHkgh + mistKOHkgh;
+  const liquidRecover = Math.max(0, mCirc*3600 - mWaterNetKgh - h2WaterKgh - o2WaterKgh);
+  const mWaterLossKgh = mWaterNetKgh + h2WaterKgh + o2WaterKgh + blowWaterKgh + mistWaterKgh;
+  const roRec = gi('alkRORecovery');
+  const roFeedKgh = roRec>0 ? mWaterLossKgh/(roRec/100) : 0;
+  const coolMakeupKgh = Math.max(0,QheatRaw)*3600/2260*1.2;
+
+  /* ---- 产品气 ---- */
+  const purifRec = gi('alkPurifRecovery')/100;
+  const purity   = Math.min(100, Math.max(0, gi('alkH2Purity')));
+  const purityFactor = Math.min(1, purity/99.999);
+  const purityWarn   = purity < 99.999;
+  const vH2Pro  = vH2*purifRec*purityFactor;
+  const vH2Loss = vH2 - vH2Pro;
+  const mH2ProKgh = mH2kgh*purifRec*purityFactor;
+  const o2Rec = Math.max(0, gi('alkO2Recovery'))/100;
+  const vO2Pro = vO2*o2Rec;
+  const mO2ProKgh = nO2*32*3.6*o2Rec;
+
+  /* ---- 互窜浓度与安全校核 ---- */
+  const h2InO2 = (nO2+nCrossH2)>0 ? nCrossH2/(nO2+nCrossH2)*100 : 0;
+  const o2InH2 = (nH2+nCrossO2)>0 ? nCrossO2/(nH2+nCrossO2)*100 : 0;
+  const h2InO2Lim = Math.max(0.001, gi('alkH2InO2Lim') || 2);
+  const h2O2Safe = h2InO2 < h2InO2Lim;
+  const o2H2Safe = o2InH2 < 2;
+  const dpSafe   = dP <= dpLim;
+  const tempSafe = opT <= 90;
+  const concSafe = koh>=25 && koh<=32;
+  const safe     = h2O2Safe && o2H2Safe && dpSafe && tempSafe;
+
+  /* ---- 换热器（碱液板式） ----
+     工作温度 opT 按槽内平均温度定义：槽出口 = opT + ΔT/2，槽进口 = opT − ΔT/2 */
+  const Thi = opT + dTlye/2, Tho = opT - dTlye/2;
+  const Tci = gi('alkCoolantTemp'), Tco = gi('alkCoolantOutlet');
+  const dt1 = Thi - Tco, dt2 = Tho - Tci;
+  const cross = (dt1<=0 || dt2<=0);
+  const lmtd  = (!cross && Math.abs(dt1-dt2)>1e-9) ? (dt1-dt2)/Math.log(dt1/dt2) : (dt1>0?dt1:0);
+  const K     = gi('alkHxK');
+  const Acalc = (K>0 && lmtd>0) ? Qheat*1000/(K*lmtd) : 0;
+  const Aneed = Acalc*(1 + gi('alkHxMargin')/100);
+  const aPlate= gi('alkHxPlateArea');
+  let Nplate  = aPlate>0 ? Math.ceil(Aneed/aPlate)+1 : 0;
+  if(Nplate>0 && Nplate%2 === 1) Nplate += 1;
+  Nplate = Math.max(4, Nplate);                                // 至少 4 片，保证两侧各有流道
+  const Agot  = Nplate>1 ? (Nplate-1)*aPlate : 0;
+  const gapN  = Math.max(0, Nplate-1);
+  const nHotCh= Math.ceil(gapN/2), nColdCh = Math.floor(gapN/2);
+  const aCh   = gi('alkHxChannelArea');
+  const Tcold = (Tci+Tco)/2;
+  const mCold = (Tco>Tci) ? Qheat*1000/(cpW(Tcold)*(Tco-Tci)) : 0;
+  const Vcold = mCold/rhoW(Tcold)*3600;
+  const uHot  = (nHotCh>0 && aCh>0) ? (Vcirc/3600)/(nHotCh*aCh) : 0;
+  const uCold = (nColdCh>0 && aCh>0) ? (Vcold/3600)/(nColdCh*aCh) : 0;
+  const Deq   = 0.006, Lch = gi('alkHxFlowLength');
+  const ReHot = uHot>0 ? lyeRho*uHot*Deq/lyeMu : 0;
+  const ReCold= uCold>0 ? rhoW(Tcold)*uCold*Deq/muW(Tcold) : 0;
+  const dpHot = (Lch/Deq)*0.15*(lyeRho*uHot*uHot/2)     + 1.5*(lyeRho*uHot*uHot/2);
+  const dpCold= (Lch/Deq)*0.18*(rhoW(Tcold)*uCold*uCold/2) + 1.5*(rhoW(Tcold)*uCold*uCold/2);
+
+  /* ---- 电源 / 辅机 / 能效 ---- */
+  const rectEff  = gi('alkRectEff')/100;
+  const Prect    = rectEff>0 ? Pstack/rectEff : 0;
+  const pumpEff  = Math.max(0.01, gi('alkPumpEff')/100);
+  const cpEff    = Math.max(0.01, gi('alkCoolPumpEff')/100);
+  const P_pump   = (lyeRho*9.81*gi('alkPumpHead') + dpHot)*(Vcirc/3600)/pumpEff/1000;
+  const P_cpump  = (rhoW(Tcold)*9.81*gi('alkCoolPumpHead') + dpCold)*(Vcold/3600)/cpEff/1000;
+  const dTair    = Math.max(0.1, gi('alkAirTempRise'));
+  const mAir     = Qheat*1000/(CP_AIR*dTair);
+  const Vair     = mAir/RHO_AIR*3600;
+  const fanEff   = Math.max(0.01, gi('alkFanEff')/100);
+  const P_fan    = gi('alkFanPressure')*(Vair/3600)/fanEff/1000;
+  const P_purif  = Pstack*gi('alkPurifHeat')/100;
+  const bopTotal = P_pump + P_cpump + P_fan + P_purif;
+  const Psys     = Prect + bopTotal + PheatExt;
+  const etaSysHHV= Psys>0 ? PH2_HHV/Psys*100 : 0;
+  const etaSysLHV= Psys>0 ? PH2_LHV/Psys*100 : 0;
+  const kWhKg    = mH2ProKgh>0 ? Psys/mH2ProKgh : 0;
+  const kWhNm3   = vH2Pro>0 ? Psys/vH2Pro : 0;
+
+  /* ---- 年运行核算 ---- */
+  const annualH   = Math.max(0, gi('alkAnnualHours'));
+  const useFactor = Math.max(0, gi('alkUseFactor'))/100;
+  const eqFullH   = annualH*useFactor;
+  const aH2Kg     = mH2ProKgh*eqFullH;
+  const aH2Nm3    = vH2Pro*eqFullH;
+
+  /* ---- 电压衰减与电堆更换 ---- */
+  const degRate    = Math.max(0, gi('alkDegRate'));
+  const stackCycle = Math.max(0.1, gi('alkStackCycle'));
+  const dvPerYear  = degRate*1e-6*eqFullH;
+  const dvCycle    = dvPerYear*stackCycle;
+  const VcellEnd   = Vcell + dvCycle;
+  const VcellAvg   = Vcell + dvCycle/2;
+
+  const hxSnap = {Qheat, QheatRaw, Thi, Tho, Tci, Tco, dt1, dt2, cross, lmtd, K, Acalc, Aneed, Nplate,
+                  Agot, nHotCh, nColdCh, uHot, uCold, ReHot, ReCold, dpHot, dpCold, Vcirc, Vcold, mCold};
+  const wtSnap = {mWaterNetKgh, h2WaterKgh, o2WaterKgh, mCirc:KgFromKgS(mCirc), Vcirc, circRatio,
+                  roFeedKgh, coolingMakeupKgh:coolMakeupKgh, coolEvapKgh:coolMakeupKgh/1.2,
+                  blowKgh, blowKOHkgh, blowWaterKgh, mistKgh, mistKOHkgh, kohLossKgh,
+                  mWaterLossKgh, liquidRecover, lyeRho, lyeCp, lyeMu, lyeK, aw, pSat, pH2O,
+                  h2VapR, o2VapR, dTlye, mHeatKgh:mHeat*3600};
+  const pwSnap = {I, Vstack, Pstack, Prect, P_pump, P_cpump, P_fan, P_purif, bopTotal, Psys, Vair, PheatExt};
+  let   PsysAnnual = Psys;
+  let   siz = null, rAvg = null;
+  if(doDeg && dvCycle>0){
+    siz = calcAlk(VcellEnd);
+    rAvg = calcAlk(VcellAvg);
+    PsysAnnual = rAvg.pw.Psys;
+  }
+  const PsysSel = siz ? siz.pw.Psys : Psys;
+  const hxSel   = siz ? siz.hx   : hxSnap;
+  const pwSel   = siz ? siz.pw   : pwSnap;
+  const wtAnnual= rAvg ? rAvg.wt : wtSnap;
+  const aWaterT = (wtAnnual.roFeedKgh + wtAnnual.coolingMakeupKgh)*eqFullH/1000;
+  const aKWh      = PsysAnnual*eqFullH;
+  const avgKWhKg  = aH2Kg>0 ? aKWh/aH2Kg : 0;
+  const price     = Math.max(0, gi('alkPowerPrice'));
+  const h2CostKg  = kWhKg*price;
+  const avgCostKg = aH2Kg>0 ? aKWh*price/aH2Kg : 0;
+  const aCostWan  = aKWh*price/10000;
+
+  /* ---- LCOH ---- */
+  const unitInvest = Math.max(0, gi('alkUnitInvest'));
+  const capexWan   = PsysSel*unitInvest/10000;
+  const discRate   = Math.max(0, gi('alkDiscount'))/100;
+  const lifeYr     = Math.max(1, gi('alkLife'));
+  const omRate     = Math.max(0, gi('alkOmRate'))/100;
+  const stackCostR = Math.max(0, gi('alkStackCost'))/100;
+  const crf        = discRate>0
+      ? discRate*Math.pow(1+discRate,lifeYr)/(Math.pow(1+discRate,lifeYr)-1)
+      : 1/lifeYr;
+  const capexAnnual= capexWan*crf;
+  const omAnnual   = capexWan*omRate;
+  const nRepl      = Math.max(0, Math.ceil(lifeYr/stackCycle)-1);
+  const stackAmt  = capexWan*stackCostR;
+  let   stackPV   = 0;
+  if(stackCycle>0 && stackCycle<lifeYr){
+    for(let yy=stackCycle; yy<lifeYr-1e-9; yy+=stackCycle) stackPV += stackAmt/Math.pow(1+discRate,yy);
+  }
+  const stackAnnual= stackPV*crf;
+  const waterPrice = Math.max(0, gi('alkWaterPrice'));
+  const kohPrice   = Math.max(0, gi('alkKOHPrice'));
+  const waterAnnual= aWaterT*waterPrice/1e4;
+  const kohAnnual  = (wtAnnual.kohLossKgh||kohLossKgh)*eqFullH/1000*kohPrice/1e4;
+  const laborAnnual= Math.max(0, gi('alkLaborCost'));
+  const totalAnnual= capexAnnual+omAnnual+stackAnnual+aCostWan+waterAnnual+kohAnnual+laborAnnual;
+  const lcoh       = (safe && aH2Kg>0) ? totalAnnual*10000/aH2Kg : null;
+  const elecShare  = totalAnnual>0 ? aCostWan/totalAnnual*100 : 0;
+
+  return {
+    st:{I, Vstack, Pstack, nH2th, nH2, nO2th, nO2, etaHHV, etaLHV,
+        Qheat:QheatRaw, QheatDis:Qheat, PH2_HHV, PH2_LHV, mH2kgh, vH2, vO2,
+        Vcell, N, etaF, vEtaF, Vrev:polV.Vrev, etaAct:polV.etaAct, etaOhm:polV.etaOhm,
+        etaBub:polV.etaBub, asr:polV.asr, kappa:polV.kappa, aw:polV.aw, vSource, icex, shunt},
+    wt: wtAnnual,
+    gs:{vH2Pro, vH2Loss, PH2b, PO2b, dP, dpLim, h2WaterKgh, o2WaterKgh, pSat, h2VapR, o2VapR,
+        h2InO2, o2InH2, nO2th, vO2Pro, mO2ProKgh, purity, purityFactor, purityWarn,
+        h2O2Safe, o2H2Safe, dpSafe, tempSafe, concSafe, safe, h2InO2Lim,
+        icex, nCrossH2, nCrossO2, coolMakeupKgh},
+    hx: hxSel,
+    pw:{I: pwSel.I, Vstack: pwSel.Vstack, Pstack: pwSel.Pstack, Prect: pwSel.Prect,
+        P_pump: pwSel.P_pump, P_cpump: pwSel.P_cpump, P_fan: pwSel.P_fan, P_purif: pwSel.P_purif,
+        bopTotal: pwSel.bopTotal, Psys: pwSel.Psys, Vair: pwSel.Vair,
+        PstackBol: Pstack, PsysBol: Psys, PsysSel, VcellSel: VcellEnd, VcellBol: Vcell,
+        etaSysHHV, etaSysLHV, kWhKg, kWhNm3, mH2ProKgh, vH2Pro,
+        eqFullH, aH2Kg, aH2Nm3, aWaterT, aKWh, h2CostKg, aCostWan,
+        degRate, dvPerYear, dvCycle, VcellEnd, VcellAvg, PsysAnnual, avgKWhKg, avgCostKg,
+        unitInvest, capexWan, discRate, lifeYr, omRate, stackCycle, stackCostR, crf,
+        capexAnnual, omAnnual, stackAnnual, waterAnnual, kohAnnual, laborAnnual,
+        totalAnnual, lcoh, elecShare, nRepl, PheatExt, safe}
+  };
+}
+function KgFromKgS(v){ return v*3600; }
+window.ALK_CALC = calcAlk;   // 供 Node/无 DOM 复算校验
+
+/* 最小负荷：由「氧中氢 ≤ 目标 vol%」在 j 上二分反推 */
+function alkMinLoadX(){
+  const manual = gi('alkMinLoad');
+  const target = Math.max(0.001, gi('alkH2InO2Lim'));
+  const jd = Math.max(1e-6, gi('alkCurrentDensity'));
+  if(calcAlk().gs.h2InO2 > target){
+    if(manual>0) return { x:Math.min(1,manual/100), safeX:1, src:'满负荷即超限（手动覆盖）', bad:true };
+    return { x:1, safeX:1, src:'满负荷即超限', bad:true };
+  }
+  let lo = jd*1e-4, hi = jd;
+  for(let i=0;i<36;i++){
+    const mid = (lo+hi)/2;
+    if(calcAlk(0, mid).gs.h2InO2 > target) lo = mid; else hi = mid;
+  }
+  const safeX = Math.min(1, Math.max(0, hi/jd));
+  if(manual>0){
+    const mx = Math.min(1, manual/100);
+    const below = mx < safeX - 1e-9;
+    return { x:mx, j:hi, safeX,
+             src: below ? ('手动 '+F1(manual)+'% 低于安全值') : '手动覆盖',
+             bad: below };
+  }
+  return { x: safeX, j:hi, safeX, src:'氧中氢≤'+F2(target)+' vol% 反推' };
+}
+function alkLoadAt(x){
+  const jd = Math.max(1e-6, gi('alkCurrentDensity'));
+  return calcAlk(0, jd*Math.max(0.001,Math.min(1,x)));
+}
+
+/* ---------------- 3. SVG 构建工具 ---------------- */
+function E(tag, attrs, parent){
+  const e = document.createElementNS(NS, tag);
+  for(const k in (attrs||{})) e.setAttribute(k, attrs[k]);
+  (parent||svg).appendChild(e);
+  return e;
+}
+function equipBox(x,y,w,h,cls,label,sub){
+  const g = E('g');
+  E('rect',{x, y, width:w, height:h, rx:8, class:cls}, g);
+  E('text',{x:x+w/2, y:y+h/2-1, class:'equip-label'}, g).textContent = label;
+  if(sub) E('text',{x:x+w/2, y:y+h/2+14, class:'equip-sub'}, g).textContent = sub;
+  return g;
+}
+function vessel(x,y,w,h,cls,label,sub){
+  const g = E('g');
+  E('rect',{x, y, width:w, height:h, rx:12, class:cls}, g);
+  E('ellipse',{cx:x+w/2, cy:y+9, rx:w/2, ry:9, fill:'rgba(8,18,32,0.55)', stroke:'#475569','stroke-width':1}, g);
+  const cx = x+w/2, cy = y+h*0.62;
+  [[15.5,3.4,'sep-orbit-a'],[10,2.6,'sep-orbit-b'],[5,1.9,'sep-orbit-c']].forEach(([r,dur,cl])=>{
+    E('circle',{cx, cy, r:6.5, class:'sep-cloud '+cl}, g);
+  });
+  E('text',{x:cx, y:cy-16, class:'equip-label'}, g).textContent = label;
+  if(sub) E('text',{x:cx, y:cy+18, class:'equip-sub'}, g).textContent = sub;
+  return g;
+}
+function rotary(cx, cy, r, dark, stroke, blades){
+  blades = blades || 6;
+  const g = E('g');
+  E('circle',{cx, cy, r, fill:dark, stroke, 'stroke-width':2}, g);
+  E('path',{d:`M ${cx+r*0.25} ${cy-r*0.55} A ${r*0.8} ${r*0.8} 0 1 1 ${cx+r*0.72} ${cy+r*0.18}`,
+    fill:'none', stroke, 'stroke-width':1.2, opacity:0.55}, g);
+  const rotor = E('g',{class:'rm-spin', style:`transform-origin:${cx}px ${cy}px`}, g);
+  for(let i=0;i<blades;i++){
+    const a=i*360/blades*Math.PI/180, b=a+0.55;
+    const x1=cx+r*0.28*Math.cos(a), y1=cy+r*0.28*Math.sin(a);
+    const x2=cx+r*0.78*Math.cos(a+0.18), y2=cy+r*0.78*Math.sin(a+0.18);
+    const x3=cx+r*0.62*Math.cos(b), y3=cy+r*0.62*Math.sin(b);
+    E('polygon',{points:`${x1},${y1} ${x2},${y2} ${x3},${y3}`,
+      fill:stroke, opacity:(0.92-i*0.1).toFixed(2)}, rotor);
+  }
+  E('circle',{cx, cy, r:r*0.26, fill:stroke, opacity:0.95}, rotor);
+  E('circle',{cx, cy, r:r*0.12, fill:dark}, rotor);
+  return g;
+}
+/* defs：箭头 + 发光 */
+const defs = E('defs');
+const mk = E('marker',{id:'alkAh', viewBox:'0 0 10 10', refX:8, refY:5, markerWidth:7, markerHeight:7, orient:'auto'}, defs);
+E('path',{d:'M0,0 L10,5 L0,10 z', fill:'#f87171'}, mk);
+const mkC = E('marker',{id:'alkAhC', viewBox:'0 0 10 10', refX:8, refY:5, markerWidth:7, markerHeight:7, orient:'auto'}, defs);
+E('path',{d:'M0,0 L10,5 L0,10 z', fill:'#67e8f9'}, mkC);
+const glow = E('filter',{id:'alkGlow', x:'-100%', y:'-100%', width:'300%', height:'300%'}, defs);
+E('feGaussianBlur',{stdDeviation:'2.2', result:'blur'}, glow);
+const mg = E('feMerge',{}, glow);
+E('feMergeNode',{in:'blur'}, mg);
+E('feMergeNode',{in:'SourceGraphic'}, mg);
+
+const PCOL = {'pipe-water':'#a5f3fc','pipe-lye':'#fbbf24','pipe-h2':'#c7d2fe','pipe-o2':'#bae6fd',
+              'pipe-coolant':'#fed7aa','pipe-power':'#fde68a','pipe-heat':'#fca5a5'};
+let pid = 0;
+function pipe(d, cls, flowCls){
+  const id = 'alkp'+(pid++);
+  E('path',{d, class:'pipe '+cls});
+  E('path',{d, class:'flow '+flowCls});   // 流动虚线层（与 PEM 页一致）
+  E('path',{id, d, fill:'none', stroke:'none'});
+  const c = PCOL[cls] || '#ffffff';
+  const g = E('g');
+  for(let i=0;i<3;i++){
+    const cc = E('circle',{r:3.2, fill:c, filter:'url(#alkGlow)', opacity:0.95}, g);
+    const am = E('animateMotion',{dur:'2.6s', repeatCount:'indefinite', begin:`${i*0.85}s`, rotate:'auto'}, cc);
+    E('mpath',{href:'#'+id, 'xlink:href':'#'+id}, am);
+  }
+}
+function sigArrow(x1,y1,x2,y2,color){
+  E('line',{x1,y1,x2,y2, stroke:color||'#eab308','stroke-width':2,'stroke-dasharray':'6 4','marker-end':'url(#alkAh)'});
+}
+function tag(x,y,text,color,size){
+  E('text',{x, y, class:'section-tag', fill:color||'#7dd3fc','font-size':size||12}).textContent = text;
+}
+/* 仪表圆圈（PFD 常用：FI/AIC/TIC/AT/PDT） */
+function instrTag(x,y,label,color){
+  const c = color || '#67e8f9';
+  const g = E('g');
+  E('circle',{cx:x, cy:y, r:10, fill:'#0b2436', stroke:c, 'stroke-width':1.4}, g);
+  E('text',{x, y:y+3, 'text-anchor':'middle', fill:c, 'font-size':7, 'font-weight':'bold'}, g).textContent = label;
+  return g;
+}
+/* 控制阀（蝶形）；vertical=true 时安装在竖直管段 */
+function valveSym(x,y,vertical){
+  const c = '#fbbf24', s = 7;
+  if(vertical){
+    E('path',{d:`M${x-s},${y-s} L${x+s},${y-s} L${x},${y} Z`, fill:'none', stroke:c, 'stroke-width':1.6});
+    E('path',{d:`M${x-s},${y+s} L${x+s},${y+s} L${x},${y} Z`, fill:'none', stroke:c, 'stroke-width':1.6});
+  } else {
+    E('path',{d:`M${x-s},${y-s} L${x-s},${y+s} L${x},${y} Z`, fill:'none', stroke:c, 'stroke-width':1.6});
+    E('path',{d:`M${x+s},${y-s} L${x+s},${y+s} L${x},${y} Z`, fill:'none', stroke:c, 'stroke-width':1.6});
+  }
+}
+function dashedLeader(x1,y1,x2,y2,color){
+  E('line',{x1,y1,x2,y2, stroke:color||'#64748b','stroke-width':1,'stroke-dasharray':'3 2', opacity:0.85});
+}
+
+/* ---------------- 4. 流程图布局 ---------------- */
+tag(55, 62, '▎ 电源与控制系统');
+tag(55, 275, '▎ 纯水 · 配碱系统');
+tag(55, 370, '▎ 电解液循环系统');
+tag(790, 52, '▎ 氧气系统');
+tag(1060, 365, '▎ 氢气系统');
+tag(55, 700, '▎ 热管理与冷却系统');
+
+/* ===== 电源与控制系统 ===== */
+equipBox(70, 95, 200, 66, 'equip-ptc', '整流变压器 / 整流柜', 'Transformer + Rectifier');
+equipBox(70, 195, 200, 60, 'equip', '控制系统', 'PLC · SCADA · 联锁');
+sigArrow(170, 193, 170, 163, '#eab308');
+sigArrow(170, 255, 170, 288, '#eab308');
+E('text',{x:182, y:272, fill:'#fde68a','font-size':9}).textContent = '仪表/联锁';
+E('text',{x:38, y:110, fill:'#fde68a','font-size':9}).textContent = 'AC 10 kV';
+E('text',{x:38, y:123, fill:'#fde68a','font-size':9}).textContent = '50 Hz';
+pipe('M270,128 L270,170 L500,170 L500,380 L660,380', 'pipe-power', 'flow-power');
+const alkDcTxt = E('text',{x:508, y:190, fill:'#fde68a','font-size':9});
+alkDcTxt.textContent = 'DC 4000 A / 339 V';
+
+/* ===== 纯水 · 配碱系统 ===== */
+/* RO 纯水站（原水 → 除盐水），为补水与配碱提供纯水 */
+(function(){
+  E('rect',{x:0, y:299, width:58, height:42, rx:6, class:'equip'});
+  E('text',{x:29, y:316,'text-anchor':'middle', fill:'#7dd3fc','font-size':8.5,'font-weight':'bold'}).textContent = 'RO 纯水站';
+  E('text',{x:29, y:329,'text-anchor':'middle', fill:'#94a3b8','font-size':7}).textContent = 'Raw → DI';
+  E('line',{x1:-32, y1:320, x2:-2, y2:320, stroke:'#06b6d4','stroke-width':4,'stroke-linecap':'round'});
+  E('text',{x:-32, y:309, fill:'#a5f3fc','font-size':8}).textContent = '原水';
+  pipe('M58,320 L70,320', 'pipe-water', 'flow-water');
+})();
+equipBox(70, 290, 200, 55, 'equip-humid', '纯水补入 / 配碱', 'DI Water + KOH');
+pipe('M170,345 L170,385', 'pipe-water', 'flow-water');
+const alkTankG = equipBox(70, 385, 200, 70, 'equip-lye', '碱液储罐', '30 wt% KOH · 80 ℃');
+const alkTankSubTxt = alkTankG.querySelectorAll('text')[1];
+E('path',{d:'M75,436 L265,436', class:'pem-tank-wave', fill:'none', stroke:'#fbbf24','stroke-width':2, opacity:0.6});
+equipBox(70, 485, 200, 55, 'equip-lye', '碱液过滤器', '5 μm · 除铁');
+pipe('M170,455 L170,485', 'pipe-lye', 'flow-lye');
+pipe('M270,512 L330,512 L330,600', 'pipe-lye', 'flow-lye');
+rotary(330, 620, 20, '#3a2608', '#f59e0b', 6);
+E('text',{x:330, y:655,'text-anchor':'middle', fill:'#e8eef5','font-size':10,'font-weight':'bold'}).textContent = '碱液循环泵';
+E('text',{x:330, y:669,'text-anchor':'middle', fill:'#fbbf24','font-size':9}).textContent = 'Lye Circulation Pump';
+pipe('M350,620 L540,620 L540,415 L660,415', 'pipe-lye', 'flow-lye');
+/* 进液分路：阳极（氧侧）与阴极（氢侧）分别进液 */
+pipe('M540,529 L660,529', 'pipe-lye', 'flow-lye');
+E('circle',{cx:540, cy:529, r:3.5, fill:'#fbbf24'});
+E('text',{x:20, y:358, fill:'#fbbf24','font-size':9}).textContent = 'KOH';
+
+/* ===== 电解槽（阳极在上 / 阴极在下，KOH 电解液） ===== */
+(function(){
+  E('rect',{x:660, y:330, width:280, height:260, rx:6, class:'equip-stack'});
+  E('text',{x:820, y:349,'text-anchor':'middle', fill:'#a7f3d0','font-size':12,'font-weight':'bold'}).textContent = '碱性电解槽';
+  E('text',{x:820, y:361,'text-anchor':'middle', fill:'#6ee7b7','font-size':9}).textContent = 'Alkaline Electrolyzer · 30 wt% KOH';
+  // 阳极区（氧侧，正极）
+  E('rect',{x:674, y:372, width:226, height:66, rx:4, fill:'#0b2436', stroke:'#38bdf8','stroke-width':1.2});
+  E('text',{x:787, y:394,'text-anchor':'middle', fill:'#7dd3fc','font-size':9,'font-weight':'bold'}).textContent = '阳极 Anode(＋) · OH⁻ / O₂';
+  // 阴极区（氢侧，负极）
+  E('rect',{x:674, y:484, width:226, height:90, rx:4, fill:'#1c1436', stroke:'#a78bfa','stroke-width':1.2});
+  E('text',{x:787, y:506,'text-anchor':'middle', fill:'#c4b5fd','font-size':9,'font-weight':'bold'}).textContent = '阴极 Cathode(－) · H₂ / OH⁻';
+  // 多孔隔膜
+  E('rect',{x:674, y:445, width:226, height:38, rx:2, fill:'#4a2f08', stroke:'#fbbf24','stroke-width':1.8});
+  for(let i=0;i<27;i++) E('line',{x1:678+i*8, y1:447, x2:678+i*8, y2:481, stroke:'#fcd34d','stroke-width':0.8, opacity:0.28});
+  E('rect',{x:688, y:454, width:118, height:18, rx:3, fill:'rgba(8,16,30,0.92)'});
+  E('text',{x:747, y:467,'text-anchor':'middle', fill:'#fde68a','font-size':9,'font-weight':'bold'}).textContent = '多孔隔膜 Zirfon';
+  // 气体流动
+  E('path',{d:'M692,405 L938,405', class:'pem-gas pem-gas-o2'});
+  E('text',{x:700, y:399, fill:'#7dd3fc','font-size':8}).textContent = 'O₂';
+  E('path',{d:'M692,529 L938,529', class:'pem-gas pem-gas-h2'});
+  E('text',{x:700, y:523, fill:'#c4b5fd','font-size':8}).textContent = 'H₂';
+  // 反应方程（碱性）
+  E('text',{x:787, y:426,'text-anchor':'middle', fill:'#7dd3fc','font-size':8.5}).textContent = '4OH⁻ → O₂ + 2H₂O + 4e⁻';
+  E('text',{x:787, y:558,'text-anchor':'middle', fill:'#c4b5fd','font-size':8.5}).textContent = '2H₂O + 2e⁻ → H₂ + 2OH⁻';
+  // OH⁻ 迁移：阴极(下) → 阳极(上)
+  [686,712,738,764,790,816].forEach((cx,i)=>{
+    E('circle',{cx, cy:474, r:2.6, fill:'#fde68a', class:'alk-oh',
+      style:`animation-delay:${(i*0.22).toFixed(2)}s`});
+  });
+  E('text',{x:864, y:466,'text-anchor':'end', fill:'#fde68a','font-size':8,'font-weight':'bold'}).textContent = 'OH⁻ ↑';
+  // 电子 e⁻ 经外电路绕行：阳极(＋) → 阴极(－)
+  E('path',{d:'M900,430 L922,430 L922,506 L900,506', class:'pem-elec'});
+  E('text',{x:938, y:472,'text-anchor':'end', fill:'#6ee7b7','font-size':8,'font-weight':'bold'}).textContent = 'e⁻';
+})();
+
+/* 阳极出水（电解液 + O₂）→ 氧侧气液分离器 */
+pipe('M940,405 L1040,405 L1040,170 L970,170', 'pipe-o2', 'flow-o2');
+/* 阴极出气（H₂ + 电解液）→ 氢侧气液分离器 */
+pipe('M940,529 L1060,529 L1060,470 L1100,470', 'pipe-h2', 'flow-h2');
+
+/* ===== 氧气系统 ===== */
+vessel(810, 90, 160, 160, 'equip-air', '氧侧气液分离器', 'O₂ Separator');
+E('rect',{x:818, y:218, width:144, height:26, rx:3, fill:'#0e7490', opacity:0.35});
+E('path',{d:'M818,218 L962,218', class:'pem-tank-wave', fill:'none', stroke:'#22d3ee','stroke-width':2, opacity:0.65});
+pipe('M970,150 L990,150', 'pipe-o2', 'flow-o2');
+equipBox(990, 122, 150, 56, 'equip-humid', '氧气洗涤 / 冷却', 'O₂ Wash + Cooler');
+pipe('M1065,178 L1065,206', 'pipe-o2', 'flow-o2');
+E('text',{x:1000, y:215, fill:'#7dd3fc','font-size':10}).textContent = 'O₂ 放空 / 回收';
+const alkO2Txt = E('text',{x:1000, y:228, fill:'#94a3b8','font-size':9});
+alkO2Txt.textContent = '纯度 99.5 % · 回收率 90 %';
+
+/* ===== 氢气系统 ===== */
+vessel(1100, 380, 130, 150, 'equip-h2', '氢侧气液分离器', 'H₂ Separator');
+E('rect',{x:1106, y:500, width:118, height:24, rx:3, fill:'#0e7490', opacity:0.35});
+E('path',{d:'M1106,500 L1224,500', class:'pem-tank-wave', fill:'none', stroke:'#22d3ee','stroke-width':2, opacity:0.65});
+pipe('M1230,420 L1240,420', 'pipe-h2', 'flow-h2');
+equipBox(1240, 390, 150, 55, 'equip-humid', '氢气洗涤 / 冷却', 'H₂ Wash + Cooler');
+pipe('M1315,445 L1315,455', 'pipe-h2', 'flow-h2');
+equipBox(1240, 455, 150, 75, 'equip-h2', '氢气纯化', '脱氧 + 干燥 (TSA)');
+pipe('M1390,492 L1450,492', 'pipe-h2', 'flow-h2');
+E('text',{x:1455, y:512,'text-anchor':'end', fill:'#c7d2fe','font-size':10}).textContent = '产品氢';
+const alkH2Txt = E('text',{x:1455, y:527,'text-anchor':'end', fill:'#94a3b8','font-size':9});
+alkH2Txt.textContent = '10 bar · 99.999 %';
+E('text',{x:1240, y:372, fill:'#94a3b8','font-size':9}).textContent = 'N₂ 吹扫 / 置换';
+E('path',{d:'M1240,376 L1240,390', stroke:'#94a3b8','stroke-width':1.6,'stroke-dasharray':'5 4','marker-end':'url(#alkAhC)'});
+
+/* 氢侧分离水回用：虚线沿分离器左下角回到碱液储罐 */
+(function(){
+  E('path',{d:'M1100,530 L1088,530 L1088,690 L430,690 L430,430 L270,430',
+    fill:'none', stroke:'#67e8f9','stroke-width':1.8,'stroke-dasharray':'7 5',
+    opacity:0.55,'marker-end':'url(#alkAhC)'});
+  E('text',{x:960, y:682, fill:'#67e8f9','font-size':9, opacity:0.9}).textContent = '电解液回流';
+})();
+
+/* ===== 热管理与冷却系统 ===== */
+/* 氧侧分离器循环电解液 → 板式换热器热侧进口 */
+pipe('M890,250 L890,272 L580,272 L580,740', 'pipe-lye', 'flow-lye');
+E('text',{x:600, y:264, fill:'#fbbf24','font-size':9}).textContent = '电解液回流';
+/* 碱液板式换热器 */
+(function(){
+  E('rect',{x:480, y:740, width:200, height:120, rx:8, class:'equip-heat'});
+  E('text',{x:580, y:762,'text-anchor':'middle', class:'equip-label'}).textContent = '碱液板式换热器';
+  E('text',{x:580, y:777,'text-anchor':'middle', class:'equip-sub'}).textContent = 'Lye / Cooling Water';
+  for(let i=0;i<9;i++)
+    E('line',{x1:508+i*15, y1:792, x2:508+i*15, y2:848, class:'pem-fall',
+      stroke:'#fca5a5','stroke-width':1.2, style:`animation-delay:${(i*0.15).toFixed(2)}s`});
+})();
+/* 换热器热侧出口 → 碱液储罐（回水管走循环泵下方） */
+pipe('M480,840 L45,840 L45,420 L70,420', 'pipe-lye', 'flow-lye');
+/* 换热器冷侧出口 → 冷却塔 */
+pipe('M680,770 L920,770', 'pipe-coolant', 'flow-coolant');
+/* 冷却塔 */
+(function(){
+  E('rect',{x:920, y:720, width:220, height:140, rx:8, class:'equip-heat'});
+  E('text',{x:1030, y:743,'text-anchor':'middle', class:'equip-label'}).textContent = '冷却塔 / 空冷器';
+  E('text',{x:1030, y:758,'text-anchor':'middle', class:'equip-sub'}).textContent = 'Cooling Tower';
+  [945,967,989,1071,1093,1115].forEach((x,i)=>{
+    E('line',{x1:x, y1:784, x2:x, y2:834, class:'pem-fall',
+      stroke:'#fca5a5','stroke-width':1.6, style:`animation-delay:${(i*0.2).toFixed(2)}s`});
+  });
+  rotary(1030, 808, 24, '#1c0a0a', '#fca5a5', 5);
+})();
+E('text',{x:1145, y:730, fill:'#fed7aa','font-size':9}).textContent = '补水';
+/* 冷却塔 → 冷却水泵 → 换热器冷侧 */
+pipe('M920,800 L780,800', 'pipe-coolant', 'flow-coolant');
+rotary(760, 800, 20, '#3a1515', '#f87171', 6);
+E('text',{x:760, y:842,'text-anchor':'middle', fill:'#e8eef5','font-size':10,'font-weight':'bold'}).textContent = '冷却水泵';
+E('text',{x:760, y:855,'text-anchor':'middle', fill:'#fca5a5','font-size':9}).textContent = 'Coolant Pump';
+pipe('M740,800 L680,800', 'pipe-coolant', 'flow-coolant');
+
+/* 热流标注 */
+E('line',{x1:800, y1:592, x2:800, y2:654, stroke:'#ef4444','stroke-width':2.5,
+  'stroke-dasharray':'8 6','marker-end':'url(#alkAh)'});
+E('text',{x:810, y:628, fill:'#fca5a5','font-size':10}).textContent = '反应废热';
+E('line',{x1:840, y1:700, x2:840, y2:762, stroke:'#ef4444','stroke-width':2.5,
+  'stroke-dasharray':'8 6','marker-end':'url(#alkAh)'});
+E('rect',{x:796, y:726, width:88, height:16, rx:3, fill:'#0f1c2e', opacity:0.92});
+E('text',{x:840, y:738,'text-anchor':'middle', fill:'#fca5a5','font-size':10}).textContent = '废热 → 冷却水';
+
+/* ===== 仪表与控制阀（与计算逻辑的安全/控制口径对应） ===== */
+/* 碱液：储罐浓度指示 AIC、循环泵出口流量指示 FI */
+instrTag(292, 398, 'AIC');
+dashedLeader(282, 398, 272, 398);
+instrTag(400, 598, 'FI');
+dashedLeader(400, 608, 400, 619);
+/* 碱液储罐 N₂ 保护（防 H₂ 积聚） */
+dashedLeader(245, 362, 245, 380, '#67e8f9');
+E('path',{d:'M242,376 L245,381 L248,376', fill:'none', stroke:'#67e8f9','stroke-width':1.2});
+E('text',{x:252, y:360, fill:'#94a3b8','font-size':8}).textContent = 'N₂ 保护';
+/* 冷却水温度控制：TIC + 控制阀（维持电解液工作温度） */
+valveSym(900, 800, false);
+instrTag(900, 756, 'TIC');
+dashedLeader(900, 766, 900, 792);
+E('text',{x:900, y:738,'text-anchor':'middle', fill:'#7dd3fc','font-size':8}).textContent = '80 ℃';
+/* 氧侧：放空压力控制 PCV + 氧中氢分析 AT */
+valveSym(1065, 195, true);
+instrTag(1102, 190, 'AT');
+dashedLeader(1092, 190, 1072, 194);
+/* 氢侧：产品氢压力控制 PCV + 氢中氧分析 AT */
+valveSym(1428, 492, false);
+instrTag(1408, 468, 'AT');
+dashedLeader(1408, 478, 1408, 491);
+/* 氢氧差压变送器 PDT：两端分别接氧侧与氢侧分离器气相空间 */
+instrTag(1080, 435, 'PDT');
+dashedLeader(1070, 428, 972, 252);
+dashedLeader(1090, 435, 1098, 435);
+
+/* ---------------- 5. 数据气泡 ---------------- */
+const nodes = {};
+function addData(id, x, y, anchor){
+  const g = E('g', {id:'ad_'+id});
+  nodes[id] = {g, x, y, anchor:anchor||'start'};
+}
+addData('power', 290, 58);
+addData('bop',     290, 185);
+addData('lye',      70, 555);
+addData('o2',      655,  90);
+addData('h2',     1100, 542);
+addData('hx',      480, 872);
+addData('pump1',   292, 680);
+addData('pump2',   729, 872);
+addData('cooltower', 920, 872);
+addData('stack',   600, 252);
+
+function alkSet(id, lines, tips, lhIn){
+  const n = nodes[id]; if(!n) return;
+  n.g.innerHTML = '';
+  const pad = 7, lh = lhIn || 15;
+  const textW = s => [...s].reduce((a,ch)=> a + (/[\u2e80-\u9fff\uff00-\uffef]/.test(ch) ? 12.5 : 7.2), 0);
+  const w = Math.max(...lines.map(l=> textW(l.replace(/<[^>]+>/g,'')))) + pad*2;
+  const h = lines.length*lh + pad*2 - 4;
+  const bx = n.anchor === 'middle' ? n.x - w/2 : n.x;
+  const svgTitle = txt => { const t = document.createElementNS(NS,'title'); t.textContent = txt; return t; };
+  const allTips = (tips||[]).filter(Boolean);
+  if(allTips.length) n.g.appendChild(svgTitle(allTips.join('\n')));
+  const rct = document.createElementNS(NS,'rect');
+  rct.setAttribute('x', bx); rct.setAttribute('y', n.y);
+  rct.setAttribute('width', w); rct.setAttribute('height', h);
+  rct.setAttribute('class','data-bubble');
+  n.g.appendChild(rct);
+  lines.forEach((l,i)=>{
+    const t = document.createElementNS(NS,'text');
+    t.setAttribute('x', bx+pad); t.setAttribute('y', n.y+pad+lh*(i+1)-3);
+    t.setAttribute('class','data-text');
+    if(tips && tips[i]) t.appendChild(svgTitle(tips[i]));
+    const segs = l.match(/<strong>[\s\S]*?<\/strong>|[\s\S]+?(?=<strong>|$)/g) || [l];
+    segs.forEach(s=>{
+      const isVal = /^<strong>/.test(s);
+      const content = s.replace(/<\/?strong>/g,'');
+      if(content.length === 0) return;
+      const ts = document.createElementNS(NS,'tspan');
+      ts.setAttribute('fill', isVal ? '#7dd3fc' : '#e2e8f0');
+      ts.setAttribute('font-weight', isVal ? 'bold' : 'normal');
+      ts.textContent = content;
+      t.appendChild(ts);
+    });
+    n.g.appendChild(t);
+  });
+}
+
+/* 图签 / 图例 / 系统功率汇总 */
+(function(){
+  const fo = document.createElementNS(NS,'foreignObject');
+  fo.setAttribute('x',-45); fo.setAttribute('y',877);
+  fo.setAttribute('width',205); fo.setAttribute('height',104);
+  fo.innerHTML = '<div xmlns="http://www.w3.org/1999/xhtml" class="pfd-titleblock">'
+    + '<div class="tb-name">碱性电解槽系统流程图</div>'
+    + '<div class="tb-sub">PFD · Alkaline Water Electrolysis</div>'
+    + '<div class="tb-line"></div>'
+    + '<div class="tb-row"><span>版本</span><span>V1.1</span></div>'
+    + '<div class="tb-row"><span>日期</span><span>2026-11-12</span></div>'
+    + '</div>';
+  svg.appendChild(fo);
+})();
+(function(){
+  const fo = document.createElementNS(NS,'foreignObject');
+  fo.setAttribute('x',172); fo.setAttribute('y',877);
+  fo.setAttribute('width',120); fo.setAttribute('height',118);
+  fo.innerHTML = '<div xmlns="http://www.w3.org/1999/xhtml" class="pfd-legend">'
+    + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#06b6d4"></span>纯水/补水</div>'
+    + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#f59e0b"></span>碱液(KOH)</div>'
+    + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#6366f1"></span>氢气流路</div>'
+    + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#38bdf8"></span>氧气流路</div>'
+    + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#f97316"></span>冷却水流路</div>'
+    + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#eab308"></span>电力/信号</div>'
+    + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#67e8f9"></span>仪表/控制阀</div>'
+    + '<div class="pfd-legend-item"><span class="pfd-legend-dot" style="background:#ef4444"></span>热流</div>'
+    + '</div>';
+  svg.appendChild(fo);
+})();
+(function(){
+  const fo = document.createElementNS(NS,'foreignObject');
+  fo.setAttribute('x',1230); fo.setAttribute('y',660);
+  fo.setAttribute('width',260); fo.setAttribute('height',290);
+  fo.innerHTML = '<div xmlns="http://www.w3.org/1999/xhtml" class="pfd-pow-table" id="alkPowTable"></div>';
+  svg.appendChild(fo);
+})();
+/* 控制与安全联锁卡 */
+(function(){
+  const fo = document.createElementNS(NS,'foreignObject');
+  fo.setAttribute('x',1150); fo.setAttribute('y',44);
+  fo.setAttribute('width',335); fo.setAttribute('height',160);
+  fo.innerHTML = '<div xmlns="http://www.w3.org/1999/xhtml" class="pem-note" id="alkCtlNote"></div>';
+  svg.appendChild(fo);
+})();
+/* 项目经济性卡 */
+let alkEconFo = null;
+(function(){
+  const fo = document.createElementNS(NS,'foreignObject');
+  fo.setAttribute('x',1150); fo.setAttribute('y',204);
+  fo.setAttribute('width',335); fo.setAttribute('height',130);
+  fo.innerHTML = '<div xmlns="http://www.w3.org/1999/xhtml" class="pem-note" id="alkEconNote"></div>';
+  svg.appendChild(fo);
+  alkEconFo = fo;
+})();
+
+/* 流程图外框 */
+E('rect',{x:-59, y:30, width:1558, height:965, rx:10, fill:'none', stroke:'#38bdf8',
+  'stroke-width':1.6, 'stroke-dasharray':'9 6', opacity:0.4, 'pointer-events':'none'});
+
+/* ---------------- 6. 渲染 ---------------- */
+const F2 = v => (Number(v)||0).toFixed(2);
+const F1 = v => (Number(v)||0).toFixed(1);
+const F0 = v => (Number(v)||0).toFixed(0);
+const F3 = v => (Number(v)||0).toFixed(3);
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const row = (l,val,warn,tip)=>
+  `<div class="hx-result-row"${tip?` title="${esc(tip)}"`:''}><span class="hx-r-label">${l}</span><span class="hx-r-value${warn?' warn':''}">${val}</span></div>`;
+
+function renderAlk(){
+  const r = calcAlk();
+  const st = r.st, wt = r.wt, gs = r.gs, hx = r.hx, pw = r.pw;
+
+  /* --- 流程图文字随参数联动（原为硬编码） --- */
+  alkDcTxt.textContent = 'DC ' + F0(st.I) + ' A / ' + F0(st.Vstack) + ' V';
+  alkTankSubTxt.textContent = F1(gi('alkKOHConc')) + ' wt% KOH · ' + F0(gi('alkOpTemp')) + ' ℃';
+  alkO2Txt.textContent = '纯度 ' + F1(gi('alkO2Purity')) + ' % · 回收率 ' + F0(gi('alkO2Recovery')) + ' %';
+  alkH2Txt.textContent = F1(gi('alkH2Pressure')) + ' bar · ' + F3(gi('alkH2Purity')) + ' %';
+
+  /* --- 数据气泡 --- */
+  alkSet('power', [
+    `直流电流:<strong>${F0(st.I)}</strong>A`,
+    `直流电压:<strong>${F0(st.Vstack)}</strong>V`,
+    `直流功率:<strong>${F1(st.Pstack)}</strong>kW`,
+    `整流输入:<strong>${F1(pw.Prect)}</strong>kW`,
+    `整流效率:<strong>${F0(gi('alkRectEff'))}</strong>%`,
+    `平均负荷率:<strong>${F0(gi('alkUseFactor'))}</strong>%`
+  ],[
+    '直流电流(A) = 反应面积(cm²) × 电流密度(A/cm²)；整堆串联，各节电流相同',
+    '直流电压(V) = 单体电压(V) × 电解槽节数',
+    '直流功率(kW) = 直流电流(A) × 直流电压(V) / 1000',
+    '整流输入功率(kW) = 电解槽直流功率 / 整流电源效率；含整流变压器与晶闸管损耗',
+    '整流电源效率(%) = 输入参数「整流电源效率」',
+    '平均负荷率(%) = 输入参数「平均负荷率」；与年运行小时数共同决定等效满负荷小时数'
+  ]);
+  alkSet('bop', [
+    `辅机合计(EOL):<strong>${F2(pw.bopTotal)}</strong>kW`,
+    `外部加热:<strong>${F2(pw.PheatExt)}</strong>kW`,
+    `系统输入(EOL):<strong>${F1(pw.Psys)}</strong>kW`,
+    `系统效率(BOL):<strong>${F1(pw.etaSysHHV)}</strong>%`,
+    `电能单耗(BOL):<strong>${F2(pw.kWhKg)}</strong>kWh/kg`,
+    `电能单耗(BOL):<strong>${F2(pw.kWhNm3)}</strong>kWh/Nm³`
+  ],[
+    '辅机合计(kW) = 碱液循环泵 + 冷却水泵 + 冷却塔风机 + 纯化加热；按周期末单体电压选型',
+    '外部加热(kW) = max(0, −反应热)；吸热工况按电加热等效计入系统输入',
+    '系统输入功率(kW) = 整流输入 + 辅机合计；此处为周期末选型容量',
+    '系统效率(HHV)(%) = 产品氢 HHV 功率 / 系统输入功率 × 100；按寿命初期口径',
+    '电能单耗(kWh/kgH₂) = 系统输入功率 / 产品氢质量流量(kg/h)；分母为纯化后的产品氢',
+    '电能单耗(kWh/Nm³) = 系统输入功率 / 产品氢流量(Nm³/h)；行业典型 ALK 4.3~5.0'
+  ]);
+  alkSet('lye', [
+    `循环流量(平均):<strong>${F1(wt.Vcirc)}</strong>m³/h`,
+    `循环倍率(平均):<strong>${F0(wt.circRatio)}</strong>倍`,
+    `KOH浓度:<strong>${F1(gi('alkKOHConc'))}</strong>wt%`,
+    `电解液温升:<strong>${F1(wt.dTlye)}</strong>℃`,
+    `碱液泵(EOL):<strong>${F2(pw.P_pump)}</strong>kW`,
+    `原水耗量:<strong>${F1(wt.roFeedKgh)}</strong>kg/h`,
+    `KOH损失:<strong>${F2(wt.kohLossKgh)}</strong>kg/h`
+  ],[
+    '电解液循环流量(m³/h) = max(换热需求, 反应水×最小循环倍率) / ρ_lye × 3600',
+    '循环倍率 = 电解液循环质量流量 / 反应净耗水质量流量；由换热需求主导',
+    'KOH 浓度(wt%) = 输入参数「KOH浓度」；工程常用 25~32 wt%',
+    '电解液温升(℃) = 输入参数「电解液温升」；温差越小流量越大',
+    '碱液循环泵功耗(kW) = (ρ_lye·g·H + 板换压降)·Q/η',
+    '原水耗量(kg/h) = (反应水 + 两侧气相带水 + 排污水 + 碱雾水) / RO 回收率',
+    'KOH损失(kg/h) = 排污量×w/100 + 碱雾夹带×w/100'
+  ]);
+  alkSet('o2', [
+    `产氧流量:<strong>${F1(st.vO2)}</strong>Nm³/h`,
+    `氧侧带水:<strong>${F1(gs.o2WaterKgh)}</strong>kg/h`,
+    `氧侧压力:<strong>${F1(gs.PO2b)}</strong>bar`,
+    `氧中氢:<strong>${F3(gs.h2InO2)}</strong>vol%`,
+    `O₂纯度:<strong>${F1(gi('alkO2Purity'))}</strong>%`
+  ],[
+    '产氧流量(Nm³/h) = 产氧量(mol/s)×22.414×3.6；产氧量按寄生电流折减',
+    '氧侧气相带水(kg/h) = 产氧量 × 饱和摩尔比 × 18.015×3.6；饱和摩尔比含 KOH 水活度修正',
+    '氧气侧绝对压力(bar) = 输入参数「氧气侧压力」',
+    '氧中氢(vol%) = 氢窜氧量/(产氧量+氢窜氧量)×100；≥2 报警、≥4 联锁',
+    '副产品氧纯度(%) = 输入参数「副产品氧纯度」'
+  ]);
+  alkSet('h2', [
+    `产氢流量:<strong>${F1(st.vH2)}</strong>Nm³/h`,
+    `产氢质量:<strong>${F1(st.mH2kgh)}</strong>kg/h`,
+    `产品氢:<strong>${F1(gs.vH2Pro)}</strong>Nm³/h（${F1(pw.mH2ProKgh)} kg/h）`,
+    `纯化损失:<strong>${F2(gs.vH2Loss)}</strong>Nm³/h`,
+    `氢侧压力:<strong>${F1(gs.PH2b)}</strong>bar`,
+    `氢中氧:<strong>${F3(gs.o2InH2)}</strong>vol%`,
+    `纯度:<strong>${F3(gi('alkH2Purity'))}</strong>%`
+  ],[
+    '产氢流量(Nm³/h) = 实际产氢(mol/s)×22.414×3.6',
+    '产氢质量(kg/h) = 实际产氢(mol/s)×2.016×3.6',
+    '产品氢(Nm³/h) = 产氢流量 × 纯化回收率 × 纯度因子；是电能单耗与 LCOH 的分母',
+    '纯化损失(Nm³/h) = 产氢流量 − 产品氢流量；含脱氧消耗与 TSA 再生吹扫',
+    '氢气侧绝对压力(bar) = 输入参数「氢气侧压力」',
+    '氢中氧(vol%) = 氧窜氢量/(产氢量+氧窜氢量)×100；≥2 报警并停车',
+    '产品氢纯度(%) = 输入参数「产品氢纯度」'
+  ]);
+  alkSet('hx', [
+    `热负荷:<strong>${F1(hx.Qheat)}</strong>kW` + (hx.QheatRaw<0 ? `（吸热 ${F1(-hx.QheatRaw)} kW）` : ''),
+    `LMTD:<strong>${F1(hx.lmtd)}</strong>℃`,
+    `计算面积:<strong>${F2(hx.Acalc)}</strong>m²`,
+    `板片数:<strong>${F0(hx.Nplate)}</strong>片`,
+    `碱液侧压降:<strong>${F2(hx.dpHot/1000)}</strong>kPa`
+  ],[
+    '热负荷(kW) = 直流功率 × (单体电压−1.481)/单体电压；按周期末单体电压选型',
+    '对数平均温差(℃)：逆流布置，端差取 (碱液进口−冷却水出口) 与 (碱液出口−冷却水进口)',
+    '计算面积(m²) = 热负荷×1000/(传热系数K×LMTD)',
+    '板片数(片) = 计算面积×(1+裕度)/单板面积 + 1，向上取整并取偶数',
+    '碱液侧压降(kPa) = 摩擦阻力 + 局部阻力'
+  ]);
+  alkSet('pump1', [
+    `流量(EOL):<strong>${F1(hx.Vcirc)}</strong>m³/h`,
+    `扬程:<strong>${F0(gi('alkPumpHead'))}</strong>m`,
+    `效率:<strong>${F0(gi('alkPumpEff'))}</strong>%`,
+    `功耗:<strong>${F2(pw.P_pump)}</strong>kW`
+  ],[
+    '碱液循环泵流量(m³/h) = 电解液循环流量',
+    '扬程(m) = 输入参数「碱液循环泵扬程」；需覆盖板换与电解槽阻力',
+    '总效率(%) = 输入参数「碱液循环泵总效率」',
+    '功耗(kW) = (ρ_lye·g·H + Δp_hot)·Q/η'
+  ]);
+  alkSet('pump2', [
+    `流量:<strong>${F1(hx.Vcold)}</strong>m³/h`,
+    `扬程:<strong>${F0(gi('alkCoolPumpHead'))}</strong>m`,
+    `效率:<strong>${F0(gi('alkCoolPumpEff'))}</strong>%`,
+    `功耗:<strong>${F2(pw.P_cpump)}</strong>kW`
+  ],[
+    '冷却水泵流量(m³/h) = 热负荷×1000/(冷却水比热×温升)/ρ×3600',
+    '扬程(m) = 输入参数「冷却水泵扬程」',
+    '总效率(%) = 输入参数「冷却水泵总效率」',
+    '功耗(kW) = (ρ_w·g·H + Δp_cold)·Q/η'
+  ]);
+  alkSet('cooltower', [
+    `冷却水进/出:<strong>${F1(hx.Tci)}/${F1(hx.Tco)}</strong>℃`,
+    `冷却水流量:<strong>${F1(hx.Vcold)}</strong>m³/h`,
+    `空气流量:<strong>${F0(pw.Vair)}</strong>m³/h`,
+    `风机功耗:<strong>${F2(pw.P_fan)}</strong>kW`,
+    `带走热量:<strong>${F1(hx.Qheat)}</strong>kW`
+  ],[
+    '冷却水进口温度 = 输入参数「冷却水进口温度」；出口温度 = 输入参数「冷却水出口温度」',
+    '冷却水流量(m³/h) = 热负荷×1000/(冷却水比热×温升)/ρ×3600',
+    '冷却塔空气流量(m³/h) = 废热×3600/(空气定压比热×空气温升×空气密度)',
+    '风机功耗(kW) = 风机全压(Pa) × 空气体积流量(m³/s) / 风机效率',
+    '带走热量(kW) = 电解槽反应废热'
+  ]);
+  alkSet('stack', [
+    `单体电压:<strong>${F2(st.Vcell)}</strong>V`,
+    `电解槽节数:<strong>${F0(st.N)}</strong>节`,
+    `直流电压:<strong>${F0(st.Vstack)}</strong>V`,
+    `直流功率:<strong>${F1(st.Pstack)}</strong>kW`,
+    `电堆效率(HHV):<strong>≈${F1(st.etaHHV)}</strong>%`,
+    `反应产热:<strong>${F1(st.Qheat)}</strong>kW` + (st.Qheat<0 ? '（吸热）' : '')
+  ],[
+    '单体电压(V) = V_rev + η_act + η_ohm + η_bub；由电流密度、温度、压力与 KOH 浓度解算',
+    '电解槽节数 = 输入参数「电解槽节数」',
+    '直流电压(V) = 单体电压 × 电解槽节数',
+    '直流功率(kW) = 直流电流 × 直流电压 / 1000；此处为寿命初期（BOL）值',
+    '电堆效率(HHV)(%) = 1.481 / 单体电压 × 100',
+    '反应产热(kW) = 直流功率 × (单体电压−1.481)/单体电压；低于 1.481 V 为吸热'
+  ], 14);
+
+  /* --- 计算面板 --- */
+  const kohTa = wt.kohLossKgh*pw.eqFullH/1000;
+  document.getElementById('alk-lye-results').innerHTML = [
+    ['KOH浓度(wt%)', F1(gi('alkKOHConc')), !gs.concSafe, 'KOH 质量分数；工程常用 25~32 wt%，默认 30 wt%'],
+    ['电解液密度(kg/m³)', F0(wt.lyeRho), false, 'ρ_lye(T,w) = 1000 + 9.2w − 0.55×(T−20)'],
+    ['电解液比热(J/(kg·K))', F0(wt.lyeCp), false, 'c_p,lye(T,w) = 4180 − 27w + 1.2×(T−20)'],
+    ['电解液粘度(mPa·s)', (wt.lyeMu*1000).toFixed(2), false, 'μ_lye(T,w) = μ_w(T)×(1+0.08w)'],
+    ['电解液电导率(S/cm)', F3(wt.lyeK), false, 'κ(T,w) = κ25(w)×exp(0.012×(T−25))；κ25 = 0.30+0.022w−0.00035w²'],
+    ['水活度 a_w', F3(wt.aw), false, 'a_w = max(0.3, 1−0.0065w)；用于气相带水的饱和摩尔比'],
+    ['电解液温升(℃)', F1(wt.dTlye), false, '输入参数「电解液温升」；ΔT 越小循环流量越大'],
+    ['电解液循环流量·平均(m³/h)', F1(wt.Vcirc), false, '循环流量(按平均单体电压) = max(换热需求, 反应水×最小循环倍率)/ρ_lye×3600；周期末设计流量见泵气泡与换热器面板'],
+    ['电解液循环倍率', F0(wt.circRatio)+' 倍', wt.circRatio<10, '循环质量流量 / 反应净耗水质量流量；由换热需求主导'],
+    ['碱液循环泵功耗·EOL(kW)', F2(pw.P_pump), false, '泵功(按周期末设计流量) = (ρ_lye·g·H + Δp_hot)×Q/η'],
+    ['反应净耗水(kg/h)', F1(wt.mWaterNetKgh), false, '反应净耗水 = 实际产氢(mol/s)×18.015×3.6'],
+    ['氢侧气相带水(kg/h)', F2(wt.h2WaterKgh), false, '氢侧带水 = 产氢量 × r_H2 × 18.015×3.6；r_H2 = a_w·p_sat/(P_H2−a_w·p_sat)'],
+    ['氧侧气相带水(kg/h)', F2(wt.o2WaterKgh), false, '氧侧带水 = 产氧量 × r_O2 × 18.015×3.6'],
+    ['电解液排污量(kg/h)', F2(wt.blowKgh), false, '排污量 = 电解液容积 × 排污率(%/d) × ρ_lye / 24'],
+    ['碱雾夹带(kg/h)', F3(wt.mistKgh), false, '碱雾夹带 = 出口碱雾(mg/Nm³)×1e-6×(氢+氧流量)'],
+    ['KOH损失(kg/h)', F3(wt.kohLossKgh), false, 'KOH 损失 = 排污量×w/100 + 碱雾夹带×w/100'],
+    ['KOH年耗量(t/a)', F2(kohTa), false, 'KOH 年耗量 = KOH 损失(kg/h) × 等效满负荷小时数 / 1000'],
+    ['系统净水损失(kg/h)', F1(wt.mWaterLossKgh), false, '净水损失 = 反应水 + 两侧气相带水 + 排污水 + 碱雾水'],
+    ['原水耗量(kg/h)', F1(wt.roFeedKgh), false, '原水耗量 = 净水损失 / 纯水制备回收率'],
+    ['冷却塔补水(kg/h)', F1(wt.coolingMakeupKgh), false, '冷却塔补水 = 废热×3600/2260×1.2；含 20 % 排污'],
+    ['年综合耗水量(t/a)', F1(pw.aWaterT), false, '年综合耗水量 = (原水耗量 + 冷却塔补水) × 等效满负荷小时数 / 1000'],
+    ['年水费(万元)', F2(pw.waterAnnual), false, '年水费 = 年综合耗水量(t) × 水价(元/t) / 10000'],
+    ['年KOH费(万元)', F2(pw.kohAnnual), false, '年 KOH 费 = KOH 年耗量(t) × KOH 价格(元/t) / 10000'],
+    ['补水电导率(µS/cm)', '≤ 5', false, 'ALK 补水需除盐水；Ca²⁺/Mg²⁺ 与 CO₂ 会生成碳酸盐沉淀堵塞隔膜']
+  ].map(a=>row(a[0],a[1],a[2],a[3])).join('');
+
+  document.getElementById('alk-gas-results').innerHTML = [
+    ['理论产氢(mol/s)', F3(st.nH2th), false, '理论产氢 = 电流(A)×节数/(2×96485)；法拉第定律'],
+    ['实际产氢(mol/s)', F3(st.nH2), false, '实际产氢 = 理论产氢 × 电流效率'],
+    ['电流效率(%)', F2(st.etaF)+'（'+st.vEtaF+'）', false, 'η_F = 1 − 2·i_x/j − s_shunt/100；i_x 为隔膜互窜电流密度、s_shunt 为寄生电流损失；低负荷时 i_x/j 变大，η_F 下降'],
+    ['产氢流量(Nm³/h)', F1(st.vH2), false, '产氢流量 = 实际产氢(mol/s)×22.414×3.6'],
+    ['产氢质量(kg/h)', F2(st.mH2kgh), false, '产氢质量 = 实际产氢(mol/s)×2.016×3.6'],
+    ['产品氢流量(Nm³/h)', F1(gs.vH2Pro), false, '产品氢 = 产氢流量 × 纯化回收率 × 纯度因子'],
+    ['产品氢质量(kg/h)', F2(pw.mH2ProKgh), false, '产品氢质量 = 产氢质量 × 纯化回收率 × 纯度因子；是电能单耗与 LCOH 的分母'],
+    ['纯化损失(Nm³/h)', F2(gs.vH2Loss), false, '纯化损失 = 产氢流量 − 产品氢流量'],
+    ['产品氢纯度(%)', F3(gi('alkH2Purity'))+' (≥99.999 目标)', gs.purityWarn, '纯化后产品氢纯度目标（脱氧 + 干燥后）'],
+    ['理论产氧(Nm³/h)', F1(gs.nO2th*VMOL*3.6), false, '理论产氧 = 理论产氢/2 × 22.414 × 3.6'],
+    ['产氧(Nm³/h)', F1(st.vO2), false, '产氧 = 理论产氧 × (1 − 寄生电流损失) × 22.414 × 3.6；窜氢按气体杂质计，不再重复扣氧'],
+    ['副产品氧(Nm³/h)', F1(gs.vO2Pro)+'（'+F1(gs.mO2ProKgh)+' kg/h）', false, '副产品氧 = 产氧流量 × 氧气回收率'],
+    ['氢侧气相带水(kg/h)', F2(gs.h2WaterKgh), false, '氢侧带水 = 产氢量 × 饱和摩尔比 × 18.015×3.6；饱和摩尔比用 KOH 水活度修正'],
+    ['氧侧气相带水(kg/h)', F2(gs.o2WaterKgh), false, '氧侧带水 = 产氧量 × 饱和摩尔比 × 18.015×3.6'],
+    [`${gi('alkOpTemp')}℃饱和蒸汽压(kPa)`, F2(gs.pSat), false, '纯水饱和蒸汽压由操作温度的多项式拟合式计算'],
+    ['KOH溶液水活度', F3(wt.aw), false, 'a_w = max(0.3, 1−0.0065w)；30 wt% → 0.805'],
+    ['氧中氢浓度(vol%)', F3(gs.h2InO2)+' (报警 2 / 联锁 4)', !gs.h2O2Safe, '氧中氢 = 氢窜氧量/(产氧量+氢窜氧量)×100；ALC 最低负荷的主要限制'],
+    ['氢中氧浓度(vol%)', F3(gs.o2InH2)+' (报警 2)', !gs.o2H2Safe, '氢中氧 = 氧窜氢量/(产氢量+氧窜氢量)×100；用于判断隔膜是否破损'],
+    ['氢氧压差(bar)', F2(gs.dP)+' / 限值 '+F2(gs.dpLim), !gs.dpSafe, '氢氧压差 = |P_H2 − P_O2|；超限将导致隔膜机械损伤与氢氧互窜'],
+    ['压差校核', gs.dpSafe?'合格 ✓ 需三重保护':'超限 ✗ 需调整压力或加装差压联锁', !gs.dpSafe, '设计要求 |P_H2−P_O2| ≤ 限值，并设置软件+硬件+机械三重保护'],
+    ['安全总标志', gs.safe?'安全 ✓':'超限 ✗ 经济/调度不可用', !gs.safe, '安全 = 氧中氢合格 && 氢中氧合格 && 氢氧压差合格 && 温度 ≤90 ℃']
+  ].map(a=>row(a[0],a[1],a[2],a[3])).join('');
+
+  document.getElementById('alk-hx-results').innerHTML = [
+    ['热负荷 Q(kW)', F1(hx.Qheat), false, '热负荷 = 直流功率×(单体电压−1.481)/单体电压；按周期末单体电压选型；已钳位到 0'],
+    ['热侧(碱液)进口(℃)', F1(hx.Thi), false, '碱液进口温度 = 工作温度 + 电解液温升/2（工作温度按槽内平均温度定义）'],
+    ['热侧(碱液)出口(℃)', F1(hx.Tho), false, '碱液出口温度 = 工作温度 − 电解液温升/2'],
+    ['冷侧(冷却水)进口(℃)', F1(hx.Tci), false, '冷却水进口温度 = 输入参数「冷却水进口温度」'],
+    ['冷侧(冷却水)出口(℃)', F1(hx.Tco), false, '冷却水出口温度 = 输入参数「冷却水出口温度」'],
+    ['端差 Δt₁ / Δt₂(℃)', F1(hx.dt1)+' / '+F1(hx.dt2), hx.cross, '逆流端差：Δt₁ = 碱液进口−冷却水出口；Δt₂ = 碱液出口−冷却水进口；任一端差 ≤0 即温度交叉'],
+    ['对数平均温差 LMTD(℃)', F1(hx.lmtd), hx.cross, 'LMTD = (Δt₁−Δt₂)/ln(Δt₁/Δt₂)'],
+    ['总传热系数 K W/(m²·K)', F0(hx.K), false, '碱液-水板式换热器经验值 1500~3500；碱液侧粘度与污垢使 K 低于纯水-水'],
+    ['计算面积(m²)', F2(hx.Acalc), false, '计算面积 = 热负荷×1000/(K×LMTD)'],
+    ['面积裕度(%)', F0(gi('alkHxMargin')), false, '面积裕度 = 输入参数「换热面积裕度」，用于结垢与性能衰减'],
+    ['需求面积(含裕度)(m²)', F2(hx.Aneed), false, '需求面积 = 计算面积×(1+裕度)'],
+    ['板片数(片)', F0(hx.Nplate), false, '板片数 = 需求面积/单板有效面积 + 1，向上取整并取偶数'],
+    ['实际换热面积(m²)', F2(hx.Agot), false, '实际面积 = (板片数−1)×单板有效面积'],
+    ['热侧流道数 / 冷侧流道数', F0(hx.nHotCh)+' / '+F0(hx.nColdCh), false, '流道数由板间通道数均分；两侧并联流道数决定流速'],
+    ['热侧流速(m/s)', F2(hx.uHot), hx.uHot<0.3||hx.uHot>1.5, '热侧流速 = (循环流量/3600)/(热侧流道数×单板流道面积)；推荐 0.3~1.0 m/s'],
+    ['冷侧流速(m/s)', F2(hx.uCold), hx.uCold<0.3||hx.uCold>1.5, '冷侧流速 = (冷却水流量/3600)/(冷侧流道数×单板流道面积)'],
+    ['热侧雷诺数 Re', F0(hx.ReHot), false, 'Re = ρ·u·D_eq/μ；D_eq 取 2×板间距 ≈0.006 m；Re>3000 视为湍流'],
+    ['冷侧雷诺数 Re', F0(hx.ReCold), false, 'Re = ρ_w·u·D_eq/μ_w；冷却水 34℃ 取 μ=0.742 mPa·s'],
+    ['热侧压降(kPa)', F2(hx.dpHot/1000), hx.dpHot/1000>100, '压降 = (流道长/当量直径)×f×ρu²/2 + 1.5×ρu²/2；推荐 ≤100 kPa'],
+    ['冷侧压降(kPa)', F2(hx.dpCold/1000), hx.dpCold/1000>100, '压降 = 摩擦阻力 + 进出口局部阻力'],
+    ['冷却水循环量(m³/h)', F1(hx.Vcold), false, '冷却水流量 = 热负荷×1000/(4178×冷却水温升)/ρ×3600']
+  ].map(a=>row(a[0],a[1],a[2],a[3])).join('');
+
+  const ml = alkMinLoadX();
+  const r50 = alkLoadAt(0.5);
+  document.getElementById('alk-power-results').innerHTML = [
+    ['可逆电压 V_rev(V)', F3(st.Vrev), false, 'V_rev = 1.23 − 0.9e-3×(T−25) + (R·T_k/(2F))·ln(P_H2·P_O2^0.5/a_H2O)；a_H2O 为 KOH 水活度'],
+    ['激活过电位 η_act(V)', F3(st.etaAct), false, 'η_act = a×log10(j/j0)；a=0.055 V/dec、j0=5×10⁻⁵ A/cm²'],
+    ['欧姆过电位 η_ohm(V)', F3(st.etaOhm), false, 'η_ohm = j×ASR；ASR = 电极间距/κ(T,w) + 隔膜ASR + 电极/接触ASR'],
+    ['气泡/浓差过电位 η_bub(V)', F3(st.etaBub), false, 'η_bub = b×(j/0.4)^0.5；b = 输入参数「气泡/浓差过电位」'],
+    ['单体电压('+st.vSource+')(V)', F3(st.Vcell), false, '单体电压 = V_rev+η_act+η_ohm+η_bub；输入「单体电压」非 0 时手动覆盖'],
+    ['系统电化学效率 (HHV)(%)', F1(st.etaHHV), false, '基于高热值：1.481V/单体电压；1.481V 为水的 HHV 热中性电压'],
+    ['系统电化学效率 (LHV)(%)', F2(st.etaLHV), false, '基于低热值：1.254V/单体电压'],
+    ['电解槽直流功率(kW)', F1(pw.Pstack), false, '直流功率 = 电流×电压/1000；按周期末单体电压计算'],
+    ['整流电源输入功率(kW)', F1(pw.Prect), false, '整流输入 = 直流功率 / 整流电源效率'],
+    ['碱液循环泵(kW)', F2(pw.P_pump), false, '泵功率 = (ρ_lye·g·H+Δp_hot)·Q/η'],
+    ['冷却水泵(kW)', F2(pw.P_cpump), false, '泵功率 = (ρ_w·g·H+Δp_cold)·Q/η'],
+    ['冷却塔风机(kW)', F2(pw.P_fan), false, '风机 = 全压×风量/效率；风量由废热与空气温升求得'],
+    ['纯化加热(kW)', F2(pw.P_purif), false, '纯化加热 = 直流功率 × 纯化加热占比'],
+    ['辅机合计(kW)', F2(pw.bopTotal), false, '辅机合计 = 碱液泵 + 冷却水泵 + 风机 + 纯化加热'],
+    ['系统输入功率·EOL(kW)', F1(pw.Psys), false, '系统输入 = 整流输入 + 辅机合计 + 外部加热；按周期末单体电压选型'],
+    ['系统效率·BOL (HHV)(%)', F1(pw.etaSysHHV), false, '系统效率 = 产品氢 HHV 功率 / 系统输入功率（寿命初期口径，与下方 EOL 输入功率不同口径）'],
+    ['系统效率·BOL (LHV)(%)', F1(pw.etaSysLHV), false, '系统效率 = 产品氢 LHV 功率 / 系统输入功率（寿命初期口径）'],
+    ['电能单耗·BOL(kWh/kgH₂)', F2(pw.kWhKg), false, '电能单耗 = 系统输入功率(寿命初期) / 产品氢质量流量；分母为纯化后产品氢'],
+    ['电能单耗·BOL(kWh/Nm³)', F2(pw.kWhNm3), false, '电能单耗 = 系统输入功率(寿命初期) / 产品氢流量；行业典型 ALK 4.3~5.0'],
+    ['平均电能单耗(kWh/kg)', F2(pw.avgKWhKg), false, '平均电能单耗 = 年耗电量 / 年产品氢量；已含电压衰减'],
+    ['平均氢气电费成本(元/kg)', F2(pw.avgCostKg), false, '平均氢气电费成本 = 年电费 / 年产品氢量；含电压衰减'],
+    ['等效满负荷小时数(h)', F0(pw.eqFullH), false, '等效满负荷小时数 = 年运行小时数 × 平均负荷率/100'],
+    ['电压衰减率(µV/h·节)', F1(pw.degRate), false, '输入参数「电压衰减率」；ALK 典型 1~5 µV/h'],
+    ['更换周期内电压上升(V/节)', F3(pw.dvCycle), false, '电压上升 = 衰减率×等效满负荷小时数×更换周期/1e6'],
+    ['周期末单体电压(V)', F3(pw.VcellEnd), false, '周期末单体电压 = 寿命初期单体电压 + 周期内电压上升'],
+    ['衰减后平均单体电压(V)', F3(pw.VcellAvg), false, '平均单体电压 = 寿命初期单体电压 + 周期内电压上升/2'],
+    ['年制氢量(kg)', F0(pw.aH2Kg), false, '年产品氢量 = 产品氢质量流量 × 等效满负荷小时数（纯化后）'],
+    ['年制氢量(Nm³)', F0(pw.aH2Nm3), false, '年产品氢量 = 产品氢体积流量 × 等效满负荷小时数'],
+    ['年耗电量(kWh)', F0(pw.aKWh), false, '年耗电量 = 系统输入功率(按平均单体电压复算) × 等效满负荷小时数'],
+    ['氢气电费成本(元/kg)', F2(pw.h2CostKg), false, '氢气电费成本 = 电能单耗 × 电价；设计点（寿命初期）口径'],
+    ['年电费(万元)', F2(pw.aCostWan), false, '年电费 = 年耗电量 × 电价 / 10000；已含电压衰减'],
+    ['年CAPEX摊销(万元/年)', F1(pw.capexAnnual), false, '年CAPEX摊销 = 总投资×CRF；总投资 = 周期末选型系统输入功率×单位投资/10000'],
+    ['年运维与更换(万元/年)', F1(pw.omAnnual+pw.stackAnnual), false, '年运维 = 总投资×运维费率；年更换 = 更换现金流折现后×CRF；nRepl = ceil(寿命/更换周期)−1'],
+    ['年水费(万元/年)', F2(pw.waterAnnual), false, '年水费 = 年综合耗水量 × 水价 / 10000'],
+    ['年KOH费(万元/年)', F2(pw.kohAnnual), false, '年KOH费 = KOH年耗量 × KOH价格 / 10000'],
+    ['年总成本(万元/年)', F1(pw.totalAnnual), false, '年总成本 = CAPEX摊销 + 运维 + 更换 + 电费 + 水费 + KOH费 + 人工/辅料'],
+    ['综合氢成本 LCOH(元/kg)', (pw.safe ? F2(pw.lcoh) : '不可行'), false, 'LCOH = 年总成本×10000/年产品氢量；安全超限时显示不可行'],
+    ['电费占比(%)', F1(pw.elecShare), false, '电费占比 = 年电费 / 年总成本 × 100'],
+    ['理论最低电耗(kWh/kg)', F1(LHV_KWH_KG)+' (LHV) / '+F1(HHV_KWH_KG)+' (HHV)', false, '氢的 LHV=33.33 kWh/kg、HHV=39.41 kWh/kg'],
+    ['最小负荷（'+ml.src+'）', F1(ml.x*100)+' %（j='+F3(ml.x*gi('alkCurrentDensity'))+' A/cm²）'+(ml.bad?' ⚠':'')+'',
+      ml.bad, '最小负荷由「氧中氢≤目标 vol%」反推；输入非 0 时手动覆盖，低于安全下限会标红'],
+    ['50%负荷电能单耗(BOL)', F2(r50.pw.kWhKg)+' kWh/kg', false, '按电流密度减半复算整链（寿命初期口径）；低负荷单体电压下降，kWh/kg 反而更低'],
+    ['电解槽温度校核(℃)', F1(gi('alkOpTemp'))+' / ≤90', gi('alkOpTemp')>90, '温度过高加速隔膜老化与 KOH 腐蚀；推荐 70~85 ℃'],
+    ['KOH浓度校核', F1(gi('alkKOHConc'))+' / 25~32 wt%', !gs.concSafe, '过低电导率下降，过高粘度上升且低温易结晶'],
+    ['补水电导率校核', '≤5 µS/cm', false, '在线监测补水电导率，超限需再生除盐系统'],
+    ['安全联锁要求', 'SIL2 独立于主控', false, '氧中氢/氢中氧、氢氧压差、超温、液位、冷却水断流均须联锁停车，并设氮气吹扫']
+  ].map(a=>row(a[0],a[1],a[2],a[3])).join('');
+}
+
+/* 系统功率汇总表 + 控制联锁卡 + 经济性卡 */
+function renderAlkTables(){
+  const r = calcAlk(), st = r.st, pw = r.pw, gs = r.gs;
+  const t = document.getElementById('alkPowTable');
+  if(t){
+    const ta = tip => ' title="'+esc(tip)+'"';
+    t.innerHTML =
+      '<div class="pfd-pow-head">系统功率汇总（周期末选型）</div>'
+      + '<div class="pfd-pow-row"'+ta('选型工况单体电压 = 寿命初期 + 更换周期内电压上升；设备容量按此值选型')+'><span>单体电压（周期末）</span><span>'+F2(pw.VcellSel)+' V</span></div>'
+      + '<div class="pfd-pow-row"'+ta('寿命初期单体电压，用于电化学与极化曲线展示')+'><span>单体电压（初期）</span><span>'+F2(pw.VcellBol)+' V</span></div>'
+      + '<div class="pfd-pow-row"'+ta('电解槽节数 = 输入参数')+'><span>电解槽节数</span><span>'+F0(st.N)+' 节</span></div>'
+      + '<div class="pfd-pow-row"'+ta('直流电流 = 反应面积 × 电流密度')+'><span>直流电流</span><span>'+F0(st.I)+' A</span></div>'
+      + '<div class="pfd-pow-row"'+ta('直流电压 = 单体电压 × 节数')+'><span>直流电压</span><span>'+F0(pw.Vstack)+' V</span></div>'
+      + '<div class="pfd-pow-row pfd-pow-group"'+ta('直流功率 = 电流 × 电压 / 1000')+'><span>电解槽直流功率</span><span>'+F1(pw.Pstack)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('整流输入 = 直流功率 / 整流效率')+'><span>整流电源输入</span><span>'+F1(pw.Prect)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('碱液泵 = (ρgH+Δp)·Q/η')+'><span>碱液循环泵</span><span>'+F2(pw.P_pump)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('冷却水泵 = (ρgH+Δp)·Q/η')+'><span>冷却水泵</span><span>'+F2(pw.P_cpump)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('风机 = 全压×风量/效率')+'><span>冷却塔风机</span><span>'+F2(pw.P_fan)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('纯化加热 = 直流功率 × 占比')+'><span>纯化加热</span><span>'+F2(pw.P_purif)+' kW</span></div>'
+      + '<div class="pfd-pow-row pfd-pow-group"'+ta('辅机合计 = 碱液泵+冷却水泵+风机+纯化加热')+'><span>辅机合计</span><span>'+F2(pw.bopTotal)+' kW</span></div>'
+      + '<div class="pfd-pow-row pfd-pow-sys"'+ta('系统输入 = 整流输入 + 辅机合计')+'><span>系统输入功率</span><span>'+F1(pw.Psys)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('产品氢流量 = 产氢流量×纯化回收率×纯度因子')+'><span>产品氢量</span><span>'+F1(pw.vH2Pro)+' Nm³/h</span></div>'
+      + '<div class="pfd-pow-row"'+ta('产氢质量 = 实际产氢×2.016×3.6；纯化前粗氢')+'><span>产氢质量（粗氢）</span><span>'+F1(st.mH2kgh)+' kg/h</span></div>'
+      + '<div class="pfd-pow-row pfd-pow-sys"'+ta('电能单耗 = 系统输入 / 产品氢质量流量；kWh/Nm³ = 系统输入 / 产品氢流量')+'><span>电能单耗</span><span>'+F2(pw.kWhKg)+' kWh/kg</span></div>'
+      + '<div class="pfd-pow-row"'+ta('系统效率 = 产品氢 HHV 功率 / 系统输入功率')+'><span>系统效率(HHV)</span><span>'+F1(pw.etaSysHHV)+' %</span></div>';
+  }
+  const c = document.getElementById('alkCtlNote');
+  if(c){
+    const ta = tip => ' title="'+esc(tip)+'"';
+    c.innerHTML =
+      '<div class="pn-head">控制与安全联锁</div>'
+      + '<div class="pn-row"'+ta('氢氧压差 = |P_H2−P_O2|；超限将导致隔膜机械损伤与氢氧互窜，须软件+硬件+机械三重保护')+'><span>氢氧压差</span><span class="pn-v '+(gs.dpSafe?'ok':'warn')+'">'+F2(gs.dP)+' bar / ≤'+F2(gs.dpLim)+'</span></div>'
+      + '<div class="pn-row"'+ta('电解槽工作温度；限值 ≤90 ℃，推荐 70~85 ℃')+'><span>电解槽温度</span><span class="pn-v '+(gs.tempSafe?'ok':'warn')+'">'+F1(gi('alkOpTemp'))+' ℃ / ≤90</span></div>'
+      + '<div class="pn-row"'+ta('氧中氢 = 氢窜氧量/(产氧量+氢窜氧量)×100；≥2 vol% 报警、≥4 vol% 联锁（4% 为氢的爆炸下限）')+'><span>氧中氢</span><span class="pn-v '+(gs.h2O2Safe?'ok':'warn')+'">'+F3(gs.h2InO2)+' vol%（2 报警 / 4 联锁）</span></div>'
+      + '<div class="pn-row"'+ta('氢中氧 = 氧窜氢量/(产氢量+氧窜氢量)×100；≥2 vol% 报警并停车，用于判断隔膜是否破损')+'><span>氢中氧</span><span class="pn-v '+(gs.o2H2Safe?'ok':'warn')+'">'+F3(gs.o2InH2)+' vol%（2 报警）</span></div>'
+      + '<div class="pn-row"'+ta('KOH 浓度；工程常用 25~32 wt%，过低电导率下降，过高粘度上升且低温易结晶')+'><span>KOH 浓度</span><span class="pn-v '+(gs.concSafe?'ok':'warn')+'">'+F1(gi('alkKOHConc'))+' wt%（25~32）</span></div>'
+      + '<div class="pn-row"'+ta('补水电导率 ≤5 µS/cm；Ca²⁺/Mg²⁺ 与 CO₂ 会生成碳酸盐沉淀堵塞隔膜；电解液液位、碱液温度、冷却水断流、系统超压均须联锁，氢气侧设氮气吹扫置换')+'><span>补水 / 液位 / 吹扫</span><span class="pn-v">≤5 µS/cm · 联锁 + N₂ 置换</span></div>'
+      + '<div class="pn-row"'+ta('安全仪表功能等级 SIL2，联锁逻辑独立于主控 PLC/DCS')+'><span>安全等级</span><span class="pn-v">SIL2 · 独立于主控</span></div>'
+      + (gs.safe ? '' : '<div class="pn-row"><span>安全状态</span><span class="pn-v warn">超限 · 经济/调度不可用</span></div>')
+      + (gs.purityWarn ? '<div class="pn-row"'+ta('产品氢纯度低于 99.999%，产品氢量与 LCOH 已按纯度折减')+'><span>产品氢纯度</span><span class="pn-v warn">'+F3(gs.purity)+' % · 低于目标</span></div>' : '');
+  }
+  const ec = document.getElementById('alkEconNote');
+  if(ec){
+    const ta = tip => ' title="'+esc(tip)+'"';
+    ec.innerHTML =
+      (pw.safe ? '' : '<div class="pn-row"><span>安全校核</span><span class="pn-v warn">超限 · LCOH 不可用</span></div>')
+      + '<div class="pn-head">项目经济性（LCOH 综合氢成本）</div>'
+      + '<div class="pn-row"'+ta('等效满负荷小时数 = 年运行小时数 × 平均负荷率/100')+'><span>等效满负荷小时数</span><span class="pn-v">'+F0(pw.eqFullH)+' h</span></div>'
+      + '<div class="pn-row"'+ta('年产品氢量 = 产品氢质量流量 × 等效满负荷小时数（纯化后）')+'><span>年制氢量</span><span class="pn-v">'+F1(pw.aH2Kg/1000)+' t（'+F0(pw.aH2Nm3)+' Nm³）</span></div>'
+      + '<div class="pn-row"'+ta('年耗电量 = 系统输入功率（按平均单体电压复算）× 等效满负荷小时数')+'><span>年耗电量</span><span class="pn-v">'+F1(pw.aKWh/1000)+' MWh</span></div>'
+      + '<div class="pn-row"'+ta('氢气电费成本 = 电能单耗 × 电价；设计点（寿命初期）口径')+'><span>氢气电费成本(BOL)</span><span class="pn-v">'+F2(pw.h2CostKg)+' 元/kg</span></div>'
+      + '<div class="pn-row"'+ta('年电费 = 年耗电量 × 电价 / 10000')+'><span>年电费</span><span class="pn-v">'+F1(pw.aCostWan)+' 万元</span></div>'
+      + '<div class="pn-row"'+ta('年水费 = 年综合耗水量×水价/10000；年KOH费 = KOH年耗量×KOH价格/10000')+'><span>年水费 / KOH费</span><span class="pn-v">'+F2(pw.waterAnnual)+' / '+F2(pw.kohAnnual)+' 万元</span></div>'
+      + '<div class="pn-row"'+ta('年人工与辅料 = 输入参数')+'><span>年人工/辅料</span><span class="pn-v">'+F1(pw.laborAnnual)+' 万元</span></div>'
+      + '<div class="pn-row"'+ta('LCOH = 年总成本×10000/年产品氢量；年总成本含 CAPEX 摊销、运维、电堆更换折现年化、电费、水费、KOH费与人工')+'><span>综合氢成本 LCOH</span><span class="pn-v'+(pw.safe?'':' warn')+'">'+(pw.safe?F2(pw.lcoh)+' 元/kg':'不可行（安全超限）')+'</span></div>';
+    const hh = Math.ceil(ec.offsetHeight);
+    if(alkEconFo && hh) alkEconFo.setAttribute('height', hh);
+  }
+}
+
+/* 运行策略对比（3 条策略 · 满负荷 · 分时电价） */
+function renderAlkStrategy(){
+  const host = document.getElementById('alk-strategy-results');
+  if(!host) return;
+  const r = calcAlk(), pw = r.pw;
+  if(!r.gs.safe){
+    host.innerHTML = '<div class="pem-note" style="padding:10px;border:1px solid #7f1d1d;color:#fca5a5;font-size:12px;line-height:1.6">当前工况安全超限（氧中氢 / 氢中氧 / 氢氧压差 / 温度），调度结果不可用；请先调整压力、温度、互窜或寄生电流参数，使安全校核通过。</div>';
+    const elSafe = document.getElementById('alkStrategySum'); if(elSafe) elSafe.textContent = '不可行';
+    return;
+  }
+  const pr = touPrices();
+  const slots = touSlots();
+  const cnt = [0,0,0]; slots.forEach(c=>cnt[c]++);
+  const N = Math.max(0, Math.round(pw.eqFullH));
+  const kWh = pw.aKWh;
+  const fixed = pw.capexAnnual + pw.omAnnual + pw.stackAnnual
+              + pw.waterAnnual + pw.kohAnnual + pw.laborAnnual;
+  const pBase = Math.max(0, gi('alkPowerPrice'));
+
+  const p = new Float64Array(8760);
+  for(let t=0;t<8760;t++) p[t] = pr[slots[t%24]];
+  let pSum=0; for(let t=0;t<8760;t++) pSum += p[t];
+  const pMean = pSum/8760;
+  const nH = Math.min(8760, N);
+  const sortedP = Array.from(p).sort((a,b)=>a-b);
+  let csP=0; for(let i=0;i<nH;i++) csP += sortedP[i];
+  const pOpt = nH>0 ? csP/nH : 0;
+
+  const lcohOf = prc => pw.aH2Kg>0 ? (fixed + kWh*prc/10000)*10000/pw.aH2Kg : 0;
+  const dl0 = lcohOf(pOpt) - lcohOf(pBase);
+  const dPct0 = lcohOf(pBase)>0 ? dl0/lcohOf(pBase)*100 : 0;
+  const sign0 = v => v<0 ? '−' : '+';
+
+  host.innerHTML = [
+    ['调度需求（等效满负荷小时数）', F0(N)+' h', false, '来自输入「年运行小时数 × 平均负荷率/100」；三策略都只跑这么多等效满负荷小时'],
+    ['峰 / 平 / 谷电价', F2(pr[2])+' / '+F2(pr[1])+' / '+F2(pr[0])+' 元/kWh', false, '分时电价输入；24 点序列按日重复组成 8760 h 电价曲线'],
+    ['时段结构（谷 / 平 / 峰）', F0(cnt[0])+' / '+F0(cnt[1])+' / '+F0(cnt[2])+' h·d⁻¹', false, '由 24 格时段选择器统计，合计 24 h·d⁻¹'],
+    ['谷 / 平 / 峰 时段(h)', touRuns(slots), false, '小时区间为左闭右开，例如「0–7」表示 00:00–07:00；24 点按日重复覆盖全年'],
+    ['全年均价（恒定功率型加权电价）', F3(pMean)+' 元/kWh', false, '恒定功率型不调度，运行时段在全年均匀摊开，其加权电价即 8760 h 电价序列的算术平均'],
+    ['谷电优先加权电价', F3(pOpt)+' 元/kWh', false, '谷电优先型把全年 8760 h 按电价升序排序，取最便宜的 '+F0(N)+' 小时运行；若谷电时段不足，自动顺延到次便宜的平电'],
+    ['年耗电量（三策略相同）', F0(kWh)+' kWh', false, '年耗电量 = 系统输入功率(按更换周期内平均单体电压复算) × 等效满负荷小时数；与在哪些小时运行无关'],
+    ['年电费 · 定值电价基准', F2(kWh*pBase/10000)+' 万元', false, '现状口径：单一电价 '+F2(pBase)+' 元/kWh × 年耗电量'],
+    ['年电费 · 恒定功率型', F2(kWh*pMean/10000)+' 万元', false, '年耗电量 × 全年均价'],
+    ['年电费 · 谷电优先型', F2(kWh*pOpt/10000)+' 万元', false, '年耗电量 × 谷电优先加权电价'],
+    ['年电费较基准节省（谷电优先）', F2(kWh*(pBase-pOpt)/10000)+' 万元', false, '= 定值电价年电费 − 谷电优先年电费'],
+    ['LCOH · 定值电价基准', F2(lcohOf(pBase))+' 元/kg', false, '固定成本（CAPEX 摊销+运维+更换+水费+KOH费+人工）不随策略变化，仅电费项变化'],
+    ['LCOH · 恒定功率型', F2(lcohOf(pMean))+' 元/kg', false, '年电费按全年均价口径'],
+    ['LCOH · 谷电优先型', F2(lcohOf(pOpt))+' 元/kg', false, '年电费按谷电优先加权电价口径'],
+    ['结论 · LCOH 变化（谷电优先 − 基准）', sign0(dl0)+F2(Math.abs(dl0))+' 元/kg（'+sign0(dPct0)+F1(Math.abs(dPct0))+'%）', false, '负值表示 LCOH 下降，即调度优化带来的成本收益'],
+    ['提示', '本页为满负荷三策略口径；部分负荷与优化调度见 PEM 页进阶版，ALK 最低负荷受氧中氢限制（约 '+F0(alkMinLoadX().x*100)+' %）', false, 'ALK 部分负荷范围窄，调度时需把氧中氢约束计入可执行性校核']
+  ].map(a=>row(a[0],a[1],a[2],a[3])).join('');
+  const el = document.getElementById('alkStrategySum');
+  if(el) el.textContent = '谷电优先 LCOH '+F2(lcohOf(pOpt))+' 元/kg（'+sign0(dl0)+F2(Math.abs(dl0))+' 元/kg）';
+}
+
+function layoutAlkFurniture(){
+  const bottom = 995 - 14;
+  ['.pfd-titleblock', '.pfd-legend'].forEach(sel=>{
+    const box = svg.querySelector(sel);
+    if(!box) return;
+    const h = Math.ceil(box.offsetHeight);
+    if(!h) return;
+    const fo = box.parentNode;
+    fo.setAttribute('height', h);
+    fo.setAttribute('y', bottom - h);
+  });
+  const pwt = document.getElementById('alkPowTable');
+  if(pwt){
+    const h = Math.ceil(pwt.offsetHeight);
+    if(h){
+      const fo = pwt.parentNode;
+      fo.setAttribute('height', h);
+      fo.setAttribute('y', bottom - h);
+    }
+  }
+}
+
+function alkRun(){ renderAlk(); renderAlkTables(); renderAlkStrategy(); layoutAlkFurniture(); }
+
+/* ---------------- 7. 事件绑定 ---------------- */
+ALK_INPUTS.forEach(it=>{
+  const el = document.getElementById(it.id);
+  if(el) el.addEventListener('input', alkRun);
+});
+setupParamIO({
+  pageId: 'page-alk',
+  name: '碱性电解槽系统 · 输入参数',
+  fileBase: '碱性电解槽系统_输入参数',
+  exportId: 'alkExportBtn',
+  importBtnId: 'alkImportBtn',
+  importFileId: 'alkImportFile',
+  onImported: ()=>{ alkRun(); }
+});
+/* 计算逻辑说明弹窗 */
+(function(){
+  const ov = document.getElementById('alkHelpOverlay');
+  const body = document.getElementById('alkHelpBody');
+  if(!ov) return;
+  const open = ()=>{ ov.classList.add('open'); if(body) body.scrollTop = 0; };
+  const close = ()=>{ ov.classList.remove('open'); };
+  document.getElementById('alkHelpBtn').addEventListener('click', open);
+  document.getElementById('alkHelpClose').addEventListener('click', close);
+  ov.addEventListener('click', e=>{ if(e.target === ov) close(); });
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape') close(); });
+})();
+/* 切换回本页时重新测量 */
+const alkTabBtn = document.querySelector('.tab-btn[data-page="alk"]');
+if(alkTabBtn) alkTabBtn.addEventListener('click', ()=>{ layoutAlkFurniture(); renderAlkTables(); });
+/* 「计算依据与参考资料」折叠开关 */
+(function(){
+  const box = document.getElementById('alkHxRefs');
+  const head = document.getElementById('alkHxRefsHead');
+  if(!box || !head) return;
+  head.addEventListener('click', ()=>{
+    box.classList.toggle('open');
+    const span = head.querySelector('span');
+    if(span) span.textContent = span.textContent.replace(box.classList.contains('open') ? '▸' : '▾',
+                                                        box.classList.contains('open') ? '▾' : '▸');
+  });
+})();
+
+/* ---------------- 8. 设计文档导出（浏览器原生打印 → PDF） ---------------- */
+const ALK_PANELS = [
+  ['三、电解液系统计算（KOH 循环 · 浓度 · 补水 · 补碱）', 'alk-lye-results'],
+  ['四、气系统计算（产氢纯化 · 产氧 · 分离 · 压差）', 'alk-gas-results'],
+  ['五、换热器选型计算（碱液板式换热器）', 'alk-hx-results'],
+  ['六、电源 · 能效 · 控制计算', 'alk-power-results'],
+  ['七、运行策略对比（分时电价调度 · 8760 h 时序）', 'alk-strategy-results']
+];
+function alkReadPanel(id){
+  const host = document.getElementById(id);
+  if(!host) return [];
+  if(!host.querySelector('.hx-result-row')){ renderAlk(); renderAlkTables(); renderAlkStrategy(); }
+  const out = [];
+  host.querySelectorAll('.hx-result-row').forEach(rw=>{
+    const l = rw.querySelector('.hx-r-label'), v = rw.querySelector('.hx-r-value');
+    if(!l || !v) return;
+    const val = (v.textContent || '').replace(/\s+/g,' ').trim();
+    if(!val) return;
+    out.push({ label: l.textContent.trim(), value: val, warn: v.classList.contains('warn') });
+  });
+  return out;
+}
+function alkPfdFigure(){
+  const src = document.getElementById('alkPfd');
+  if(!src) return null;
+  const clone = src.cloneNode(true);
+  clone.setAttribute('xmlns', NS);
+  clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+  clone.setAttribute('width', '1560');
+  clone.setAttribute('height', '1000');
+  let css = '';
+  Array.from(document.styleSheets).forEach(sh=>{
+    try{ Array.from(sh.cssRules).forEach(rr=>{ css += rr.cssText + '\n'; }); }catch(err){}
+  });
+  const styleEl = document.createElementNS(NS, 'style');
+  styleEl.textContent = css;
+  clone.insertBefore(styleEl, clone.firstChild);
+  const img = document.createElement('img');
+  img.className = 'pdl-pfd-img';
+  img.alt = '碱性电解槽系统流程图';
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(clone));
+  return img;
+}
+function buildAlkPrintLayout(){
+  const box = document.getElementById('alkPrintLayout');
+  if(!box) return;
+  const r = calcAlk(), st = r.st, pw = r.pw, gs = r.gs;
+  const d = new Date(), p2 = n => (n<10?'0':'')+n;
+  const ts = d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+' '+p2(d.getHours())+':'+p2(d.getMinutes());
+
+  const row2 = (l,v,cls)=>'<tr><th>'+esc(l)+'</th><td'+(cls?' class="'+cls+'"':'')+'>'+esc(v)+'</td></tr>';
+  const row3 = (a,b,c)=>'<tr><th>'+esc(a)+'</th><td>'+esc(b)+'</td><td>'+esc(c)+'</td></tr>';
+  const tab  = (rows,head)=>'<table class="pdl-tab">'
+      + (head?'<thead><tr>'+head.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead>':'')
+      + '<tbody>'+rows.join('')+'</tbody></table>';
+  const sec  = (t,inner,extra)=>'<section class="pdl-sec'+(extra?' '+extra:'')+'"><h3>'+esc(t)+'</h3>'+inner+'</section>';
+
+  const sum = [
+    ['单体电压（BOL / EOL）',        F3(pw.VcellBol)+' / '+F3(pw.VcellSel)+' V'],
+    ['电解槽直流功率（周期末）',     F1(pw.Pstack)+' kW'],
+    ['产品氢量（纯化后）',           F1(pw.vH2Pro)+' Nm³/h（'+F1(pw.mH2ProKgh)+' kg/h）'],
+    ['选型系统输入功率',             F1(pw.PsysSel)+' kW'],
+    ['系统效率 HHV / LHV',           F1(pw.etaSysHHV)+' % / '+F1(pw.etaSysLHV)+' %'],
+    ['电能单耗（产品氢）',           F2(pw.kWhKg)+' kWh/kg / '+F2(pw.kWhNm3)+' kWh/Nm³']
+  ];
+  const headHtml = '<div class="pdl-head">'
+    + '<div class="pdl-title"><h1>碱性电解槽系统 · 设计文档</h1>'
+    + '<div class="pdl-meta"><span>生成时间：'+ts+'</span>'
+    + '<span>工作点：j = '+F2(gi('alkCurrentDensity'))+' A/cm² · T = '+F0(gi('alkOpTemp'))+' ℃ · N = '+F0(gi('alkCellCount'))+' 节 · 单体电压来源：'+esc(st.vSource)+'</span></div></div>'
+    + '<div class="pdl-sum">'+sum.map(s=>'<div class="pdl-sum-item"><div class="k">'+esc(s[0])+'</div><div class="v">'+esc(s[1])+'</div></div>').join('')+'</div>'
+    + '</div>';
+
+  const ecoRows = [
+    row2('等效满负荷小时数', F0(pw.eqFullH)+' h'),
+    row2('电压衰减率', F1(pw.degRate)+' µV/(h·节)'),
+    row2('更换周期内电压上升 / 周期末单体电压', F3(pw.dvCycle)+' V / '+F3(pw.VcellEnd)+' V（每节）'),
+    row2('选型系统输入功率（按周期末单体电压）', F1(pw.PsysSel)+' kW（寿命初期为 '+F1(pw.PsysBol)+' kW）'),
+    row2('年产品氢量（质量 / 体积，纯化后）', F1(pw.aH2Kg/1000)+' t / '+F0(pw.aH2Nm3)+' Nm³'),
+    row2('年耗电量（系统输入含 BOP，按平均单体电压 '+F3(pw.VcellAvg)+' V 复算）', F1(pw.aKWh/1000)+' MWh（'+F0(pw.aKWh)+' kWh）'),
+    row2('氢气电费成本（设计点·寿命初期）', F2(pw.h2CostKg)+' 元/kg'),
+    row2('平均电能单耗（含衰减）', F2(pw.avgKWhKg)+' kWh/kg产品氢'),
+    row2('平均氢气电费成本（含衰减）', F2(pw.avgCostKg)+' 元/kg'),
+    row2('年电费（含衰减）', F1(pw.aCostWan)+' 万元'),
+    row2('总投资（'+F1(pw.unitInvest/10000)+' 万元/kW · 周期末选型 '+F0(pw.PsysSel)+' kW）', F1(pw.capexWan)+' 万元'),
+    row2('年CAPEX摊销（CRF = '+F3(pw.crf)+'）', F1(pw.capexAnnual)+' 万元/年'),
+    row2('年运维与更换（运维 '+F1(pw.omRate*100)+'% · 更换 '+F0(pw.stackCostR*100)+'%/'+F0(pw.stackCycle)+'年）', F1(pw.omAnnual+pw.stackAnnual)+' 万元/年'),
+    row2('年水费 / 年KOH费', F2(pw.waterAnnual)+' / '+F2(pw.kohAnnual)+' 万元/年'),
+    row2('年总成本', F1(pw.totalAnnual)+' 万元/年'),
+    row2('综合氢成本 LCOH', (pw.safe ? F2(pw.lcoh)+' 元/kg' : '不可行（安全超限）')),
+    row2('电费占比', F1(pw.elecShare)+' %')
+  ];
+  const ecoHtml = sec('一、项目经济性（年运行核算 · LCOH 综合氢成本）', tab(ecoRows, ['项目','数值']));
+
+  const inpRows = ALK_INPUTS.map(it=>{
+    const el = document.getElementById(it.id);
+    return row3(it.label, el ? el.value : '', it.step);
+  });
+  const inpHtml = sec('二、输入参数（共 '+ALK_INPUTS.length+' 项）', tab(inpRows, ['参数','当前值','步长']), 'pdl-flow');
+
+  const resHtml = ALK_PANELS.map(([t,id])=>{
+    const rows = alkReadPanel(id);
+    const inner = rows.length ? tab(rows.map(x=>row2(x.label, x.value, x.warn?'pdl-warn':'')), ['项目','数值']) : '';
+    return inner ? sec(t, inner) : '';
+  }).join('');
+
+  const ctl = document.getElementById('alkCtlNote');
+  const ctlRows = [];
+  if(ctl){
+    ctl.querySelectorAll('.pn-row').forEach(rw=>{
+      const v = rw.querySelector('.pn-v'), sp = rw.querySelectorAll('span');
+      const label = sp[0] ? sp[0].textContent.trim() : '';
+      const val = v ? (v.textContent || '').replace(/\s+/g,' ').trim() : '';
+      if(!label || !val) return;
+      const state = !v ? '' : (v.classList.contains('ok') ? '合格' : (v.classList.contains('warn') ? '超限' : '—'));
+      ctlRows.push('<tr><th>'+esc(label)+'</th><td>'+esc(val)+'</td><td class="'
+        + (state==='超限'?'pdl-warn':(state==='合格'?'pdl-ok':''))+'">'+esc(state)+'</td></tr>');
+    });
+  }
+  const ctlHtml = sec('八、校核结论（控制与安全联锁）', tab(ctlRows, ['校核项','数值 / 判据','结论']));
+
+  const polRows = [
+    row2('可逆电压 V_rev',            F3(st.Vrev)+' V'),
+    row2('激活过电位 η_act',          F3(st.etaAct)+' V'),
+    row2('欧姆过电位 η_ohm',          F3(st.etaOhm)+' V'),
+    row2('气泡/浓差过电位 η_bub',     F3(st.etaBub)+' V'),
+    row2('面积比电阻 ASR(T,w)',       (Number(st.asr)||0).toFixed(4)+' Ω·cm²'),
+    row2('单体电压 V_cell', F3(st.Vcell)+' V（来源：'+st.vSource+'）')
+  ];
+  const polHtml = sec('九、碱性极化曲线分解', tab(polRows, ['项目','数值']));
+
+  const formulas = [
+    '法拉第链：I = A·j；n(H₂,理论) = I·N/(2F)；n(H₂) = n(H₂,理论)·η_F；V_stack = V_cell·N；P_stack = V_stack·I/1000',
+    '产氢换算：v_H₂ = n(H₂)×22.414×3.6 Nm³/h；m_H₂ = n(H₂)×2.016×3.6 kg/h；F = 96485 C/mol',
+    '碱性极化曲线：V_cell = V_rev + η_act + η_ohm + η_bub',
+    '  可逆电压 V_rev = 1.23 − 0.9e-3×(T−25) + (R·T_k/(2F))·ln(P_H₂·P_O₂^0.5 / a_H₂O)，a_H₂O = max(0.3, 1−0.0065w)',
+    '  激活过电位 η_act = a×log10(j/j0)，a = 0.055 V/dec、j0 = 5×10⁻⁵ A/cm²',
+    '  欧姆过电位 η_ohm = j×ASR，ASR = d_gap/κ(T,w) + ASR_sep + ASR_elec；κ(T,w) = κ25(w)·exp(0.012(T−25))，κ25 = 0.30+0.022w−0.00035w²',
+    '  气泡过电位 η_bub = b×(j/0.4)^0.5，b = 0.03 V',
+    '电流效率：η_F = 1 − 2·i_x/j − s_shunt/100；i_x = i_x,base·max(0.05,P_H₂/10)·exp(2000(1/353.15−1/T_k))',
+    '效率与电耗：η_HHV = 1.481/V_cell；η_LHV = 1.254/V_cell；η_sys = P_H₂,HHV / 系统输入功率；电能单耗 = 系统输入功率 / 产品氢质量(或体积)流量',
+    '热平衡：Q_heat,raw = P_stack×(V_cell−1.481)/V_cell；Q_heat = max(0,·)；P_heat,ext = max(0,−Q_heat,raw)',
+    'KOH 物性：ρ_lye = 1000+9.2w−0.55(T−20)；c_p,lye = 4180−27w+1.2(T−20)；μ_lye = μ_w(T)(1+0.08w)；a_w = max(0.3,1−0.0065w)',
+    '电解液循环：m_heat = Q_heat×1000/(c_p,lye·ΔT)；m_circ = max(m_heat, m_react×最小循环倍率)；V_circ = m_circ/ρ_lye×3600',
+    '水平衡：m_loss = 反应水 + 氢侧带水 + 氧侧带水 + 排污水 + 碱雾水；原水 = m_loss/RO回收率；冷却补水 = Q_heat,raw×3600/2260×1.2',
+    '补碱：KOH损失 = 排污量×w/100 + 碱雾夹带×w/100；年KOH费 = KOH损失×h_eq/1000×KOH价格/10000',
+    '互窜：n_窜,H2 = i_x·A·N/(2F)；n_窜,O2 = i_x·A·N/(4F)；氧中氢 = n_窜,H2/(n_O2+n_窜,H2)；氢中氧 = n_窜,O2/(n_H2+n_窜,O2)',
+    '换热器：LMTD = (Δt₁−Δt₂)/ln(Δt₁/Δt₂)；A = Q×1000/(K·LMTD)；N_plate = ceil(A_need/a_plate)+1 取偶数；u = (V/3600)/(n_ch·A_ch)',
+    '泵功：P_pump = (ρ_lye·g·H + Δp_hot)·(V_circ/3600)/η；P_cpump = (ρ_w·g·H + Δp_cold)·(V_cold/3600)/η',
+    '经济性：h_eq = h_run×LF/100；年产品氢 = m_H2,pro×h_eq；LCOH = 年总成本(万元)×10000/年产品氢(kg)',
+    '  年总成本 = 总投资×CRF + 总投资×运维费率 + 电堆更换折现年化 + 年电费 + 年水费 + 年KOH费 + 年人工/辅料',
+    '  总投资 = 系统输入功率(周期末选型)×单位投资/10000；CRF = i(1+i)^n/[(1+i)^n−1]；更换次数 = ceil(寿命/更换周期)−1',
+    '电压衰减：年升压 = 衰减率(µV/h·节)×h_eq/1e6；周期升压 = 年升压×更换周期；平均单体电压 = 初期电压 + 周期升压/2',
+    '运行策略：p̄ = 8760 h 电价序列算术平均；p* = 升序取最便宜 N 小时的均价；LCOH(策略) = (固定成本+年电费)×10000/年产品氢'
+  ].join('\n');
+  const fmHtml = sec('十、关键公式与常数', '<pre class="pdl-pre">'+esc(formulas)+'</pre>');
+
+  const pfdHtml = '<section class="pdl-sec pdl-pfd-sec"><h3>十一、流程图 · 碱性电解槽系统（PFD）</h3><div class="pdl-pfd-fig"></div></section>';
+
+  box.innerHTML = '<div class="pdl">'+headHtml+ecoHtml+inpHtml+resHtml+ctlHtml+polHtml+fmHtml
+    + '<div class="pdl-foot">本文件由 system-flow.html 的「导出设计文档(PDF)」按钮在浏览器本地生成（零依赖），数值与该页当前工况的实时计算结果一致。</div>'
+    + pfdHtml
+    + '</div>';
+  const figWrap = box.querySelector('.pdl-pfd-fig');
+  const fig = alkPfdFigure();
+  if(figWrap && fig) figWrap.appendChild(fig);
+}
+const alkPdfBtn = document.getElementById('alkPdfBtn');
+if(alkPdfBtn) alkPdfBtn.addEventListener('click', ()=>{
+  buildAlkPrintLayout();
+  let fired = false;
+  const go = ()=>{
+    if(fired) return; fired = true;
+    document.body.classList.add('printing-alk');
+    window.print();
+  };
+  const fig = document.querySelector('#alkPrintLayout img.pdl-pfd-img');
+  if(fig && !fig.complete){
+    fig.addEventListener('load', go, {once:true});
+    fig.addEventListener('error', go, {once:true});
+    setTimeout(go, 2000);
+  } else go();
+});
+window.addEventListener('afterprint', ()=>{ document.body.classList.remove('printing-alk'); });
+
+alkRun();
+})();
+/* ============================================================
+   第六页：无人机混合动力系统
    ------------------------------------------------------------
    设计要点：
    1) 纯计算 UAV_CALC(p)：入参对象 → 结果对象，不碰 DOM，可在 Node 下单独复算校验；
