@@ -2262,6 +2262,52 @@ LCOH(策略) = (固定成本 + 年电费)×10000 / 年产品氢量
   </div>
 </div>
 
+<!-- ============ 碱性电解槽系统 · 版本升级说明弹窗（由图签内问号打开） ============ -->
+<div class="sim-help-overlay" id="alkVerOverlay">
+  <div class="sim-help-modal" role="dialog" aria-modal="true" aria-labelledby="alkVerTitle">
+    <div class="sim-help-head">
+      <h3 id="alkVerTitle">碱性电解槽系统 · 版本升级说明</h3>
+      <button type="button" class="sim-help-close" id="alkVerClose" title="关闭" aria-label="关闭">✕</button>
+    </div>
+    <div class="sim-help-body" id="alkVerBody">
+
+      <blockquote>本流程图当前版本为 <strong>V1.1</strong>（2026-11-12）。V1.0 建立了 1.5 MW 级碱性电解槽的完整计算链（四项极化、KOH 物性、闭式水平衡、互窜与最低负荷、LCOH 与分时电价三策略）；<strong>V1.1 完成「计算口径修正 + 全链标注 + 流程图补全」</strong>：可逆电压改用分压、产氧按寄生电流折减、工作温度统一为槽内平均温度，气泡/面板/汇总表/经济卡全部标注 BOL / EOL / 平均，并补齐 RO、双路进液、温控阀、压力控制、气体分析、差压联锁、N₂ 保护与在线仪表。</blockquote>
+
+      <h4>V1.1 · 重要更新（当前版本 · 2026-11-12）</h4>
+      <h5>1. 计算内核修正</h5>
+      <ul>
+        <li><b>可逆电压改用分压</b>：<code>V_rev = 1.23 − 0.9e-3(T−25) + (RT/2F)·ln(p_H2·p_O2^0.5/a_H2O)</code>，其中 <code>p_H2 = P_H2 − p_H2O</code>、<code>p_O2 = P_O2 − p_H2O</code>；默认 <code>V_rev = 1.2466 V</code>、单体电压 <b>1.6954 V</b>。</li>
+        <li><b>产氧随寄生电流折减</b>：<code>n_O2 = n_O2,th×(1−s_shunt/100)</code>；窜氢只按「以气体形式进入氧侧」计一次，不再重复扣除复合消耗的 O₂。产氧 166.6 → <b>165.6 Nm³/h</b>，氧中氢 0.747 → <b>0.752 vol%</b>。</li>
+        <li><b>工作温度统一为槽内平均温度</b>：换热器热侧进口/出口 = 工作温度 ± ΔT/2（默认 82.5 / 77.5 ℃）；LMTD 43.48 → <b>45.98 ℃</b>，计算面积 2.47 → <b>2.33 m²</b>，板片 40 → <b>36 片</b>，热侧压降 <b>3.15 kPa</b>。</li>
+        <li><b>默认 LCOH 26.38 → 26.36 元/kg</b>；系统输入 <b>1560.1 kW</b>、电能单耗 <b>50.11 kWh/kg</b>（4.51 kWh/Nm³）。</li>
+      </ul>
+      <h5>2. 三套电压口径可视化</h5>
+      <ul>
+        <li><b>流程图气泡</b>：电源（电压/功率 BOL、整流输入 EOL）、辅机（EOL / 系统效率与时单耗 BOL）、电解液（流量/倍率 EOL）、换热器（EOL）、泵/风机（EOL）、电堆（BOL）全部标注。</li>
+        <li><b>系统功率汇总表</b>：单体电压·EOL / ·BOL、直流电压/功率、整流、泵、风机、纯化、辅机、系统输入均 ·EOL；电能单耗、系统效率 ·BOL。</li>
+        <li><b>项目经济性卡</b>：年耗电量·平均、氢气电费成本(BOL)；计算面板同步（电源 7 行 ·EOL、效率/单耗 ·BOL，换热器面积/板片/流速/压降 ·EOL）。</li>
+        <li><b>水/电解液面板改为 EOL 设计值</b>：循环流量 <b>45.0 m³/h</b>、循环倍率 <b>212 倍</b>、冷却塔补水 <b>511.4 kg/h</b>，与碱液泵 5.93 kW、板换口径一致；年度量仍按周期平均电压。</li>
+      </ul>
+      <h5>3. 流程图补全</h5>
+      <ul>
+        <li>新增 <b>RO 纯水站</b>（原水 → 除盐水）与纯水入口；碱液<b>阳极/阴极双路进液</b>。</li>
+        <li>新增冷却水 <b>TIC + 控制阀</b>（维持 80 ℃）、氧侧/氢侧 <b>AT 气体分析 + PCV 压力控制</b>、两分离器间 <b>PDT 差压变送器</b>。</li>
+        <li>新增碱液罐 <b>N₂ 保护</b>、泵出口 <b>FI</b>、储罐 <b>AIC</b> 浓度指示；图例增加「仪表/控制阀」。</li>
+        <li>氢侧电解液回流并入氧侧回流总管后进入板式换热器，冷却后回碱液储罐；图签升版 <b>V1.1 / 2026-11-12</b>。</li>
+      </ul>
+      <h5>4. 文档与帮助同步</h5>
+      <ul>
+        <li><code>alk-calc-logic.html</code> 更新 Nernst 分压、产氧折减、换热器平均温度与 STEP 1~11 全部数值；敏感性表加口径注记。</li>
+        <li>页面「计算逻辑说明」弹窗同步上述公式、默认值与流程图说明。</li>
+      </ul>
+
+      <h4>V1.0 · 初版（2026-11-10）</h4>
+      <p>建立 1.5 MW 级碱性电解槽设计页：58 项输入、四项极化（V_rev + η_act + η_ohm + η_bub）、30 wt% KOH 物性拟合、闭式电解液循环水平衡、隔膜互窜 + 寄生电流、按氧中氢反推最低负荷、BOL/EOL/平均三套电压、板式换热器选型、LCOH 与分时电价三策略。</p>
+
+    </div>
+  </div>
+</div>
+
 
 <!-- ============ PEM 电解槽系统设计 · 版本升级说明弹窗（由图签内问号打开） ============ -->
 <div class="sim-help-overlay" id="pemVerOverlay">
@@ -2272,9 +2318,27 @@ LCOH(策略) = (固定成本 + 年电费)×10000 / 年产品氢量
     </div>
     <div class="sim-help-body" id="pemVerBody">
 
-      <blockquote>本流程图当前版本为 <strong>V2.3</strong>（2026-10-24）。V2.3 完成 P0→P2 修正：安全超限阻断经济/调度、吸热外部热计入、氧产量净氧闭合、分离效率/纯度/互窜/泵压降进入全链、LCOH 补入水费/人工/冷却补水并按折现年化更换，同时加密调度候选档。V1.0 是「设计点计算器」：由电化学一路推到设备选型与安全校核；V2.0 把它扩展为「成本与运行决策工具」（先能算钱 = LCOH，再能定策略 = 分时电价调度）；V2.1 把运行策略升级为「风光 + 部分负荷 + 优化调度」，并把结果收敛为策略对比矩阵；<strong>V2.2 把设备选型口径改为「周期末单体电压」，年耗电与 LCOH 仍按「周期平均电压」</strong>——三套电压口径彻底分离。</blockquote>
+      <blockquote>本流程图当前版本为 <strong>V2.4</strong>（2026-11-12）。V2.4 完成「口径可视化 + 温度口径统一」：流程图气泡、功率汇总表、经济性卡与各计算面板统一标注 <strong>BOL / EOL / 平均</strong>；换热器工作温度改为<strong>槽内平均温度</strong>（热侧 72.5 / 67.5 ℃），同步更新 LMTD、面积、板片与压降；说明文档同步至 LCOH 47.77 元/kg。V2.3 完成 P0→P2 修正：安全超限阻断经济/调度、吸热外部热计入、氧产量净氧闭合、分离效率/纯度/互窜/泵压降进入全链、LCOH 补入水费/人工/冷却补水并按折现年化更换，同时加密调度候选档。V1.0 是「设计点计算器」：由电化学一路推到设备选型与安全校核；V2.0 把它扩展为「成本与运行决策工具」（先能算钱 = LCOH，再能定策略 = 分时电价调度）；V2.1 把运行策略升级为「风光 + 部分负荷 + 优化调度」，并把结果收敛为策略对比矩阵；<strong>V2.2 把设备选型口径改为「周期末单体电压」，年耗电与 LCOH 仍按「周期平均电压」</strong>——三套电压口径彻底分离。</blockquote>
 
-        <h4>V2.3 · 重要更新（当前版本 · 2026-10-24）</h4>
+      <h4>V2.4 · 重要更新（当前版本 · 2026-11-12）</h4>
+      <h5>1. BOL / EOL / 平均 全链标注</h5>
+      <ul>
+        <li><b>流程图气泡</b>：电源（直流电压/功率 BOL、电源输入 EOL）、辅机（EOL / 系统效率与电能单耗 BOL）、水系统（循环水量/换热需求/原水/冷却补水 EOL）、换热器（EOL）、泵与风机（EOL）、电堆（单体电压/直流功率/反应产热 BOL）。</li>
+        <li><b>系统功率汇总表</b>：单体电压·EOL / ·BOL、直流电压/功率、制氢电源、纯水循环泵、冷却水泵、风机、纯化、辅机、系统输入均 ·EOL；电能单耗、系统效率 ·BOL。</li>
+        <li><b>项目经济性卡与计算面板</b>：年耗电量·平均、氢气电费成本(BOL)；电源面板 7 行 ·EOL、效率/单耗 ·BOL，换热器面积/板片/流速/压降 ·EOL，水系统流量与补水 ·EOL。</li>
+        <li>产氢/产氧/纯化损失/互窜/氧中氢等由电流密度决定，三种电压口径下相同，不加标签。</li>
+      </ul>
+      <h5>2. 工作温度统一为槽内平均温度</h5>
+      <ul>
+        <li>换热器热侧进口/出口由 70 / 65 ℃ 改为 <b>72.5 / 67.5 ℃</b>（工作温度 ± 纯水温差/2），与极化曲线的平均温度口径一致。</li>
+        <li>LMTD 33.48 → <b>35.98 ℃</b>，计算面积 1.59 → <b>1.48 m²</b>，需求面积 1.77 m²，板片 26 → <b>24 片</b>（实际 1.84 m²）；热/冷侧流速 0.66 / 0.45 m/s，压降 <b>3.83 / 2.08 kPa</b>。</li>
+      </ul>
+      <h5>3. 文档同步</h5>
+      <ul>
+        <li><code>pem-calc-logic.html</code> STEP 4 换热器数值与 §6.5 成本表更新：默认 <b>LCOH 47.77 元/kg</b>、年总成本 281.17 万元、年水费 1.88 万元；策略与敏感性表默认值同步并注明历史基线。</li>
+      </ul>
+
+      <h4>V2.3 · 历史更新（2026-10-24）</h4>
         <h5>1. 安全与能量闭合（P0）</h5>
         <ul>
           <li><b>安全总闸门</b>：新增 <code>safe</code>；氧中氢、氢氧压差、工作温度任一超限时，LCOH 显示「不可行（安全超限）」，运行策略矩阵停止输出。</li>
@@ -10375,8 +10439,8 @@ function pemSet(id, lines, tips, lhIn){
     + '<div class="tb-name">PEM电解槽系统流程图</div>'
     + '<div class="tb-sub">PFD · PEM Water Electrolysis</div>'
     + '<div class="tb-line"></div>'
-    + '<div class="tb-row"><span>版本</span><span>V2.3</span></div>'
-    + '<div class="tb-row"><span>日期</span><span>2026-10-24</span></div>'
+    + '<div class="tb-row"><span>版本</span><span>V2.4</span></div>'
+    + '<div class="tb-row"><span>日期</span><span>2026-11-12</span></div>'
     + '<button type="button" class="tb-ver" data-pemver="1" title="查看版本升级内容" aria-label="查看版本升级内容">?</button>'
     + '</div>';
   svg.appendChild(fo);
@@ -11936,6 +12000,7 @@ function alkSet(id, lines, tips, lhIn){
     + '<div class="tb-line"></div>'
     + '<div class="tb-row"><span>版本</span><span>V1.1</span></div>'
     + '<div class="tb-row"><span>日期</span><span>2026-11-12</span></div>'
+    + '<button type="button" class="tb-ver" id="alkVerBtn" title="查看版本升级内容" aria-label="查看版本升级内容">?</button>'
     + '</div>';
   svg.appendChild(fo);
 })();
@@ -12440,6 +12505,18 @@ setupParamIO({
   ov.addEventListener('click', e=>{ if(e.target === ov) close(); });
   document.addEventListener('keydown', e=>{ if(e.key === 'Escape') close(); });
 })();
+/* 版本升级说明弹窗（图签内问号） */
+(function(){
+  const ov = document.getElementById('alkVerOverlay');
+  const body = document.getElementById('alkVerBody');
+  if(!ov) return;
+  const open = ()=>{ ov.classList.add('open'); if(body) body.scrollTop = 0; };
+  const close = ()=>ov.classList.remove('open');
+  document.querySelectorAll('#alkPfd .tb-ver').forEach(b=>b.addEventListener('click', e=>{ e.stopPropagation(); open(); }));
+  document.getElementById('alkVerClose').addEventListener('click', close);
+  ov.addEventListener('click', e=>{ if(e.target === ov) close(); });
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape') close(); });
+})();
 /* 切换回本页时重新测量 */
 const alkTabBtn = document.querySelector('.tab-btn[data-page="alk"]');
 if(alkTabBtn) alkTabBtn.addEventListener('click', ()=>{ layoutAlkFurniture(); renderAlkTables(); });
@@ -12495,6 +12572,7 @@ function alkPfdFigure(){
   clone.insertBefore(styleEl, clone.firstChild);
   const img = document.createElement('img');
   img.className = 'pdl-pfd-img';
+  clone.querySelectorAll('.tb-ver').forEach(b=>b.remove());
   img.alt = '碱性电解槽系统流程图';
   img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(clone));
   return img;
