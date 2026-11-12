@@ -9646,7 +9646,7 @@ function calcPem(vcellOv, jOv){
   const safe     = h2O2Safe && dpSafe && tempSafe;
 
   /* ---- 换热器（板式） ---- */
-  const Thi = opT, Tho = opT - dTw;                 // 热侧（纯水）进/出
+  const Thi = opT + dTw/2, Tho = opT - dTw/2;       // 热侧（纯水）进/出：工作温度按槽内平均温度定义
   const Tci = gi('pemCoolantTemp'), Tco = gi('pemCoolantOutlet');  // 冷侧（冷却水）进/出
   const dt1 = Thi - Tco, dt2 = Tho - Tci;
   const cross = (dt1<=0 || dt2<=0);                 // 温度交叉
@@ -10457,7 +10457,7 @@ function renderPem(){
   ]);
   pemSet('bop', [
     `辅机合计(EOL):<strong>${F2(pw.bopTotal)}</strong>kW`,
-    `外部加热:<strong>${F2(pw.PheatExt)}</strong>kW`,
+    `外部加热(EOL):<strong>${F2(pw.PheatExt)}</strong>kW`,
     `系统输入(EOL):<strong>${F1(pw.Psys)}</strong>kW`,
     `系统效率(BOL):<strong>${F1(pw.etaSysHHV)}</strong>%`,
     `电能单耗(BOL):<strong>${F2(pw.kWhKg)}</strong>kWh/kg`,
@@ -10569,7 +10569,7 @@ function renderPem(){
     `电解槽节数:<strong>${F0(st.N)}</strong>节`,
     `直流电压(BOL):<strong>${F0(st.Vstack)}</strong>V`,
     `直流功率(BOL):<strong>${F1(st.Pstack)}</strong>kW`,
-    `电堆效率(HHV):<strong>≈${F1(st.etaHHV)}</strong>%`,
+    `电堆效率(BOL):<strong>≈${F1(st.etaHHV)}</strong>%`,
     `反应产热(BOL):<strong>${F1(st.Qheat)}</strong>kW` + (st.Qheat<0 ? '（吸热，需外部加热）' : '')
   ],[
     '单体电压(V) = V_rev + η_act + η_ohm，由电流密度 j、温度 T 与氢氧压力解算；来源为极化曲线时由曲线求取，输入值非 0 时为手动覆盖',
@@ -10625,26 +10625,26 @@ function renderPem(){
 
   document.getElementById('pem-hx-results').innerHTML = [
     ['热负荷 Q·EOL(kW)',        F1(hx.Qheat), false, '热负荷 = 直流功率 × (单体电压 − 1.481)/单体电压；按「周期末单体电压」选型计算。1.481V 为 HHV 热中性电压。已钳位到 0：吸热工况（单体电压<1.481V）不产生负流量/负泵功/负面积，吸热量见电堆气泡'],
-    ['热侧(纯水)进口(℃)',  F1(hx.Thi),   false, '纯水进口温度 = 电解槽工作温度'],
-    ['热侧(纯水)出口(℃)',  F1(hx.Tho),   false, '纯水出口温度 = 工作温度 − 纯水侧温差'],
+    ['热侧(纯水)进口(℃)',  F1(hx.Thi),   false, '纯水进口温度 = 工作温度 + 纯水侧温差/2（工作温度按槽内平均温度定义）'],
+    ['热侧(纯水)出口(℃)',  F1(hx.Tho),   false, '纯水出口温度 = 工作温度 − 纯水侧温差/2'],
     ['冷侧(冷却水)进口(℃)',F1(hx.Tci),   false, '冷却水进口温度 = 输入参数「冷却水进口温度」'],
     ['冷侧(冷却水)出口(℃)',F1(hx.Tco),   false, '冷却水出口温度 = 输入参数「冷却水出口温度」'],
     ['端差 Δt₁ / Δt₂(℃)',   F1(hx.dt1)+' / '+F1(hx.dt2), hx.cross, '逆流布置端差：Δt₁ = 纯水进口 − 冷却水出口；Δt₂ = 纯水出口 − 冷却水进口；任一端差 ≤0 即温度交叉'],
     ['对数平均温差 LMTD(℃)',F1(hx.lmtd),  hx.cross, 'LMTD = (Δt₁−Δt₂)/ln(Δt₁/Δt₂)'],
     ['总传热系数 K W/(m²·K)',F0(hx.K),   false, '水-水板式换热器经验值 3000~6000；此处取输入参数「换热器传热系数K」'],
-    ['计算面积(m²)',        F2(hx.Acalc), false, '计算面积 = 热负荷×1000/(K × LMTD)'],
+    ['计算面积·EOL(m²)',        F2(hx.Acalc), false, '计算面积 = 热负荷×1000/(K × LMTD)'],
     ['面积裕度(%)',         F0(gi('pemHxMargin')), false, '面积裕度 = 输入参数「换热面积裕度」，用于应对结垢与性能衰减（常规 15%~25%）'],
-    ['需求面积(含裕度)(m²)',F2(hx.Aneed), false, '需求面积 = 计算面积 × (1 + 裕度)'],
+    ['需求面积·EOL(含裕度)(m²)',F2(hx.Aneed), false, '需求面积 = 计算面积 × (1 + 裕度)'],
     ['板片数·EOL(片)',      F0(hx.Nplate), false, '板片数 = 需求面积/单板有效面积 + 1，向上取整并取偶数使两侧流道数相等'],
-    ['实际换热面积(m²)',    F2(hx.Agot),  false, '实际面积 = (板片数 − 1) × 单板有效面积'],
+    ['实际换热面积·EOL(m²)',    F2(hx.Agot),  false, '实际面积 = (板片数 − 1) × 单板有效面积'],
     ['热侧流道数 / 冷侧流道数', F0(hx.nHotCh)+' / '+F0(hx.nColdCh), false, '流道数由板间通道数均分得到，两侧并联流道数决定流速'],
-    ['热侧流速(m/s)',       F2(hx.uHot),  hx.uHot<0.3||hx.uHot>1.5, '热侧流速 = (循环流量/3600)/(热侧流道数 × 单板流道面积)；推荐 0.3~1.0 m/s'],
-    ['冷侧流速(m/s)',       F2(hx.uCold), hx.uCold<0.3||hx.uCold>1.5, '冷侧流速 = (冷却水流量/3600)/(冷侧流道数 × 单板流道面积)'],
+    ['热侧流速·EOL(m/s)',       F2(hx.uHot),  hx.uHot<0.3||hx.uHot>1.5, '热侧流速 = (循环流量/3600)/(热侧流道数 × 单板流道面积)；推荐 0.3~1.0 m/s'],
+    ['冷侧流速·EOL(m/s)',       F2(hx.uCold), hx.uCold<0.3||hx.uCold>1.5, '冷侧流速 = (冷却水流量/3600)/(冷侧流道数 × 单板流道面积)'],
     ['热侧雷诺数 Re',       F0(hx.ReHot), false, 'Re = ρ·u·D_eq/μ；D_eq 取 2×板间距 ≈ 0.006 m；Re>3000 视为湍流'],
     ['冷侧雷诺数 Re',       F0(hx.ReCold),false, 'Re = ρ·u·D_eq/μ；冷却水 34℃ 取 μ=0.742 mPa·s'],
-    ['热侧压降(kPa)',       F2(hx.dpHot/1000),  hx.dpHot/1000>100, '压降 = (流道长/当量直径)×f×ρu²/2 + 1.5×ρu²/2；推荐 ≤100 kPa'],
-    ['冷侧压降(kPa)',       F2(hx.dpCold/1000), hx.dpCold/1000>100, '压降 = 摩擦阻力 + 进出口局部阻力'],
-    ['冷却水循环量(m³/h)',  F1(hx.Vcold), false, '冷却水流量 = 热负荷×1000/(4178 × 冷却水温升)/ρ×3600']
+    ['热侧压降·EOL(kPa)',       F2(hx.dpHot/1000),  hx.dpHot/1000>100, '压降 = (流道长/当量直径)×f×ρu²/2 + 1.5×ρu²/2；推荐 ≤100 kPa'],
+    ['冷侧压降·EOL(kPa)',       F2(hx.dpCold/1000), hx.dpCold/1000>100, '压降 = 摩擦阻力 + 进出口局部阻力'],
+    ['冷却水循环量·EOL(m³/h)',  F1(hx.Vcold), false, '冷却水流量 = 热负荷×1000/(4178 × 冷却水温升)/ρ×3600']
   ].map(a=>row(a[0],a[1],a[2],a[3])).join('');
 
   document.getElementById('pem-power-results').innerHTML = [
@@ -10675,8 +10675,8 @@ function renderPem(){
     ['衰减后平均单体电压(V)',F3(pw.VcellAvg), false, '周期内平均单体电压 = 寿命初期单体电压 + 周期内电压上升/2；年耗电按此电压复算整条链路'],
     ['年制氢量(kg)',         F0(pw.aH2Kg),  false, '年产品氢量(kg) = 产品氢质量流量(kg/h) × 等效满负荷小时数（纯化后口径）'],
     ['年制氢量(Nm³)',        F0(pw.aH2Nm3), false, '年产品氢量(Nm³) = 产品氢体积流量(Nm³/h) × 等效满负荷小时数'],
-    ['年耗电量(kWh)',        F0(pw.aKWh),   false, '年耗电量(kWh) = 系统输入功率(kW) × 等效满负荷小时数；系统输入含整流与 BOP 辅电（非电堆直流功率），并按「更换周期内平均单体电压」复算、已含电压衰减（对应年运行平均功率 '+F1(pw.PsysAnnual)+' kW）'],
-    ['氢气电费成本(元/kg)',  F2(pw.h2CostKg), false, '氢气电费成本(元/kg) = 电能单耗(kWh/kg) × 电价(元/kWh)；设计点（寿命初期）口径，与运行小时数无关、不含设备折旧与运维；含衰减的年平均口径见「平均氢气电费成本」'],
+    ['年耗电量·平均(kWh)',        F0(pw.aKWh),   false, '年耗电量(kWh) = 系统输入功率(kW) × 等效满负荷小时数；系统输入含整流与 BOP 辅电（非电堆直流功率），并按「更换周期内平均单体电压」复算、已含电压衰减（对应年运行平均功率 '+F1(pw.PsysAnnual)+' kW）'],
+    ['氢气电费成本·BOL(元/kg)',  F2(pw.h2CostKg), false, '氢气电费成本(元/kg) = 电能单耗(kWh/kg) × 电价(元/kWh)；设计点（寿命初期）口径，与运行小时数无关、不含设备折旧与运维；含衰减的年平均口径见「平均氢气电费成本」'],
     ['年电费(万元)',         F2(pw.aCostWan), false, '年电费(万元) = 年耗电量(kWh) × 电价(元/kWh) / 10000；年耗电量已按平均单体电压计入电压衰减'],
     ['年CAPEX摊销(万元/年)', F1(pw.capexAnnual), false, '年CAPEX摊销 = 总投资 × CRF；总投资(万元) = 周期末选型系统输入功率('+F1(pw.PsysSel)+' kW) × 单位投资(元/kW) / 10000；CRF = i(1+i)^n/[(1+i)^n−1]，i 为折现率、n 为项目寿命'],
     ['年运维与更换(万元/年)',F1(pw.omAnnual+pw.stackAnnual), false, '年运维 = 总投资 × 年运维费率；年更换 = 更换成本按更换年份折现后 × CRF 年化，'
@@ -10685,7 +10685,7 @@ function renderPem(){
     ['综合氢成本 LCOH(元/kg)', (pw.safe ? F2(pw.lcoh) : '不可行'), false, 'LCOH = 年总成本(万元) × 10000 / 年产品氢量(kg)；随利用率变化：固定成本靠年产品氢量摊薄，故 LCOH 不等同于与运行小时无关的「氢气电费成本」'],
     ['电费占比(%)',          F1(pw.elecShare), false, '电费占比 = 年电费 / 年总成本 × 100；衡量电价对综合氢成本的敏感度'],
     ['理论最低电耗(kWh/kg)', F1(LHV_KWH_KG)+' (LHV) / '+F1(HHV_KWH_KG)+' (HHV)', false, '氢的 LHV=33.33 kWh/kg、HHV=39.41 kWh/kg，为电耗理论下限'],
-    ['冷却塔空气流量(m³/h)', F0(pw.Vair),   false, '空气流量 = 废热×3600/(空气定压比热 × 空气温升)/空气密度'],
+    ['冷却塔空气流量·EOL(m³/h)', F0(pw.Vair),   false, '空气流量 = 废热×3600/(空气定压比热 × 空气温升)/空气密度'],
     ['氢氧压差校核(bar)',    F2(gs.dP)+' / ≤'+F2(gs.dpLim), gs.dP>gs.dpLim, '压差超限需调整氢/氧侧压力设定或加装差压联锁保护'],
     ['电解槽温度校核(℃)',   F1(gi('pemOpTemp'))+' / ≤85', gi('pemOpTemp')>85, '温度过高加速膜降解与催化剂溶解；典型控制 60~80℃'],
     ['纯水电阻率校核',      '≥18.2 MΩ·cm', false, '在线监测循环水电导率，超限需再生混床并降功率运行'],
@@ -10707,19 +10707,19 @@ function renderTables(){
     const ta = tip => ' title="'+esc(tip)+'"';
     t.innerHTML =
       '<div class="pfd-pow-head">系统功率汇总（周期末选型）</div>'
-      + '<div class="pfd-pow-row"'+ta('选型工况的单体电压 = 寿命初期电压 + 更换周期内电压上升；换热器、泵、风机与系统容量均按此值选型（最恶劣工况），年耗电另按周期平均电压计算')+'><span>单体电压（周期末）</span><span>'+F2(pw.VcellSel)+' V</span></div>'
-      + '<div class="pfd-pow-row"'+ta('寿命初期（BOL）单体电压，用于电化学与极化曲线展示')+'><span>单体电压（初期）</span><span>'+F2(pw.VcellBol)+' V</span></div>'
+      + '<div class="pfd-pow-row"'+ta('选型工况的单体电压 = 寿命初期电压 + 更换周期内电压上升；换热器、泵、风机与系统容量均按此值选型（最恶劣工况），年耗电另按周期平均电压计算')+'><span>单体电压·EOL</span><span>'+F2(pw.VcellSel)+' V</span></div>'
+      + '<div class="pfd-pow-row"'+ta('寿命初期（BOL）单体电压，用于电化学与极化曲线展示')+'><span>单体电压·BOL</span><span>'+F2(pw.VcellBol)+' V</span></div>'
       + '<div class="pfd-pow-row"'+ta('电解槽节数 = 输入参数「电解槽节数」（单体串联数）；电压逐节累加、各节电流相同')+'><span>电解槽节数</span><span>'+F0(st.N)+' 节</span></div>'
       + '<div class="pfd-pow-row"'+ta('直流电流 = 反应面积(cm²) × 电流密度(A/cm²)；全槽串联，各节电流相同')+'><span>直流电流</span><span>'+F0(st.I)+' A</span></div>'
-      + '<div class="pfd-pow-row"'+ta('直流电压 = 单体电压 × 电解槽节数（周期末选型）')+'><span>直流电压</span><span>'+F0(pw.Vstack)+' V</span></div>'
-      + '<div class="pfd-pow-row pfd-pow-group"'+ta('直流功率 = 直流电流 × 直流电压 / 1000；按周期末单体电压计算（毛功率，未扣辅机）')+'><span>电解槽直流功率</span><span>'+F1(pw.Pstack)+' kW</span></div>'
-      + '<div class="pfd-pow-row"'+ta('电源输入 = 直流功率 / 制氢电源效率')+'><span>制氢电源输入</span><span>'+F1(pw.Prect)+' kW</span></div>'
-      + '<div class="pfd-pow-row"'+ta('泵功率 = (ρgH + Δp_hot)·Q/η；Q 为纯水循环流量，H 为泵压头，Δp_hot 为板换热侧压降')+'><span>纯水循环泵</span><span>'+F2(pw.P_pump)+' kW</span></div>'
-      + '<div class="pfd-pow-row"'+ta('泵功率 = (ρgH + Δp_cold)·Q/η；Q 为冷却水循环流量，H 为泵压头，Δp_cold 为板换冷侧压降')+'><span>冷却水泵</span><span>'+F2(pw.P_cpump)+' kW</span></div>'
-      + '<div class="pfd-pow-row"'+ta('风机 = 全压 × 风量 / 效率；风量由废热与空气温升求得')+'><span>冷却塔风机</span><span>'+F2(pw.P_fan)+' kW</span></div>'
-      + '<div class="pfd-pow-row"'+ta('纯化加热 = 直流功率 × 纯化加热占比')+'><span>纯化加热</span><span>'+F2(pw.P_purif)+' kW</span></div>'
-      + '<div class="pfd-pow-row pfd-pow-group"'+ta('辅机合计 = 纯水循环泵 + 冷却水泵 + 冷却塔风机 + 纯化加热')+'><span>辅机合计</span><span>'+F2(pw.bopTotal)+' kW</span></div>'
-      + '<div class="pfd-pow-row pfd-pow-sys"'+ta('系统输入 = 制氢电源输入 + 辅机合计')+'><span>系统输入功率</span><span>'+F1(pw.Psys)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('直流电压 = 单体电压 × 电解槽节数（周期末选型）')+'><span>直流电压·EOL</span><span>'+F0(pw.Vstack)+' V</span></div>'
+      + '<div class="pfd-pow-row pfd-pow-group"'+ta('直流功率 = 直流电流 × 直流电压 / 1000；按周期末单体电压计算（毛功率，未扣辅机）')+'><span>电解槽直流功率·EOL</span><span>'+F1(pw.Pstack)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('电源输入 = 直流功率 / 制氢电源效率')+'><span>制氢电源输入·EOL</span><span>'+F1(pw.Prect)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('泵功率 = (ρgH + Δp_hot)·Q/η；Q 为纯水循环流量，H 为泵压头，Δp_hot 为板换热侧压降')+'><span>纯水循环泵·EOL</span><span>'+F2(pw.P_pump)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('泵功率 = (ρgH + Δp_cold)·Q/η；Q 为冷却水循环流量，H 为泵压头，Δp_cold 为板换冷侧压降')+'><span>冷却水泵·EOL</span><span>'+F2(pw.P_cpump)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('风机 = 全压 × 风量 / 效率；风量由废热与空气温升求得')+'><span>冷却塔风机·EOL</span><span>'+F2(pw.P_fan)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('纯化加热 = 直流功率 × 纯化加热占比')+'><span>纯化加热·EOL</span><span>'+F2(pw.P_purif)+' kW</span></div>'
+      + '<div class="pfd-pow-row pfd-pow-group"'+ta('辅机合计 = 纯水循环泵 + 冷却水泵 + 冷却塔风机 + 纯化加热')+'><span>辅机合计·EOL</span><span>'+F2(pw.bopTotal)+' kW</span></div>'
+      + '<div class="pfd-pow-row pfd-pow-sys"'+ta('系统输入 = 制氢电源输入 + 辅机合计')+'><span>系统输入功率·EOL</span><span>'+F1(pw.Psys)+' kW</span></div>'
       + '<div class="pfd-pow-row"'+ta('产品氢流量 = 实际产氢(mol/s)×22.414×3.6 × 纯化回收率；实际产氢 = 理论产氢 × 法拉第效率')+'><span>产品氢量</span><span>'+F1(pw.vH2Pro)+' Nm³/h</span></div>'
       + '<div class="pfd-pow-row"'+ta('产氢质量 = 实际产氢(mol/s)×2.016×3.6；纯化前粗氢')+'><span>产氢质量（粗氢）</span><span>'+F1(st.mH2kgh)+' kg/h</span></div>'
       + '<div class="pfd-pow-row pfd-pow-sys"'+ta('电能单耗(kWh/kg) = 系统输入功率 / 产品氢质量流量(kg/h)；kWh/Nm³ = 系统输入功率 / 产品氢流量(Nm³/h)；行业典型 4.5~5.5')+'><span>电能单耗(BOL)</span><span>'+F2(pw.kWhKg)+' kWh/kg</span></div>'
@@ -10750,7 +10750,7 @@ function renderTables(){
       + '<div class="pn-head">项目经济性（LCOH 综合氢成本）</div>'
       + '<div class="pn-row"'+ta('等效满负荷小时数 = 年运行小时数 × 平均负荷率/100；把变负荷运行折算为满负荷小时数，作为下述年量的核算基准')+'><span>等效满负荷小时数</span><span class="pn-v">'+F0(pw.eqFullH)+' h</span></div>'
       + '<div class="pn-row"'+ta('年产品氢量(kg) = 产品氢质量流量(kg/h) × 等效满负荷小时数（纯化后口径）；年产品氢量(Nm³) = 产品氢体积流量(Nm³/h) × 等效满负荷小时数')+'><span>年制氢量</span><span class="pn-v">'+F1(pw.aH2Kg/1000)+' t（'+F0(pw.aH2Nm3)+' Nm³）</span></div>'
-      + '<div class="pn-row"'+ta('年耗电量(kWh) = 系统输入功率(kW) × 等效满负荷小时数；系统输入含整流与 BOP 辅电（非电堆直流功率），并按「更换周期内平均单体电压」复算、已含电压衰减（平均功率 '+F1(pw.PsysAnnual)+' kW）')+'><span>年耗电量</span><span class="pn-v">'+F1(pw.aKWh/1000)+' MWh</span></div>'
+      + '<div class="pn-row"'+ta('年耗电量(kWh) = 系统输入功率(kW) × 等效满负荷小时数；系统输入含整流与 BOP 辅电（非电堆直流功率），并按「更换周期内平均单体电压」复算、已含电压衰减（平均功率 '+F1(pw.PsysAnnual)+' kW）')+'><span>年耗电量·平均</span><span class="pn-v">'+F1(pw.aKWh/1000)+' MWh</span></div>'
       + '<div class="pn-row"'+ta('氢气电费成本(元/kg) = 电能单耗(kWh/kg产品氢) × 电价(元/kWh)；设计点（寿命初期）口径，与运行小时数无关；含电压衰减的年平均口径为 '+F2(pw.avgCostKg)+' 元/kg')+'><span>氢气电费成本(BOL)</span><span class="pn-v">'+F2(pw.h2CostKg)+' 元/kg</span></div>'
       + '<div class="pn-row"'+ta('年电费(万元) = 年耗电量(kWh) × 电价(元/kWh) / 10000；年耗电量已按更换周期内平均单体电压计入电压衰减')+'><span>年电费</span><span class="pn-v">'+F1(pw.aCostWan)+' 万元</span></div>'
       + '<div class="pn-row"'+ta('年水费(万元) = 原水/纯水耗量(t/a) × 水价(元/t) / 10000；原水耗量含未回收液态水')+'><span>年水费</span><span class="pn-v">'+F2(pw.waterAnnual)+' 万元</span></div>'
@@ -11525,7 +11525,7 @@ function calcAlk(vcellOv, jOv){
         Qheat:QheatRaw, QheatDis:Qheat, PH2_HHV, PH2_LHV, mH2kgh, vH2, vO2,
         Vcell, N, etaF, vEtaF, Vrev:polV.Vrev, etaAct:polV.etaAct, etaOhm:polV.etaOhm,
         etaBub:polV.etaBub, asr:polV.asr, kappa:polV.kappa, aw:polV.aw, vSource, icex, shunt},
-    wt: wtAnnual,
+    wt: siz ? siz.wt : wtSnap,
     gs:{vH2Pro, vH2Loss, PH2b, PO2b, dP, dpLim, h2WaterKgh, o2WaterKgh, pSat, h2VapR, o2VapR,
         h2InO2, o2InH2, nO2th, vO2Pro, mO2ProKgh, purity, purityFactor, purityWarn,
         h2O2Safe, o2H2Safe, dpSafe, tempSafe, concSafe, safe, h2InO2Lim,
@@ -11718,17 +11718,17 @@ pipe('M270,512 L330,512 L330,600', 'pipe-lye', 'flow-lye');
 rotary(330, 620, 20, '#3a2608', '#f59e0b', 6);
 E('text',{x:330, y:655,'text-anchor':'middle', fill:'#e8eef5','font-size':10,'font-weight':'bold'}).textContent = '碱液循环泵';
 E('text',{x:330, y:669,'text-anchor':'middle', fill:'#fbbf24','font-size':9}).textContent = 'Lye Circulation Pump';
-pipe('M350,620 L540,620 L540,415 L660,415', 'pipe-lye', 'flow-lye');
+pipe('M350,620 L500,620 L500,415 L660,415', 'pipe-lye', 'flow-lye');
 /* 进液分路：阳极（氧侧）与阴极（氢侧）分别进液 */
-pipe('M540,529 L660,529', 'pipe-lye', 'flow-lye');
-E('circle',{cx:540, cy:529, r:3.5, fill:'#fbbf24'});
+pipe('M500,529 L660,529', 'pipe-lye', 'flow-lye');
+E('circle',{cx:500, cy:529, r:3.5, fill:'#fbbf24'});
 E('text',{x:20, y:358, fill:'#fbbf24','font-size':9}).textContent = 'KOH';
 
 /* ===== 电解槽（阳极在上 / 阴极在下，KOH 电解液） ===== */
 (function(){
   E('rect',{x:660, y:330, width:280, height:260, rx:6, class:'equip-stack'});
   E('text',{x:820, y:349,'text-anchor':'middle', fill:'#a7f3d0','font-size':12,'font-weight':'bold'}).textContent = '碱性电解槽';
-  E('text',{x:820, y:361,'text-anchor':'middle', fill:'#6ee7b7','font-size':9}).textContent = 'Alkaline Electrolyzer · 30 wt% KOH';
+  E('text',{x:823, y:361,'text-anchor':'middle', fill:'#6ee7b7','font-size':9}).textContent = 'Alkaline Electrolyzer · 30 wt% KOH';
   // 阳极区（氧侧，正极）
   E('rect',{x:674, y:372, width:226, height:66, rx:4, fill:'#0b2436', stroke:'#38bdf8','stroke-width':1.2});
   E('text',{x:787, y:394,'text-anchor':'middle', fill:'#7dd3fc','font-size':9,'font-weight':'bold'}).textContent = '阳极 Anode(＋) · OH⁻ / O₂';
@@ -11768,9 +11768,9 @@ pipe('M940,529 L1060,529 L1060,470 L1100,470', 'pipe-h2', 'flow-h2');
 vessel(810, 90, 160, 160, 'equip-air', '氧侧气液分离器', 'O₂ Separator');
 E('rect',{x:818, y:218, width:144, height:26, rx:3, fill:'#0e7490', opacity:0.35});
 E('path',{d:'M818,218 L962,218', class:'pem-tank-wave', fill:'none', stroke:'#22d3ee','stroke-width':2, opacity:0.65});
-pipe('M970,150 L990,150', 'pipe-o2', 'flow-o2');
-equipBox(990, 122, 150, 56, 'equip-humid', '氧气洗涤 / 冷却', 'O₂ Wash + Cooler');
-pipe('M1065,178 L1065,206', 'pipe-o2', 'flow-o2');
+pipe('M970,133 L990,133', 'pipe-o2', 'flow-o2');
+equipBox(990, 105, 150, 56, 'equip-humid', '氧气洗涤 / 冷却', 'O₂ Wash + Cooler');
+pipe('M1065,161 L1065,206', 'pipe-o2', 'flow-o2');
 E('text',{x:1000, y:215, fill:'#7dd3fc','font-size':10}).textContent = 'O₂ 放空 / 回收';
 const alkO2Txt = E('text',{x:1000, y:228, fill:'#94a3b8','font-size':9});
 alkO2Txt.textContent = '纯度 99.5 % · 回收率 90 %';
@@ -11802,7 +11802,7 @@ E('path',{d:'M1240,376 L1240,390', stroke:'#94a3b8','stroke-width':1.6,'stroke-d
 /* ===== 热管理与冷却系统 ===== */
 /* 氧侧分离器循环电解液 → 板式换热器热侧进口 */
 pipe('M890,250 L890,272 L580,272 L580,740', 'pipe-lye', 'flow-lye');
-E('text',{x:600, y:264, fill:'#fbbf24','font-size':9}).textContent = '电解液回流';
+E('text',{x:600, y:250, fill:'#fbbf24','font-size':9}).textContent = '电解液回流';
 /* 碱液板式换热器 */
 (function(){
   E('rect',{x:480, y:740, width:200, height:120, rx:8, class:'equip-heat'});
@@ -11887,7 +11887,7 @@ addData('hx',      480, 872);
 addData('pump1',   292, 680);
 addData('pump2',   729, 872);
 addData('cooltower', 920, 872);
-addData('stack',   600, 252);
+addData('stack',   600, 277);
 
 function alkSet(id, lines, tips, lhIn){
   const n = nodes[id]; if(!n) return;
@@ -12007,9 +12007,9 @@ function renderAlk(){
   /* --- 数据气泡 --- */
   alkSet('power', [
     `直流电流:<strong>${F0(st.I)}</strong>A`,
-    `直流电压:<strong>${F0(st.Vstack)}</strong>V`,
-    `直流功率:<strong>${F1(st.Pstack)}</strong>kW`,
-    `整流输入:<strong>${F1(pw.Prect)}</strong>kW`,
+    `直流电压(BOL):<strong>${F0(st.Vstack)}</strong>V`,
+    `直流功率(BOL):<strong>${F1(st.Pstack)}</strong>kW`,
+    `整流输入(EOL):<strong>${F1(pw.Prect)}</strong>kW`,
     `整流效率:<strong>${F0(gi('alkRectEff'))}</strong>%`,
     `平均负荷率:<strong>${F0(gi('alkUseFactor'))}</strong>%`
   ],[
@@ -12022,7 +12022,7 @@ function renderAlk(){
   ]);
   alkSet('bop', [
     `辅机合计(EOL):<strong>${F2(pw.bopTotal)}</strong>kW`,
-    `外部加热:<strong>${F2(pw.PheatExt)}</strong>kW`,
+    `外部加热(EOL):<strong>${F2(pw.PheatExt)}</strong>kW`,
     `系统输入(EOL):<strong>${F1(pw.Psys)}</strong>kW`,
     `系统效率(BOL):<strong>${F1(pw.etaSysHHV)}</strong>%`,
     `电能单耗(BOL):<strong>${F2(pw.kWhKg)}</strong>kWh/kg`,
@@ -12036,8 +12036,8 @@ function renderAlk(){
     '电能单耗(kWh/Nm³) = 系统输入功率 / 产品氢流量(Nm³/h)；行业典型 ALK 4.3~5.0'
   ]);
   alkSet('lye', [
-    `循环流量(平均):<strong>${F1(wt.Vcirc)}</strong>m³/h`,
-    `循环倍率(平均):<strong>${F0(wt.circRatio)}</strong>倍`,
+    `循环流量(EOL):<strong>${F1(wt.Vcirc)}</strong>m³/h`,
+    `循环倍率(EOL):<strong>${F0(wt.circRatio)}</strong>倍`,
     `KOH浓度:<strong>${F1(gi('alkKOHConc'))}</strong>wt%`,
     `电解液温升:<strong>${F1(wt.dTlye)}</strong>℃`,
     `碱液泵(EOL):<strong>${F2(pw.P_pump)}</strong>kW`,
@@ -12083,11 +12083,11 @@ function renderAlk(){
     '产品氢纯度(%) = 输入参数「产品氢纯度」'
   ]);
   alkSet('hx', [
-    `热负荷:<strong>${F1(hx.Qheat)}</strong>kW` + (hx.QheatRaw<0 ? `（吸热 ${F1(-hx.QheatRaw)} kW）` : ''),
+    `热负荷(EOL):<strong>${F1(hx.Qheat)}</strong>kW` + (hx.QheatRaw<0 ? `（吸热 ${F1(-hx.QheatRaw)} kW）` : ''),
     `LMTD:<strong>${F1(hx.lmtd)}</strong>℃`,
-    `计算面积:<strong>${F2(hx.Acalc)}</strong>m²`,
-    `板片数:<strong>${F0(hx.Nplate)}</strong>片`,
-    `碱液侧压降:<strong>${F2(hx.dpHot/1000)}</strong>kPa`
+    `计算面积(EOL):<strong>${F2(hx.Acalc)}</strong>m²`,
+    `板片数(EOL):<strong>${F0(hx.Nplate)}</strong>片`,
+    `碱液侧压降(EOL):<strong>${F2(hx.dpHot/1000)}</strong>kPa`
   ],[
     '热负荷(kW) = 直流功率 × (单体电压−1.481)/单体电压；按周期末单体电压选型',
     '对数平均温差(℃)：逆流布置，端差取 (碱液进口−冷却水出口) 与 (碱液出口−冷却水进口)',
@@ -12099,18 +12099,18 @@ function renderAlk(){
     `流量(EOL):<strong>${F1(hx.Vcirc)}</strong>m³/h`,
     `扬程:<strong>${F0(gi('alkPumpHead'))}</strong>m`,
     `效率:<strong>${F0(gi('alkPumpEff'))}</strong>%`,
-    `功耗:<strong>${F2(pw.P_pump)}</strong>kW`
+    `功耗(EOL):<strong>${F2(pw.P_pump)}</strong>kW`
   ],[
-    '碱液循环泵流量(m³/h) = 电解液循环流量',
+    '碱液循环泵流量(m³/h) = 电解液循环流量（按周期末选型）',
     '扬程(m) = 输入参数「碱液循环泵扬程」；需覆盖板换与电解槽阻力',
     '总效率(%) = 输入参数「碱液循环泵总效率」',
     '功耗(kW) = (ρ_lye·g·H + Δp_hot)·Q/η'
   ]);
   alkSet('pump2', [
-    `流量:<strong>${F1(hx.Vcold)}</strong>m³/h`,
+    `流量(EOL):<strong>${F1(hx.Vcold)}</strong>m³/h`,
     `扬程:<strong>${F0(gi('alkCoolPumpHead'))}</strong>m`,
     `效率:<strong>${F0(gi('alkCoolPumpEff'))}</strong>%`,
-    `功耗:<strong>${F2(pw.P_cpump)}</strong>kW`
+    `功耗(EOL):<strong>${F2(pw.P_cpump)}</strong>kW`
   ],[
     '冷却水泵流量(m³/h) = 热负荷×1000/(冷却水比热×温升)/ρ×3600',
     '扬程(m) = 输入参数「冷却水泵扬程」',
@@ -12119,10 +12119,10 @@ function renderAlk(){
   ]);
   alkSet('cooltower', [
     `冷却水进/出:<strong>${F1(hx.Tci)}/${F1(hx.Tco)}</strong>℃`,
-    `冷却水流量:<strong>${F1(hx.Vcold)}</strong>m³/h`,
-    `空气流量:<strong>${F0(pw.Vair)}</strong>m³/h`,
-    `风机功耗:<strong>${F2(pw.P_fan)}</strong>kW`,
-    `带走热量:<strong>${F1(hx.Qheat)}</strong>kW`
+    `冷却水流量(EOL):<strong>${F1(hx.Vcold)}</strong>m³/h`,
+    `空气流量(EOL):<strong>${F0(pw.Vair)}</strong>m³/h`,
+    `风机功耗(EOL):<strong>${F2(pw.P_fan)}</strong>kW`,
+    `带走热量(EOL):<strong>${F1(hx.Qheat)}</strong>kW`
   ],[
     '冷却水进口温度 = 输入参数「冷却水进口温度」；出口温度 = 输入参数「冷却水出口温度」',
     '冷却水流量(m³/h) = 热负荷×1000/(冷却水比热×温升)/ρ×3600',
@@ -12131,12 +12131,12 @@ function renderAlk(){
     '带走热量(kW) = 电解槽反应废热'
   ]);
   alkSet('stack', [
-    `单体电压:<strong>${F2(st.Vcell)}</strong>V`,
+    `单体电压(BOL):<strong>${F2(st.Vcell)}</strong>V`,
     `电解槽节数:<strong>${F0(st.N)}</strong>节`,
-    `直流电压:<strong>${F0(st.Vstack)}</strong>V`,
-    `直流功率:<strong>${F1(st.Pstack)}</strong>kW`,
-    `电堆效率(HHV):<strong>≈${F1(st.etaHHV)}</strong>%`,
-    `反应产热:<strong>${F1(st.Qheat)}</strong>kW` + (st.Qheat<0 ? '（吸热）' : '')
+    `直流电压(BOL):<strong>${F0(st.Vstack)}</strong>V`,
+    `直流功率(BOL):<strong>${F1(st.Pstack)}</strong>kW`,
+    `电堆效率(BOL):<strong>≈${F1(st.etaHHV)}</strong>%`,
+    `反应产热(BOL):<strong>${F1(st.Qheat)}</strong>kW` + (st.Qheat<0 ? '（吸热）' : '')
   ],[
     '单体电压(V) = V_rev + η_act + η_ohm + η_bub；由电流密度、温度、压力与 KOH 浓度解算',
     '电解槽节数 = 输入参数「电解槽节数」',
@@ -12156,8 +12156,8 @@ function renderAlk(){
     ['电解液电导率(S/cm)', F3(wt.lyeK), false, 'κ(T,w) = κ25(w)×exp(0.012×(T−25))；κ25 = 0.30+0.022w−0.00035w²'],
     ['水活度 a_w', F3(wt.aw), false, 'a_w = max(0.3, 1−0.0065w)；用于气相带水的饱和摩尔比'],
     ['电解液温升(℃)', F1(wt.dTlye), false, '输入参数「电解液温升」；ΔT 越小循环流量越大'],
-    ['电解液循环流量·平均(m³/h)', F1(wt.Vcirc), false, '循环流量(按平均单体电压) = max(换热需求, 反应水×最小循环倍率)/ρ_lye×3600；周期末设计流量见泵气泡与换热器面板'],
-    ['电解液循环倍率', F0(wt.circRatio)+' 倍', wt.circRatio<10, '循环质量流量 / 反应净耗水质量流量；由换热需求主导'],
+    ['电解液循环流量·EOL(m³/h)', F1(wt.Vcirc), false, '循环流量(按周期末选型) = max(换热需求, 反应水×最小循环倍率)/ρ_lye×3600；与碱液泵、板换口径一致'],
+    ['电解液循环倍率·EOL', F0(wt.circRatio)+' 倍', wt.circRatio<10, '循环质量流量 / 反应净耗水质量流量；由换热需求主导'],
     ['碱液循环泵功耗·EOL(kW)', F2(pw.P_pump), false, '泵功(按周期末设计流量) = (ρ_lye·g·H + Δp_hot)×Q/η'],
     ['反应净耗水(kg/h)', F1(wt.mWaterNetKgh), false, '反应净耗水 = 实际产氢(mol/s)×18.015×3.6'],
     ['氢侧气相带水(kg/h)', F2(wt.h2WaterKgh), false, '氢侧带水 = 产氢量 × r_H2 × 18.015×3.6；r_H2 = a_w·p_sat/(P_H2−a_w·p_sat)'],
@@ -12168,7 +12168,7 @@ function renderAlk(){
     ['KOH年耗量(t/a)', F2(kohTa), false, 'KOH 年耗量 = KOH 损失(kg/h) × 等效满负荷小时数 / 1000'],
     ['系统净水损失(kg/h)', F1(wt.mWaterLossKgh), false, '净水损失 = 反应水 + 两侧气相带水 + 排污水 + 碱雾水'],
     ['原水耗量(kg/h)', F1(wt.roFeedKgh), false, '原水耗量 = 净水损失 / 纯水制备回收率'],
-    ['冷却塔补水(kg/h)', F1(wt.coolingMakeupKgh), false, '冷却塔补水 = 废热×3600/2260×1.2；含 20 % 排污'],
+    ['冷却塔补水·EOL(kg/h)', F1(wt.coolingMakeupKgh), false, '冷却塔补水 = 废热×3600/2260×1.2；含 20 % 排污，按周期末选型'],
     ['年综合耗水量(t/a)', F1(pw.aWaterT), false, '年综合耗水量 = (原水耗量 + 冷却塔补水) × 等效满负荷小时数 / 1000'],
     ['年水费(万元)', F2(pw.waterAnnual), false, '年水费 = 年综合耗水量(t) × 水价(元/t) / 10000'],
     ['年KOH费(万元)', F2(pw.kohAnnual), false, '年 KOH 费 = KOH 年耗量(t) × KOH 价格(元/t) / 10000'],
@@ -12200,7 +12200,7 @@ function renderAlk(){
   ].map(a=>row(a[0],a[1],a[2],a[3])).join('');
 
   document.getElementById('alk-hx-results').innerHTML = [
-    ['热负荷 Q(kW)', F1(hx.Qheat), false, '热负荷 = 直流功率×(单体电压−1.481)/单体电压；按周期末单体电压选型；已钳位到 0'],
+    ['热负荷 Q·EOL(kW)', F1(hx.Qheat), false, '热负荷 = 直流功率×(单体电压−1.481)/单体电压；按周期末单体电压选型；已钳位到 0'],
     ['热侧(碱液)进口(℃)', F1(hx.Thi), false, '碱液进口温度 = 工作温度 + 电解液温升/2（工作温度按槽内平均温度定义）'],
     ['热侧(碱液)出口(℃)', F1(hx.Tho), false, '碱液出口温度 = 工作温度 − 电解液温升/2'],
     ['冷侧(冷却水)进口(℃)', F1(hx.Tci), false, '冷却水进口温度 = 输入参数「冷却水进口温度」'],
@@ -12208,19 +12208,19 @@ function renderAlk(){
     ['端差 Δt₁ / Δt₂(℃)', F1(hx.dt1)+' / '+F1(hx.dt2), hx.cross, '逆流端差：Δt₁ = 碱液进口−冷却水出口；Δt₂ = 碱液出口−冷却水进口；任一端差 ≤0 即温度交叉'],
     ['对数平均温差 LMTD(℃)', F1(hx.lmtd), hx.cross, 'LMTD = (Δt₁−Δt₂)/ln(Δt₁/Δt₂)'],
     ['总传热系数 K W/(m²·K)', F0(hx.K), false, '碱液-水板式换热器经验值 1500~3500；碱液侧粘度与污垢使 K 低于纯水-水'],
-    ['计算面积(m²)', F2(hx.Acalc), false, '计算面积 = 热负荷×1000/(K×LMTD)'],
+    ['计算面积·EOL(m²)', F2(hx.Acalc), false, '计算面积 = 热负荷×1000/(K×LMTD)'],
     ['面积裕度(%)', F0(gi('alkHxMargin')), false, '面积裕度 = 输入参数「换热面积裕度」，用于结垢与性能衰减'],
-    ['需求面积(含裕度)(m²)', F2(hx.Aneed), false, '需求面积 = 计算面积×(1+裕度)'],
-    ['板片数(片)', F0(hx.Nplate), false, '板片数 = 需求面积/单板有效面积 + 1，向上取整并取偶数'],
-    ['实际换热面积(m²)', F2(hx.Agot), false, '实际面积 = (板片数−1)×单板有效面积'],
+    ['需求面积·EOL(含裕度)(m²)', F2(hx.Aneed), false, '需求面积 = 计算面积×(1+裕度)'],
+    ['板片数·EOL(片)', F0(hx.Nplate), false, '板片数 = 需求面积/单板有效面积 + 1，向上取整并取偶数'],
+    ['实际换热面积·EOL(m²)', F2(hx.Agot), false, '实际面积 = (板片数−1)×单板有效面积'],
     ['热侧流道数 / 冷侧流道数', F0(hx.nHotCh)+' / '+F0(hx.nColdCh), false, '流道数由板间通道数均分；两侧并联流道数决定流速'],
-    ['热侧流速(m/s)', F2(hx.uHot), hx.uHot<0.3||hx.uHot>1.5, '热侧流速 = (循环流量/3600)/(热侧流道数×单板流道面积)；推荐 0.3~1.0 m/s'],
-    ['冷侧流速(m/s)', F2(hx.uCold), hx.uCold<0.3||hx.uCold>1.5, '冷侧流速 = (冷却水流量/3600)/(冷侧流道数×单板流道面积)'],
+    ['热侧流速·EOL(m/s)', F2(hx.uHot), hx.uHot<0.3||hx.uHot>1.5, '热侧流速 = (循环流量/3600)/(热侧流道数×单板流道面积)；推荐 0.3~1.0 m/s'],
+    ['冷侧流速·EOL(m/s)', F2(hx.uCold), hx.uCold<0.3||hx.uCold>1.5, '冷侧流速 = (冷却水流量/3600)/(冷侧流道数×单板流道面积)'],
     ['热侧雷诺数 Re', F0(hx.ReHot), false, 'Re = ρ·u·D_eq/μ；D_eq 取 2×板间距 ≈0.006 m；Re>3000 视为湍流'],
     ['冷侧雷诺数 Re', F0(hx.ReCold), false, 'Re = ρ_w·u·D_eq/μ_w；冷却水 34℃ 取 μ=0.742 mPa·s'],
-    ['热侧压降(kPa)', F2(hx.dpHot/1000), hx.dpHot/1000>100, '压降 = (流道长/当量直径)×f×ρu²/2 + 1.5×ρu²/2；推荐 ≤100 kPa'],
-    ['冷侧压降(kPa)', F2(hx.dpCold/1000), hx.dpCold/1000>100, '压降 = 摩擦阻力 + 进出口局部阻力'],
-    ['冷却水循环量(m³/h)', F1(hx.Vcold), false, '冷却水流量 = 热负荷×1000/(4178×冷却水温升)/ρ×3600']
+    ['热侧压降·EOL(kPa)', F2(hx.dpHot/1000), hx.dpHot/1000>100, '压降 = (流道长/当量直径)×f×ρu²/2 + 1.5×ρu²/2；推荐 ≤100 kPa'],
+    ['冷侧压降·EOL(kPa)', F2(hx.dpCold/1000), hx.dpCold/1000>100, '压降 = 摩擦阻力 + 进出口局部阻力'],
+    ['冷却水循环量·EOL(m³/h)', F1(hx.Vcold), false, '冷却水流量 = 热负荷×1000/(4178×冷却水温升)/ρ×3600']
   ].map(a=>row(a[0],a[1],a[2],a[3])).join('');
 
   const ml = alkMinLoadX();
@@ -12233,13 +12233,13 @@ function renderAlk(){
     ['单体电压('+st.vSource+')(V)', F3(st.Vcell), false, '单体电压 = V_rev+η_act+η_ohm+η_bub；输入「单体电压」非 0 时手动覆盖'],
     ['系统电化学效率 (HHV)(%)', F1(st.etaHHV), false, '基于高热值：1.481V/单体电压；1.481V 为水的 HHV 热中性电压'],
     ['系统电化学效率 (LHV)(%)', F2(st.etaLHV), false, '基于低热值：1.254V/单体电压'],
-    ['电解槽直流功率(kW)', F1(pw.Pstack), false, '直流功率 = 电流×电压/1000；按周期末单体电压计算'],
-    ['整流电源输入功率(kW)', F1(pw.Prect), false, '整流输入 = 直流功率 / 整流电源效率'],
-    ['碱液循环泵(kW)', F2(pw.P_pump), false, '泵功率 = (ρ_lye·g·H+Δp_hot)·Q/η'],
-    ['冷却水泵(kW)', F2(pw.P_cpump), false, '泵功率 = (ρ_w·g·H+Δp_cold)·Q/η'],
-    ['冷却塔风机(kW)', F2(pw.P_fan), false, '风机 = 全压×风量/效率；风量由废热与空气温升求得'],
-    ['纯化加热(kW)', F2(pw.P_purif), false, '纯化加热 = 直流功率 × 纯化加热占比'],
-    ['辅机合计(kW)', F2(pw.bopTotal), false, '辅机合计 = 碱液泵 + 冷却水泵 + 风机 + 纯化加热'],
+    ['电解槽直流功率·EOL(kW)', F1(pw.Pstack), false, '直流功率 = 电流×电压/1000；按周期末单体电压计算'],
+    ['整流电源输入功率·EOL(kW)', F1(pw.Prect), false, '整流输入 = 直流功率 / 整流电源效率'],
+    ['碱液循环泵·EOL(kW)', F2(pw.P_pump), false, '泵功率 = (ρ_lye·g·H+Δp_hot)·Q/η'],
+    ['冷却水泵·EOL(kW)', F2(pw.P_cpump), false, '泵功率 = (ρ_w·g·H+Δp_cold)·Q/η'],
+    ['冷却塔风机·EOL(kW)', F2(pw.P_fan), false, '风机 = 全压×风量/效率；风量由废热与空气温升求得'],
+    ['纯化加热·EOL(kW)', F2(pw.P_purif), false, '纯化加热 = 直流功率 × 纯化加热占比'],
+    ['辅机合计·EOL(kW)', F2(pw.bopTotal), false, '辅机合计 = 碱液泵 + 冷却水泵 + 风机 + 纯化加热'],
     ['系统输入功率·EOL(kW)', F1(pw.Psys), false, '系统输入 = 整流输入 + 辅机合计 + 外部加热；按周期末单体电压选型'],
     ['系统效率·BOL (HHV)(%)', F1(pw.etaSysHHV), false, '系统效率 = 产品氢 HHV 功率 / 系统输入功率（寿命初期口径，与下方 EOL 输入功率不同口径）'],
     ['系统效率·BOL (LHV)(%)', F1(pw.etaSysLHV), false, '系统效率 = 产品氢 LHV 功率 / 系统输入功率（寿命初期口径）'],
@@ -12254,8 +12254,8 @@ function renderAlk(){
     ['衰减后平均单体电压(V)', F3(pw.VcellAvg), false, '平均单体电压 = 寿命初期单体电压 + 周期内电压上升/2'],
     ['年制氢量(kg)', F0(pw.aH2Kg), false, '年产品氢量 = 产品氢质量流量 × 等效满负荷小时数（纯化后）'],
     ['年制氢量(Nm³)', F0(pw.aH2Nm3), false, '年产品氢量 = 产品氢体积流量 × 等效满负荷小时数'],
-    ['年耗电量(kWh)', F0(pw.aKWh), false, '年耗电量 = 系统输入功率(按平均单体电压复算) × 等效满负荷小时数'],
-    ['氢气电费成本(元/kg)', F2(pw.h2CostKg), false, '氢气电费成本 = 电能单耗 × 电价；设计点（寿命初期）口径'],
+    ['年耗电量·平均(kWh)', F0(pw.aKWh), false, '年耗电量 = 系统输入功率(按平均单体电压复算) × 等效满负荷小时数'],
+    ['氢气电费成本·BOL(元/kg)', F2(pw.h2CostKg), false, '氢气电费成本 = 电能单耗(寿命初期) × 电价'],
     ['年电费(万元)', F2(pw.aCostWan), false, '年电费 = 年耗电量 × 电价 / 10000；已含电压衰减'],
     ['年CAPEX摊销(万元/年)', F1(pw.capexAnnual), false, '年CAPEX摊销 = 总投资×CRF；总投资 = 周期末选型系统输入功率×单位投资/10000'],
     ['年运维与更换(万元/年)', F1(pw.omAnnual+pw.stackAnnual), false, '年运维 = 总投资×运维费率；年更换 = 更换现金流折现后×CRF；nRepl = ceil(寿命/更换周期)−1'],
@@ -12283,23 +12283,23 @@ function renderAlkTables(){
     const ta = tip => ' title="'+esc(tip)+'"';
     t.innerHTML =
       '<div class="pfd-pow-head">系统功率汇总（周期末选型）</div>'
-      + '<div class="pfd-pow-row"'+ta('选型工况单体电压 = 寿命初期 + 更换周期内电压上升；设备容量按此值选型')+'><span>单体电压（周期末）</span><span>'+F2(pw.VcellSel)+' V</span></div>'
-      + '<div class="pfd-pow-row"'+ta('寿命初期单体电压，用于电化学与极化曲线展示')+'><span>单体电压（初期）</span><span>'+F2(pw.VcellBol)+' V</span></div>'
+      + '<div class="pfd-pow-row"'+ta('选型工况单体电压 = 寿命初期 + 更换周期内电压上升；设备容量按此值选型')+'><span>单体电压·EOL</span><span>'+F2(pw.VcellSel)+' V</span></div>'
+      + '<div class="pfd-pow-row"'+ta('寿命初期单体电压，用于电化学与极化曲线展示')+'><span>单体电压·BOL</span><span>'+F2(pw.VcellBol)+' V</span></div>'
       + '<div class="pfd-pow-row"'+ta('电解槽节数 = 输入参数')+'><span>电解槽节数</span><span>'+F0(st.N)+' 节</span></div>'
       + '<div class="pfd-pow-row"'+ta('直流电流 = 反应面积 × 电流密度')+'><span>直流电流</span><span>'+F0(st.I)+' A</span></div>'
-      + '<div class="pfd-pow-row"'+ta('直流电压 = 单体电压 × 节数')+'><span>直流电压</span><span>'+F0(pw.Vstack)+' V</span></div>'
-      + '<div class="pfd-pow-row pfd-pow-group"'+ta('直流功率 = 电流 × 电压 / 1000')+'><span>电解槽直流功率</span><span>'+F1(pw.Pstack)+' kW</span></div>'
-      + '<div class="pfd-pow-row"'+ta('整流输入 = 直流功率 / 整流效率')+'><span>整流电源输入</span><span>'+F1(pw.Prect)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('直流电压 = 单体电压 × 节数')+'><span>直流电压·EOL</span><span>'+F0(pw.Vstack)+' V</span></div>'
+      + '<div class="pfd-pow-row pfd-pow-group"'+ta('直流功率 = 电流 × 电压 / 1000')+'><span>电解槽直流功率·EOL</span><span>'+F1(pw.Pstack)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('整流输入 = 直流功率 / 整流效率')+'><span>整流电源输入·EOL</span><span>'+F1(pw.Prect)+' kW</span></div>'
       + '<div class="pfd-pow-row"'+ta('碱液泵 = (ρgH+Δp)·Q/η')+'><span>碱液循环泵</span><span>'+F2(pw.P_pump)+' kW</span></div>'
-      + '<div class="pfd-pow-row"'+ta('冷却水泵 = (ρgH+Δp)·Q/η')+'><span>冷却水泵</span><span>'+F2(pw.P_cpump)+' kW</span></div>'
-      + '<div class="pfd-pow-row"'+ta('风机 = 全压×风量/效率')+'><span>冷却塔风机</span><span>'+F2(pw.P_fan)+' kW</span></div>'
-      + '<div class="pfd-pow-row"'+ta('纯化加热 = 直流功率 × 占比')+'><span>纯化加热</span><span>'+F2(pw.P_purif)+' kW</span></div>'
-      + '<div class="pfd-pow-row pfd-pow-group"'+ta('辅机合计 = 碱液泵+冷却水泵+风机+纯化加热')+'><span>辅机合计</span><span>'+F2(pw.bopTotal)+' kW</span></div>'
-      + '<div class="pfd-pow-row pfd-pow-sys"'+ta('系统输入 = 整流输入 + 辅机合计')+'><span>系统输入功率</span><span>'+F1(pw.Psys)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('冷却水泵 = (ρgH+Δp)·Q/η')+'><span>冷却水泵·EOL</span><span>'+F2(pw.P_cpump)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('风机 = 全压×风量/效率')+'><span>冷却塔风机·EOL</span><span>'+F2(pw.P_fan)+' kW</span></div>'
+      + '<div class="pfd-pow-row"'+ta('纯化加热 = 直流功率 × 占比')+'><span>纯化加热·EOL</span><span>'+F2(pw.P_purif)+' kW</span></div>'
+      + '<div class="pfd-pow-row pfd-pow-group"'+ta('辅机合计 = 碱液泵+冷却水泵+风机+纯化加热')+'><span>辅机合计·EOL</span><span>'+F2(pw.bopTotal)+' kW</span></div>'
+      + '<div class="pfd-pow-row pfd-pow-sys"'+ta('系统输入 = 整流输入 + 辅机合计')+'><span>系统输入功率·EOL</span><span>'+F1(pw.Psys)+' kW</span></div>'
       + '<div class="pfd-pow-row"'+ta('产品氢流量 = 产氢流量×纯化回收率×纯度因子')+'><span>产品氢量</span><span>'+F1(pw.vH2Pro)+' Nm³/h</span></div>'
       + '<div class="pfd-pow-row"'+ta('产氢质量 = 实际产氢×2.016×3.6；纯化前粗氢')+'><span>产氢质量（粗氢）</span><span>'+F1(st.mH2kgh)+' kg/h</span></div>'
-      + '<div class="pfd-pow-row pfd-pow-sys"'+ta('电能单耗 = 系统输入 / 产品氢质量流量；kWh/Nm³ = 系统输入 / 产品氢流量')+'><span>电能单耗</span><span>'+F2(pw.kWhKg)+' kWh/kg</span></div>'
-      + '<div class="pfd-pow-row"'+ta('系统效率 = 产品氢 HHV 功率 / 系统输入功率')+'><span>系统效率(HHV)</span><span>'+F1(pw.etaSysHHV)+' %</span></div>';
+      + '<div class="pfd-pow-row pfd-pow-sys"'+ta('电能单耗 = 系统输入 / 产品氢质量流量；kWh/Nm³ = 系统输入 / 产品氢流量')+'><span>电能单耗·BOL</span><span>'+F2(pw.kWhKg)+' kWh/kg</span></div>'
+      + '<div class="pfd-pow-row"'+ta('系统效率 = 产品氢 HHV 功率 / 系统输入功率')+'><span>系统效率(HHV)·BOL</span><span>'+F1(pw.etaSysHHV)+' %</span></div>';
   }
   const c = document.getElementById('alkCtlNote');
   if(c){
@@ -12324,7 +12324,7 @@ function renderAlkTables(){
       + '<div class="pn-head">项目经济性（LCOH 综合氢成本）</div>'
       + '<div class="pn-row"'+ta('等效满负荷小时数 = 年运行小时数 × 平均负荷率/100')+'><span>等效满负荷小时数</span><span class="pn-v">'+F0(pw.eqFullH)+' h</span></div>'
       + '<div class="pn-row"'+ta('年产品氢量 = 产品氢质量流量 × 等效满负荷小时数（纯化后）')+'><span>年制氢量</span><span class="pn-v">'+F1(pw.aH2Kg/1000)+' t（'+F0(pw.aH2Nm3)+' Nm³）</span></div>'
-      + '<div class="pn-row"'+ta('年耗电量 = 系统输入功率（按平均单体电压复算）× 等效满负荷小时数')+'><span>年耗电量</span><span class="pn-v">'+F1(pw.aKWh/1000)+' MWh</span></div>'
+      + '<div class="pn-row"'+ta('年耗电量 = 系统输入功率（按平均单体电压复算）× 等效满负荷小时数')+'><span>年耗电量·平均</span><span class="pn-v">'+F1(pw.aKWh/1000)+' MWh</span></div>'
       + '<div class="pn-row"'+ta('氢气电费成本 = 电能单耗 × 电价；设计点（寿命初期）口径')+'><span>氢气电费成本(BOL)</span><span class="pn-v">'+F2(pw.h2CostKg)+' 元/kg</span></div>'
       + '<div class="pn-row"'+ta('年电费 = 年耗电量 × 电价 / 10000')+'><span>年电费</span><span class="pn-v">'+F1(pw.aCostWan)+' 万元</span></div>'
       + '<div class="pn-row"'+ta('年水费 = 年综合耗水量×水价/10000；年KOH费 = KOH年耗量×KOH价格/10000')+'><span>年水费 / KOH费</span><span class="pn-v">'+F2(pw.waterAnnual)+' / '+F2(pw.kohAnnual)+' 万元</span></div>'
