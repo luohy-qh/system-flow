@@ -1909,8 +1909,8 @@ BOP  ：空压机 22.61 + 泵 1.097 + 风扇 3.571 + 氢循环泵 0.210 = 27.49 
       <h5>1. 流程图仪表 / 控制阀</h5>
       <ul>
         <li><b>空气路</b>：滤清器后 <code>FI</code>（空气流量）、中冷器后 <code>TI</code>（增压空气温度）。</li>
-        <li><b>氢气路</b>：供氢 <code>PT</code>、比例阀 <code>PCV</code>、循环氢 <code>FI</code>、阳极入口 <code>PT</code>、气液分离器 <code>PI</code> / <code>LI</code>、电堆区氢泄漏 <code>AT</code>。</li>
-        <li><b>冷却与安全</b>：三通阀 <code>TIC</code>、冷却液泵出口 <code>FI</code>、回流 <code>TI</code>；图例新增「仪表 / 控制阀」。</li>
+        <li><b>氢气路</b>：供氢 <code>PT</code>、比例阀 <code>PCV</code>、阳极入口 <code>PT</code>；按精简要求不设循环氢 <code>FI</code>、分离器 <code>PI</code> / <code>LI</code> 与氢泄漏 <code>AT</code>。</li>
+        <li><b>冷却路</b>：三通阀 <code>TIC</code>、冷却液泵出口 <code>FI</code>、回流 <code>TI</code>；图例新增「仪表 / 控制阀」。</li>
       </ul>
       <h5>2. 图下子系统计算面板</h5>
       <ul>
@@ -6982,28 +6982,20 @@ instrTag(335, 86, 'FI');
 dashedLeader(335, 96, 335, 115);
 instrTag(660, 88, 'TI');
 dashedLeader(660, 98, 660, 115);
-/* 氢气路：供氢压力、比例阀 PCV、循环氢流量、阳极入口压力、分离器压力/液位 */
+/* 氢气路：供氢压力、比例阀 PCV、阳极入口压力 */
 instrTag(190, 392, 'PT');
 dashedLeader(190, 402, 190, 424);
 instrTag(265, 372, 'PCV');
 dashedLeader(265, 382, 265, 396);
-instrTag(330, 532, 'FI');
-dashedLeader(330, 542, 330, 552);
 instrTag(585, 396, 'PT');
 dashedLeader(578, 404, 565, 432);
-instrTag(450, 545, 'PI');
-dashedLeader(443, 552, 423, 584);
-instrTag(325, 585, 'LI');
-dashedLeader(334, 590, 346, 604);
-/* 冷却与安全：三通阀温控 TIC、泵出口流量、回流温度、电堆区氢泄漏报警 */
+/* 冷却：三通阀温控 TIC、泵出口流量、回流温度 */
 instrTag(720, 695, 'TIC');
 dashedLeader(730, 695, 753, 695);
 instrTag(665, 720, 'FI');
 dashedLeader(665, 710, 665, 704);
 instrTag(1055, 728, 'TI');
 dashedLeader(1065, 728, 1072, 728);
-instrTag(590, 485, 'AT');
-dashedLeader(600, 490, 636, 501);
 
 /* ========== 数据气泡 ========== */
 const nodes = {};
